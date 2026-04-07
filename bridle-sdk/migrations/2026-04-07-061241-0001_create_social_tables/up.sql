@@ -1,0 +1,15 @@
+CREATE TABLE follows (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  follower_id INTEGER NOT NULL REFERENCES users(id),
+  following_id INTEGER NOT NULL REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  UNIQUE(follower_id, following_id)
+);
+
+CREATE TABLE stars (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  repo_id INTEGER NOT NULL REFERENCES repositories(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  UNIQUE(user_id, repo_id)
+);

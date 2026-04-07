@@ -1,0 +1,11 @@
+CREATE TABLE keys (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  key_type TEXT NOT NULL, -- 'ssh' or 'gpg'
+  title TEXT NOT NULL,
+  key_data TEXT NOT NULL,
+  fingerprint TEXT NOT NULL UNIQUE,
+  last_used_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);

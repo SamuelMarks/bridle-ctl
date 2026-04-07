@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "bridle-sdk",
+    "bridle-cli",
+    "bridle-rest",
+    "bridle-rpc",
+    "bridle-agent"
+]
+resolver = "2"
+
+[workspace.lints.rust]
+missing_docs = "deny"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }
+
+[workspace.lints.clippy]
+missing_docs_in_private_items = "deny"

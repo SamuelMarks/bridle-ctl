@@ -1,0 +1,16 @@
+[package]
+name = "bridle-rpc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.44"
+bridle-agent = { version = "0.1.0", path = "../bridle-agent" }
+bridle-cli = { version = "0.1.0", path = "../bridle-cli" }
+bridle-sdk = { version = "0.1.0", path = "../bridle-sdk" }
+derive_more = { version = "1.0.0", features = ["display", "from", "error"] }
+jsonrpsee = { version = "0.24", features = ["client", "server"] }
+tokio = { version = "1.40", features = ["full"] }
+
+[dev-dependencies]
+jsonrpsee = { version = "0.24", features = ["http-client"] }

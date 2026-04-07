@@ -1,0 +1,12 @@
+[package]
+name = "bridle-agent"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bridle-cli = { version = "0.1.0", path = "../bridle-cli" }
+bridle-sdk = { version = "0.1.0", path = "../bridle-sdk" }
+derive_more = { version = "1.0.0", features = ["display", "from", "error"] }
+
+[lints]
+workspace = true

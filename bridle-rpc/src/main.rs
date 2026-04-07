@@ -1,0 +1,559 @@
+//! JSON RPC Interface for bridle-ctl.
+
+pub mod error;
+
+use crate::error::RpcError;
+use jsonrpsee::RpcModule;
+use jsonrpsee::server::ServerBuilder;
+use std::net::SocketAddr;
+use std::sync::Arc;
+
+/// State shared across RPC calls.
+pub struct RpcState {
+    /// The database connection string.
+    pub db_url: String,
+}
+
+/// Macro to easily register CRUD operations for SDK models in JSON RPC.
+macro_rules! register_crud_methods {
+    ($module:expr, $create_name:expr, $get_name:expr, $sdk_get:path, $sdk_insert:path, $model:ty) => {
+        $module
+            .register_method($create_name, |params, state, _| {
+                let (item,): ($model,) = params.parse()?;
+                let mut conn =
+                    bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
+                        .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+                $sdk_insert(&mut conn, &item).map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+                Ok::<(), jsonrpsee::types::error::ErrorObjectOwned>(())
+            })
+            .map_err(|e| RpcError::Register(e.to_string()))?;
+
+        $module
+            .register_method($get_name, |params, state, _| {
+                let (id,): (i32,) = params.parse()?;
+                let mut conn =
+                    bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
+                        .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+                let item = $sdk_get(&mut conn, id).map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+                Ok::<$model, jsonrpsee::types::error::ErrorObjectOwned>(item)
+            })
+            .map_err(|e| RpcError::Register(e.to_string()))?;
+    };
+}
+
+/// Starts the JSON-RPC server with a given db_url.
+pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
+    let server = ServerBuilder::default().build("127.0.0.1:0").await?;
+    let addr = server.local_addr()?;
+
+    let state = Arc::new(RpcState { db_url });
+    let mut module = RpcModule::new(state);
+
+    module
+        .register_method("health", |_, _, _| {
+            Ok::<&str, jsonrpsee::types::error::ErrorObjectOwned>("Server is healthy")
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
+    module
+        .register_method("start_agent", |_, _, _| match bridle_agent::start_agent() {
+            Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg.to_string()),
+            Err(e) => Err(RpcError::from(e).into()),
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
+    module
+        .register_method("sdk_add", |params, _, _| {
+            let (a, b): (usize, usize) = params.parse()?;
+            Ok::<usize, jsonrpsee::types::error::ErrorObjectOwned>(bridle_sdk::add(a, b))
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
+    module
+        .register_method("get_sample_user", |_, state, _| {
+            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
+                .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+
+            let now = chrono::Utc::now().naive_utc();
+            let new_user = bridle_sdk::models::User {
+                id: 1,
+                username: "agent_smith".to_string(),
+                email: "smith@matrix.com".to_string(),
+                password_hash: "hashed".to_string(),
+                avatar_url: None,
+                bio: Some("I am inevitable.".to_string()),
+                status: None,
+                created_at: now,
+                updated_at: now,
+            };
+
+            let _ = bridle_sdk::db::insert_user(&mut conn, &new_user);
+
+            let fetched = bridle_sdk::db::get_user(&mut conn, 1)
+                .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+
+            Ok::<bridle_sdk::models::User, jsonrpsee::types::error::ErrorObjectOwned>(fetched)
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
+    register_crud_methods!(
+        module,
+        "create_user",
+        "get_user",
+        bridle_sdk::db::get_user,
+        bridle_sdk::db::insert_user,
+        bridle_sdk::models::User
+    );
+    register_crud_methods!(
+        module,
+        "create_org",
+        "get_org",
+        bridle_sdk::db::get_organisation,
+        bridle_sdk::db::insert_organisation,
+        bridle_sdk::models::Organisation
+    );
+    register_crud_methods!(
+        module,
+        "create_repo",
+        "get_repo",
+        bridle_sdk::db::get_repository,
+        bridle_sdk::db::insert_repository,
+        bridle_sdk::models::Repository
+    );
+    register_crud_methods!(
+        module,
+        "create_team",
+        "get_team",
+        bridle_sdk::db::get_team,
+        bridle_sdk::db::insert_team,
+        bridle_sdk::models::Team
+    );
+    register_crud_methods!(
+        module,
+        "create_branch",
+        "get_branch",
+        bridle_sdk::db::get_branch,
+        bridle_sdk::db::insert_branch,
+        bridle_sdk::models::Branch
+    );
+    register_crud_methods!(
+        module,
+        "create_branch_protection_rule",
+        "get_branch_protection_rule",
+        bridle_sdk::db::get_branch_protection_rule,
+        bridle_sdk::db::insert_branch_protection_rule,
+        bridle_sdk::models::BranchProtectionRule
+    );
+    register_crud_methods!(
+        module,
+        "create_key",
+        "get_key",
+        bridle_sdk::db::get_key,
+        bridle_sdk::db::insert_key,
+        bridle_sdk::models::Key
+    );
+    register_crud_methods!(
+        module,
+        "create_follow",
+        "get_follow",
+        bridle_sdk::db::get_follow,
+        bridle_sdk::db::insert_follow,
+        bridle_sdk::models::Follow
+    );
+    register_crud_methods!(
+        module,
+        "create_star",
+        "get_star",
+        bridle_sdk::db::get_star,
+        bridle_sdk::db::insert_star,
+        bridle_sdk::models::Star
+    );
+    register_crud_methods!(
+        module,
+        "create_org_membership",
+        "get_org_membership",
+        bridle_sdk::db::get_org_membership,
+        bridle_sdk::db::insert_org_membership,
+        bridle_sdk::models::OrgMembership
+    );
+    register_crud_methods!(
+        module,
+        "create_repo_collaborator",
+        "get_repo_collaborator",
+        bridle_sdk::db::get_repo_collaborator,
+        bridle_sdk::db::insert_repo_collaborator,
+        bridle_sdk::models::RepoCollaborator
+    );
+    register_crud_methods!(
+        module,
+        "create_milestone",
+        "get_milestone",
+        bridle_sdk::db::get_milestone,
+        bridle_sdk::db::insert_milestone,
+        bridle_sdk::models::Milestone
+    );
+    register_crud_methods!(
+        module,
+        "create_label",
+        "get_label",
+        bridle_sdk::db::get_label,
+        bridle_sdk::db::insert_label,
+        bridle_sdk::models::Label
+    );
+    register_crud_methods!(
+        module,
+        "create_issue",
+        "get_issue",
+        bridle_sdk::db::get_issue,
+        bridle_sdk::db::insert_issue,
+        bridle_sdk::models::Issue
+    );
+    register_crud_methods!(
+        module,
+        "create_issue_label",
+        "get_issue_label",
+        bridle_sdk::db::get_issue_label,
+        bridle_sdk::db::insert_issue_label,
+        bridle_sdk::models::IssueLabel
+    );
+    register_crud_methods!(
+        module,
+        "create_pull_request",
+        "get_pull_request",
+        bridle_sdk::db::get_pull_request,
+        bridle_sdk::db::insert_pull_request,
+        bridle_sdk::models::PullRequest
+    );
+    register_crud_methods!(
+        module,
+        "create_pull_request_review",
+        "get_pull_request_review",
+        bridle_sdk::db::get_pull_request_review,
+        bridle_sdk::db::insert_pull_request_review,
+        bridle_sdk::models::PullRequestReview
+    );
+    register_crud_methods!(
+        module,
+        "create_release",
+        "get_release",
+        bridle_sdk::db::get_release,
+        bridle_sdk::db::insert_release,
+        bridle_sdk::models::Release
+    );
+    register_crud_methods!(
+        module,
+        "create_webhook",
+        "get_webhook",
+        bridle_sdk::db::get_webhook,
+        bridle_sdk::db::insert_webhook,
+        bridle_sdk::models::Webhook
+    );
+    register_crud_methods!(
+        module,
+        "create_commit",
+        "get_commit",
+        bridle_sdk::db::get_commit,
+        bridle_sdk::db::insert_commit,
+        bridle_sdk::models::Commit
+    );
+    register_crud_methods!(
+        module,
+        "create_tree",
+        "get_tree",
+        bridle_sdk::db::get_tree,
+        bridle_sdk::db::insert_tree,
+        bridle_sdk::models::Tree
+    );
+    register_crud_methods!(
+        module,
+        "create_blob",
+        "get_blob",
+        bridle_sdk::db::get_blob,
+        bridle_sdk::db::insert_blob,
+        bridle_sdk::models::Blob
+    );
+
+    module
+        .register_method("run_tools", |params, _, _| {
+            let (req,): (bridle_sdk::models::ToolRunRequest,) = params.parse()?;
+            let action = match req.action.as_deref() {
+                Some("audit") => bridle_cli::runner::Action::Audit,
+                _ => {
+                    let is_dry_run = match req.dry_run {
+                        Some(true) => true,
+                        _ => false,
+                    };
+                    bridle_cli::runner::Action::Fix {
+                        dry_run: is_dry_run,
+                    }
+                }
+            };
+
+            match bridle_cli::runner::run(action, req) {
+                Ok(_) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(
+                    "Tools executed successfully".to_string(),
+                ),
+                Err(e) => Err(RpcError::from(e).into()),
+            }
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
+    let handle = server.start(module);
+
+    tokio::spawn(handle.stopped());
+
+    Ok(addr)
+}
+
+/// Main entry point for the JSON RPC server.
+#[cfg(not(tarpaulin_include))]
+#[tokio::main]
+async fn main() -> Result<(), RpcError> {
+    let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "bridle.db".to_string());
+    let addr = run_server(db_url).await?;
+    println!("JSON-RPC server running at {}", addr);
+
+    std::future::pending::<()>().await;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bridle_sdk::models::{Organisation, Repository, User};
+    use jsonrpsee::core::client::ClientT;
+    use jsonrpsee::http_client::HttpClientBuilder;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn get_test_db() -> String {
+        let count = DB_COUNTER.fetch_add(1, Ordering::SeqCst);
+        format!("test_rpc_db_{}.sqlite", count)
+    }
+
+    #[tokio::test]
+    async fn test_health_check_rpc() -> Result<(), RpcError> {
+        let addr = run_server(get_test_db()).await?;
+        let url = format!("http://{}", addr);
+
+        let client = HttpClientBuilder::default().build(url)?;
+        let response: String = client.request("health", jsonrpsee::rpc_params![]).await?;
+
+        assert_eq!(response, "Server is healthy");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_start_agent_rpc() -> Result<(), RpcError> {
+        let addr = run_server(get_test_db()).await?;
+        let url = format!("http://{}", addr);
+
+        let client = HttpClientBuilder::default().build(url)?;
+        let response: String = client
+            .request("start_agent", jsonrpsee::rpc_params![])
+            .await?;
+
+        assert_eq!(response, "Agent started");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_sdk_add_rpc() -> Result<(), RpcError> {
+        let addr = run_server(get_test_db()).await?;
+        let url = format!("http://{}", addr);
+
+        let client = HttpClientBuilder::default().build(url)?;
+        let response: usize = client
+            .request("sdk_add", jsonrpsee::rpc_params![2, 3])
+            .await?;
+
+        assert_eq!(response, 5);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_sample_user_rpc() -> Result<(), RpcError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+
+        let client = HttpClientBuilder::default().build(url)?;
+        let user: User = client
+            .request("get_sample_user", jsonrpsee::rpc_params![])
+            .await?;
+
+        assert_eq!(user.username, "agent_smith");
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_run_tools_rpc() -> Result<(), RpcError> {
+        let addr = run_server(get_test_db()).await?;
+        let url = format!("http://{}", addr);
+
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let payload_fix = bridle_sdk::models::ToolRunRequest {
+            pattern: Some(r".*\.go$".to_string()),
+            tools: Some(vec!["go-err-check".to_string()]),
+            tool_args: None,
+            dry_run: Some(true),
+            action: Some("fix".to_string()),
+        };
+
+        let response_fix: String = client
+            .request("run_tools", jsonrpsee::rpc_params![payload_fix])
+            .await?;
+        assert_eq!(response_fix, "Tools executed successfully");
+
+        let payload_audit = bridle_sdk::models::ToolRunRequest {
+            pattern: Some(r".*\.go$".to_string()),
+            tools: Some(vec!["go-err-check".to_string()]),
+            tool_args: None,
+            dry_run: None,
+            action: Some("audit".to_string()),
+        };
+
+        let response_audit: String = client
+            .request("run_tools", jsonrpsee::rpc_params![payload_audit])
+            .await?;
+        assert_eq!(response_audit, "Tools executed successfully");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_team_crud_rpc() -> Result<(), RpcError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let now = chrono::Utc::now().naive_utc();
+        let new_team = bridle_sdk::models::Team {
+            id: 11,
+            org_id: 1,
+            parent_id: None,
+            name: "rpcteam".to_string(),
+            description: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let _: () = client
+            .request("create_team", jsonrpsee::rpc_params![new_team])
+            .await?;
+        let fetched: bridle_sdk::models::Team = client
+            .request("get_team", jsonrpsee::rpc_params![11])
+            .await?;
+
+        assert_eq!(fetched.name, "rpcteam");
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_user_crud_rpc() -> Result<(), RpcError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let now = chrono::Utc::now().naive_utc();
+        let new_user = User {
+            id: 11,
+            username: "rpctester".to_string(),
+            email: "rpc@example.com".to_string(),
+            password_hash: "hash".to_string(),
+            avatar_url: None,
+            bio: None,
+            status: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let _: () = client
+            .request("create_user", jsonrpsee::rpc_params![new_user])
+            .await?;
+        let fetched: User = client
+            .request("get_user", jsonrpsee::rpc_params![11])
+            .await?;
+
+        assert_eq!(fetched.username, "rpctester");
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_org_crud_rpc() -> Result<(), RpcError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let now = chrono::Utc::now().naive_utc();
+        let new_org = Organisation {
+            id: 11,
+            name: "rpcorg".to_string(),
+            description: None,
+            verified_domain: None,
+            billing_plan: "pro".to_string(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let _: () = client
+            .request("create_org", jsonrpsee::rpc_params![new_org])
+            .await?;
+        let fetched: Organisation = client
+            .request("get_org", jsonrpsee::rpc_params![11])
+            .await?;
+
+        assert_eq!(fetched.name, "rpcorg");
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_repo_crud_rpc() -> Result<(), RpcError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let now = chrono::Utc::now().naive_utc();
+        let new_repo = Repository {
+            id: 11,
+            owner_id: 1,
+            owner_type: "org".to_string(),
+            name: "rpcrepo".to_string(),
+            description: None,
+            is_private: false,
+            is_fork: false,
+            archived: false,
+            allow_merge_commit: true,
+            allow_squash_merge: true,
+            allow_rebase_merge: true,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let _: () = client
+            .request("create_repo", jsonrpsee::rpc_params![new_repo])
+            .await?;
+        let fetched: Repository = client
+            .request("get_repo", jsonrpsee::rpc_params![11])
+            .await?;
+
+        assert_eq!(fetched.name, "rpcrepo");
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+}

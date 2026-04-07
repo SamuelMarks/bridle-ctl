@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <rect width="100%" height="100%" fill="url(#bgGrad)" />
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Geometric Code-Bridle Logo -->
+  <g transform="translate(60, 50)">
+    <!-- Hexagon Background -->
+    <path d="M 75 10 L 130 40 L 130 110 L 75 140 L 20 110 L 20 40 Z" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    
+    <!-- Code Brackets forming a bridle/connection abstraction -->
+    <path d="M 50 50 L 35 75 L 50 100" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 100 50 L 115 75 L 100 100" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <!-- The Reins (Glowing neon cross/connection) -->
+    <path d="M 25 75 L 125 75" fill="none" stroke="url(#accentGrad)" stroke-width="6" stroke-linecap="round" filter="url(#glow)"/>
+    <path d="M 75 25 L 75 125" fill="none" stroke="url(#accentGrad)" stroke-width="6" stroke-linecap="round" filter="url(#glow)"/>
+    
+    <!-- Tech Nodes -->
+    <circle cx="25" cy="75" r="5" fill="#f8fafc" />
+    <circle cx="125" cy="75" r="5" fill="#f8fafc" />
+    <circle cx="75" cy="25" r="5" fill="#f8fafc" />
+    <circle cx="75" cy="125" r="5" fill="#f8fafc" />
+  </g>
+
+  <!-- Typography -->
+  <text x="240" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="60" font-weight="800" fill="url(#textGrad)" letter-spacing="-1">bridle-ctl</text>
+  
+  <text x="245" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="500" fill="#94a3b8" letter-spacing="0.5">Because your LLM needs reins, not a blank check.</text>
+  
+  <path d="M 245 190 L 345 190" stroke="url(#accentGrad)" stroke-width="4" stroke-linecap="round" filter="url(#glow)"/>
+</svg>
