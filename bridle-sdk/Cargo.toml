@@ -19,3 +19,7 @@ cc = "1.0"
 [dev-dependencies]
 encoding_rs_io = "0.1.7"
 tempfile = "3.27.0"
+
+
+[lints]
+workspace = true

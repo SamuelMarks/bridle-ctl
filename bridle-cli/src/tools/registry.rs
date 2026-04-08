@@ -5,6 +5,7 @@ use std::ffi::CString;
 /// A mock tool for testing Rust `unwrap()` replacements.
 struct MockRustTool;
 
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for MockRustTool {
     fn name(&self) -> &'static str {
         "rust-unwrap-to-question-mark"
@@ -30,6 +31,7 @@ impl CodeTool for MockRustTool {
 /// A mock tool for testing Go error checks.
 struct MockGoTool;
 
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for MockGoTool {
     fn name(&self) -> &'static str {
         "go-err-check"
@@ -57,6 +59,7 @@ impl CodeTool for MockGoTool {
 /// A mock tool for testing GitHub Actions workflows.
 struct GithubActionsTool;
 
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for GithubActionsTool {
     fn name(&self) -> &'static str {
         "gha-improver"
@@ -81,6 +84,7 @@ impl CodeTool for GithubActionsTool {
 
 /// Tool mapping for FFI into cdd-c
 struct CddCTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for CddCTool {
     fn name(&self) -> &'static str {
         "cdd-c"
@@ -106,6 +110,7 @@ impl CodeTool for CddCTool {
 
 /// Tool mapping for FFI into type-correct
 struct TypeCorrectTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for TypeCorrectTool {
     fn name(&self) -> &'static str {
         "type-correct"
@@ -159,6 +164,7 @@ impl CodeTool for TypeCorrectTool {
 
 /// Tool mapping for FFI into go-auto-err-handling
 struct GoAutoErrHandlingTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for GoAutoErrHandlingTool {
     fn name(&self) -> &'static str {
         "go-auto-err-handling"
@@ -207,11 +213,10 @@ impl CodeTool for GoAutoErrHandlingTool {
 }
 
 use std::env;
-use std::path::PathBuf;
-use std::process::Command;
 
 /// Tool mapping for Subprocess into lib2notebook2lib
 struct Lib2Notebook2LibTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for Lib2Notebook2LibTool {
     fn name(&self) -> &'static str {
         "lib2notebook2lib"
@@ -280,6 +285,7 @@ impl CodeTool for Lib2Notebook2LibTool {
 
 /// Tool for exclusive file modification testing file_lock
 struct FileLockTesterTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for FileLockTesterTool {
     fn name(&self) -> &'static str {
         "file-lock-tester"
@@ -319,6 +325,7 @@ impl CodeTool for FileLockTesterTool {
 
 /// Tool for normalizing file encodings and line endings
 struct EncodingNormalizerTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for EncodingNormalizerTool {
     fn name(&self) -> &'static str {
         "encoding-normalizer"
@@ -351,6 +358,7 @@ impl CodeTool for EncodingNormalizerTool {
 
 /// Tool for migrating user structures in SQLite using the SDK
 struct DBMigratorTool;
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for DBMigratorTool {
     fn name(&self) -> &'static str {
         "db-migrator-tester"

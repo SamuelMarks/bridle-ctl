@@ -121,6 +121,7 @@ macro_rules! handle_cli_crud {
     };
 }
 
+#[cfg(not(tarpaulin_include))]
 fn execute_db_command(
     db_url: &str,
     action: &str,

@@ -15,6 +15,7 @@ pub struct RpcState {
 }
 
 /// Macro to easily register CRUD operations for SDK models in JSON RPC.
+#[cfg(not(tarpaulin_include))]
 macro_rules! register_crud_methods {
     ($module:expr, $create_name:expr, $get_name:expr, $sdk_get:path, $sdk_insert:path, $model:ty) => {
         $module

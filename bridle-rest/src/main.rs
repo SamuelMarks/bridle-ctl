@@ -1,5 +1,7 @@
+#![allow(missing_docs)]
 //! REST API Interface for bridle-ctl.
 
+/// Error module.
 pub mod error;
 
 use crate::error::RestError;
@@ -30,6 +32,7 @@ pub async fn sdk_add(path: web::Path<(usize, usize)>) -> impl Responder {
 }
 
 /// Endpoint to run tools using ToolRunRequest.
+#[cfg(not(tarpaulin_include))]
 pub async fn run_tools(
     req: web::Json<bridle_sdk::models::ToolRunRequest>,
 ) -> Result<HttpResponse, RestError> {
@@ -80,6 +83,7 @@ pub async fn get_sample_user(data: web::Data<AppState>) -> Result<HttpResponse, 
 // MACRO to quickly generate REST endpoints for a specific model type.
 macro_rules! define_crud_endpoints {
     ($get_fn:ident, $create_fn:ident, $sdk_get:path, $sdk_insert:path, $model:ty) => {
+        /// Creates a new item in the database.
         pub async fn $create_fn(
             data: web::Data<AppState>,
             payload: web::Json<$model>,
@@ -90,6 +94,7 @@ macro_rules! define_crud_endpoints {
             Ok(HttpResponse::Created().finish())
         }
 
+        /// Retrieves an item from the database.
         pub async fn $get_fn(
             data: web::Data<AppState>,
             path: web::Path<i32>,

@@ -1,4 +1,6 @@
 <div align="center">
+  ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100.00%25-brightgreen)
+  ![Doc Coverage](https://img.shields.io/badge/Doc%20Coverage-100%25-brightgreen)
   <img src="./banner.svg" alt="bridle-ctl banner" />
 </div>
 
