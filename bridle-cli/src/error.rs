@@ -6,6 +6,9 @@ use std::io;
 /// Custom error type for the CLI.
 #[derive(Debug, Display, Error, From)]
 pub enum CliError {
+    /// HTTP Request Error
+    #[display("Request Error: {}", _0)]
+    Request(reqwest::Error),
     /// IO Error
     #[display("IO Error: {}", _0)]
     Io(io::Error),
@@ -13,10 +16,6 @@ pub enum CliError {
     /// JSON serialization/deserialization error
     #[display("JSON Error: {}", _0)]
     Json(serde_json::Error),
-
-    /// Interactive prompt error
-    #[display("Prompt Error: {}", _0)]
-    Inquire(inquire::InquireError),
 
     /// Template parsing error from indicatif
     #[display("Template Error: {}", _0)]
@@ -69,13 +68,6 @@ mod tests {
         let json_err = serde_json::from_str::<serde_json::Value>("{ invalid").unwrap_err();
         let err: CliError = json_err.into();
         assert!(err.to_string().starts_with("JSON Error:"));
-    }
-
-    #[test]
-    fn test_from_inquire_error() {
-        let inq_err = inquire::InquireError::InvalidConfiguration("test".to_string());
-        let err: CliError = inq_err.into();
-        assert!(err.to_string().starts_with("Prompt Error:"));
     }
 
     #[test]

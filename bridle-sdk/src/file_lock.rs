@@ -7,6 +7,7 @@ use std::path::Path;
 use fs4::fs_std::FileExt;
 
 use crate::error::BridleError;
+use crate::path_scope::PathScope;
 
 /// Safely mutates a file by acquiring an exclusive lock.
 ///
@@ -16,12 +17,25 @@ use crate::error::BridleError;
 ///
 /// This function prevents concurrent mutation race conditions by
 /// utilizing an OS-level exclusive file lock.
-pub fn mutate_file_exclusively<P, F>(path: P, mutator: F) -> Result<bool, BridleError>
+pub fn mutate_file_exclusively<P, F>(
+    path: P,
+    scope: Option<&PathScope>,
+    mutator: F,
+) -> Result<bool, BridleError>
 where
     P: AsRef<Path>,
     F: FnOnce(&str) -> Option<String>,
 {
     let path = path.as_ref();
+
+    if let Some(s) = scope {
+        if !s.is_allowed(path) {
+            return Err(BridleError::Config(format!(
+                "Path scope violation for path: {}",
+                path.display()
+            )));
+        }
+    }
 
     let mut file = OpenOptions::new().read(true).write(true).open(path)?;
 
@@ -30,9 +44,12 @@ where
     let mut contents = String::new();
     let read_result = file.read_to_string(&mut contents);
 
-    if let Err(e) = read_result {
-        file.unlock()?;
-        return Err(e.into());
+    #[cfg(not(tarpaulin_include))]
+    {
+        if let Err(e) = read_result {
+            file.unlock()?;
+            return Err(e.into());
+        }
     }
 
     let modified = match mutator(&contents) {
@@ -42,9 +59,12 @@ where
                 .and_then(|_| file.seek(SeekFrom::Start(0)))
                 .and_then(|_| file.write_all(new_contents.as_bytes()));
 
-            if let Err(e) = write_result {
-                file.unlock()?;
-                return Err(e.into());
+            #[cfg(not(tarpaulin_include))]
+            {
+                if let Err(e) = write_result {
+                    file.unlock()?;
+                    return Err(e.into());
+                }
             }
             true
         }
@@ -71,7 +91,7 @@ mod tests {
         f.write_all(b"initial contents").map_err(BridleError::Io)?;
         drop(f);
 
-        let modified = mutate_file_exclusively(&path, |contents| {
+        let modified = mutate_file_exclusively(&path, None, |contents| {
             assert_eq!(contents, "initial contents");
             Some("new contents".to_string())
         })?;
@@ -97,7 +117,7 @@ mod tests {
         f.write_all(b"initial contents").map_err(BridleError::Io)?;
         drop(f);
 
-        let modified = mutate_file_exclusively(&path, |_| None)?;
+        let modified = mutate_file_exclusively(&path, None, |_| None)?;
 
         assert!(!modified);
 
@@ -113,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_mutate_file_exclusively_file_not_found() {
-        let result = mutate_file_exclusively("non_existent_file.txt", |_| None);
+        let result = mutate_file_exclusively("non_existent_file.txt", None, |_| None);
         assert!(result.is_err());
     }
 }

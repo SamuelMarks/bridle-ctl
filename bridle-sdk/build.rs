@@ -104,8 +104,4 @@ fn main() {
 
     // Add rpath so the binary can find the dylib at runtime
     println!("cargo:rustc-link-arg=-Wl,-rpath,{}/lib", dst.display());
-
-    // --- cdd-c stub ---
-    println!("cargo:rerun-if-changed=src/cdd_stub.c");
-    cc::Build::new().file("src/cdd_stub.c").compile("cdd_stub");
 }

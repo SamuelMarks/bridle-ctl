@@ -124,6 +124,49 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
+    fn test_read_utf8_bom() -> Result<(), BridleError> {
+        let mut temp_file = NamedTempFile::new().map_err(BridleError::Io)?;
+        temp_file
+            .write_all(b"\xEF\xBB\xBFhi")
+            .map_err(BridleError::Io)?;
+        let doc = read_file_with_encoding(temp_file.path())?;
+        assert!(doc.has_bom);
+        assert_eq!(doc.encoding, encoding_rs::UTF_8);
+        Ok(())
+    }
+
+    #[test]
+    fn test_read_utf16be_bom() -> Result<(), BridleError> {
+        let mut temp_file = NamedTempFile::new().map_err(BridleError::Io)?;
+        temp_file
+            .write_all(b"\xFE\xFF\x00h\x00i")
+            .map_err(BridleError::Io)?;
+        let doc = read_file_with_encoding(temp_file.path())?;
+        assert!(doc.has_bom);
+        assert_eq!(doc.encoding, encoding_rs::UTF_16BE);
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_utf8_bom() -> Result<(), BridleError> {
+        let doc = TextDocument {
+            text: Cow::Borrowed("hi"),
+            encoding: encoding_rs::UTF_8,
+            has_bom: true,
+            line_ending: "\n",
+        };
+        let out_file = NamedTempFile::new().map_err(BridleError::Io)?;
+        write_file_with_encoding(out_file.path(), &doc)?;
+        let mut raw_bytes = Vec::new();
+        File::open(out_file.path())
+            .map_err(BridleError::Io)?
+            .read_to_end(&mut raw_bytes)
+            .map_err(BridleError::Io)?;
+        assert_eq!(raw_bytes, b"\xEF\xBB\xBFhi");
+        Ok(())
+    }
+
+    #[test]
     fn test_detect_line_ending() {
         assert_eq!(detect_line_ending("hello\nworld"), "\n");
         assert_eq!(detect_line_ending("hello\r\nworld"), "\r\n");

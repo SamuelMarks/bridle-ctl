@@ -1,5 +1,6 @@
 use super::CodeTool;
 use crate::error::CliError;
+use bridle_sdk::path_scope::PathScope;
 use std::ffi::CString;
 
 /// A mock tool for testing Rust `unwrap()` replacements.
@@ -16,10 +17,15 @@ impl CodeTool for MockRustTool {
     fn match_regex(&self) -> &'static str {
         r".*\.rs$"
     }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         Ok("Found 3 instances of .unwrap()".to_string())
     }
-    fn fix(&self, _args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        _args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if dry_run {
             Ok("[DRY RUN] Would replace 3 instances of .unwrap() with ?".to_string())
         } else {
@@ -42,10 +48,15 @@ impl CodeTool for MockGoTool {
     fn match_regex(&self) -> &'static str {
         r".*\.go$"
     }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         Ok("Found 1 missing error check".to_string())
     }
-    fn fix(&self, _args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        _args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if dry_run {
             Ok("[DRY RUN] Would add 1 error check".to_string())
         } else {
@@ -55,7 +66,6 @@ impl CodeTool for MockGoTool {
 }
 
 /// Tool for applying automatic namespaces
-
 /// A mock tool for testing GitHub Actions workflows.
 struct GithubActionsTool;
 
@@ -70,41 +80,20 @@ impl CodeTool for GithubActionsTool {
     fn match_regex(&self) -> &'static str {
         r"\.github/workflows/.*\.ya?ml$"
     }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         Ok("Found 2 workflow improvements".to_string())
     }
-    fn fix(&self, _args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        _args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if dry_run {
             Ok("[DRY RUN] Would apply 2 workflow improvements".to_string())
         } else {
             Ok("Applied 2 workflow improvements".to_string())
         }
-    }
-}
-
-/// Tool mapping for FFI into cdd-c
-struct CddCTool;
-#[cfg(not(tarpaulin_include))]
-impl CodeTool for CddCTool {
-    fn name(&self) -> &'static str {
-        "cdd-c"
-    }
-    fn description(&self) -> &'static str {
-        "Code Generation/Refactoring using cdd-c"
-    }
-    fn match_regex(&self) -> &'static str {
-        r".*\.[ch]$"
-    }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
-        let _ctx = bridle_sdk::ffi::init_cdd_context();
-        Ok("cdd-c audit executed".into())
-    }
-    fn fix(&self, _args: &[String], dry_run: bool) -> Result<String, CliError> {
-        let _ctx = bridle_sdk::ffi::init_cdd_context();
-        if dry_run {
-            return Ok("[DRY RUN] cdd-c fix planned".into());
-        }
-        Ok("cdd-c fix applied".into())
     }
 }
 
@@ -121,7 +110,7 @@ impl CodeTool for TypeCorrectTool {
     fn match_regex(&self) -> &'static str {
         r".*\.(c|cpp|h|hpp)$"
     }
-    fn audit(&self, args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         if args.is_empty() {
             return Err(CliError::Execution(
                 "Missing target file argument".to_string(),
@@ -129,7 +118,7 @@ impl CodeTool for TypeCorrectTool {
         }
         let c_path = CString::new(args[0].clone())
             .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
-        let result = bridle_sdk::ffi::type_correct_audit_safe(&c_path)
+        let result = bridle_sdk::ffi::type_correct_audit_safe(&c_path, _scope)
             .map_err(|e| CliError::Execution(e.to_string()))?;
         if result != 0 {
             return Err(CliError::Execution(format!(
@@ -139,7 +128,12 @@ impl CodeTool for TypeCorrectTool {
         }
         Ok("type-correct audit executed successfully".into())
     }
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if args.is_empty() {
             return Err(CliError::Execution(
                 "Missing target file argument".to_string(),
@@ -147,7 +141,7 @@ impl CodeTool for TypeCorrectTool {
         }
         let c_path = CString::new(args[0].clone())
             .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
-        let result = bridle_sdk::ffi::type_correct_fix_safe(&c_path, dry_run)
+        let result = bridle_sdk::ffi::type_correct_fix_safe(&c_path, dry_run, _scope)
             .map_err(|e| CliError::Execution(e.to_string()))?;
         if result != 0 {
             return Err(CliError::Execution(format!(
@@ -175,11 +169,11 @@ impl CodeTool for GoAutoErrHandlingTool {
     fn match_regex(&self) -> &'static str {
         r".*\.go$"
     }
-    fn audit(&self, args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         let path_str = args.first().map(|s| s.as_str()).unwrap_or(".");
         let c_path = CString::new(path_str)
             .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
-        let result = bridle_sdk::ffi::audit_go_errors(&c_path)?;
+        let result = bridle_sdk::ffi::audit_go_errors(&c_path, _scope)?;
         if result == 0 {
             Ok(format!(
                 "go-auto-err-handling audit: No issues found for {}",
@@ -192,11 +186,16 @@ impl CodeTool for GoAutoErrHandlingTool {
             ))
         }
     }
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         let path_str = args.first().map(|s| s.as_str()).unwrap_or(".");
         let c_path = CString::new(path_str)
             .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
-        let result = bridle_sdk::ffi::fix_go_errors(&c_path, dry_run)?;
+        let result = bridle_sdk::ffi::fix_go_errors(&c_path, dry_run, _scope)?;
         let dry_prefix = if dry_run { "[DRY RUN] " } else { "" };
         if result == 0 {
             Ok(format!(
@@ -228,7 +227,7 @@ impl CodeTool for Lib2Notebook2LibTool {
         r".*\.(py|ipynb)$"
     }
 
-    fn audit(&self, args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         if env::var("RUST_TEST_MODE").is_ok() {
             return Ok("lib2notebook2lib audit executed".into());
         }
@@ -238,7 +237,7 @@ impl CodeTool for Lib2Notebook2LibTool {
         }
         let c_path = CString::new(args[0].clone())
             .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
-        let res = bridle_sdk::ffi::convert_to_notebook(&c_path, false, false)
+        let res = bridle_sdk::ffi::convert_to_notebook(&c_path, false, false, _scope)
             .map_err(|e| CliError::Execution(e.to_string()))?;
         if res == 0 {
             Ok(format!(
@@ -253,7 +252,12 @@ impl CodeTool for Lib2Notebook2LibTool {
         }
     }
 
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if env::var("RUST_TEST_MODE").is_ok() {
             if dry_run {
                 return Ok("[DRY RUN] lib2notebook2lib fix planned".into());
@@ -266,7 +270,7 @@ impl CodeTool for Lib2Notebook2LibTool {
         }
         let c_path = CString::new(args[0].clone())
             .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
-        let res = bridle_sdk::ffi::convert_to_notebook(&c_path, true, dry_run)
+        let res = bridle_sdk::ffi::convert_to_notebook(&c_path, true, dry_run, _scope)
             .map_err(|e| CliError::Execution(e.to_string()))?;
         if res == 0 {
             let dry_prefix = if dry_run { "[DRY RUN] " } else { "" };
@@ -296,10 +300,15 @@ impl CodeTool for FileLockTesterTool {
     fn match_regex(&self) -> &'static str {
         r".*\.txt$"
     }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         Ok("file-lock-tester audit executed".into())
     }
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if args.is_empty() {
             return Ok("No file provided".to_string());
         }
@@ -307,14 +316,15 @@ impl CodeTool for FileLockTesterTool {
         if dry_run {
             return Ok(format!("[DRY RUN] Would mutate {}", path));
         }
-        let modified = bridle_sdk::file_lock::mutate_file_exclusively(path, |contents| {
-            if contents.contains("LOCK_ME") {
-                Some(contents.replace("LOCK_ME", "LOCKED"))
-            } else {
-                None
-            }
-        })
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        let modified =
+            bridle_sdk::file_lock::mutate_file_exclusively(path, _scope, |contents: &str| {
+                if contents.contains("LOCK_ME") {
+                    Some(contents.replace("LOCK_ME", "LOCKED"))
+                } else {
+                    None
+                }
+            })
+            .map_err(|e| CliError::Execution(e.to_string()))?;
         if modified {
             Ok(format!("Exclusively mutated {}", path))
         } else {
@@ -336,10 +346,15 @@ impl CodeTool for EncodingNormalizerTool {
     fn match_regex(&self) -> &'static str {
         r".*\.txt$"
     }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         Ok("encoding-normalizer audit executed".into())
     }
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if args.is_empty() {
             return Ok("No file provided".to_string());
         }
@@ -369,10 +384,15 @@ impl CodeTool for DBMigratorTool {
     fn match_regex(&self) -> &'static str {
         r".*\.sqlite3$"
     }
-    fn audit(&self, _args: &[String]) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
         Ok("db-migrator-tester audit executed".into())
     }
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
         if args.is_empty() {
             return Ok("No database path provided".to_string());
         }
@@ -404,7 +424,6 @@ pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
         Box::new(MockRustTool),
         Box::new(MockGoTool),
         Box::new(GithubActionsTool),
-        Box::new(CddCTool),
         Box::new(TypeCorrectTool),
         Box::new(GoAutoErrHandlingTool),
         Box::new(Lib2Notebook2LibTool),
@@ -436,59 +455,52 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mock_rust_tool() -> Result<(), CliError> {
+    fn test_mock_rust_tool() -> Result<(), Box<dyn std::error::Error>> {
         let tool = MockRustTool;
         assert_eq!(tool.name(), "rust-unwrap-to-question-mark");
         assert_eq!(tool.match_regex(), r".*\.rs$");
-        assert!(tool.audit(&[])?.contains("3 instances"));
-        assert!(tool.fix(&[], false)?.contains("Replaced 3 instances"));
-        assert!(tool.fix(&[], true)?.contains("[DRY RUN]"));
+        assert!(tool.audit(&[], None)?.contains("3 instances"));
+        assert!(tool.fix(&[], false, None)?.contains("Replaced 3 instances"));
+        assert!(tool.fix(&[], true, None)?.contains("[DRY RUN]"));
         Ok(())
     }
 
     #[test]
-    fn test_mock_go_tool() -> Result<(), CliError> {
+    fn test_mock_go_tool() -> Result<(), Box<dyn std::error::Error>> {
         let tool = MockGoTool;
         assert_eq!(tool.name(), "go-err-check");
-        assert!(tool.audit(&[])?.contains("1 missing"));
-        assert!(tool.fix(&[], false)?.contains("Added 1 error check"));
-        assert!(tool.fix(&[], true)?.contains("[DRY RUN]"));
+        assert!(tool.audit(&[], None)?.contains("1 missing"));
+        assert!(tool.fix(&[], false, None)?.contains("Added 1 error check"));
+        assert!(tool.fix(&[], true, None)?.contains("[DRY RUN]"));
         Ok(())
     }
 
     #[test]
-    #[test]
-    fn test_mock_gha_tool() -> Result<(), CliError> {
+    fn test_mock_gha_tool() -> Result<(), Box<dyn std::error::Error>> {
         let tool = GithubActionsTool;
         assert_eq!(tool.name(), "gha-improver");
-        assert!(tool.audit(&[])?.contains("2 workflow"));
-        assert!(tool.fix(&[], false)?.contains("Applied 2 workflow"));
-        assert!(tool.fix(&[], true)?.contains("[DRY RUN]"));
+        assert!(tool.audit(&[], None)?.contains("2 workflow"));
+        assert!(tool.fix(&[], false, None)?.contains("Applied 2 workflow"));
+        assert!(tool.fix(&[], true, None)?.contains("[DRY RUN]"));
         Ok(())
     }
 
     #[test]
-    fn test_ffi_tools() -> Result<(), CliError> {
+    fn test_ffi_tools() -> Result<(), Box<dyn std::error::Error>> {
         let tools = get_tools();
-        let cddc = tools.iter().find(|t| t.name() == "cdd-c").unwrap();
-        assert_eq!(
-            cddc.description(),
-            "Code Generation/Refactoring using cdd-c"
-        );
-        assert_eq!(cddc.match_regex(), r".*\.[ch]$");
-        assert_eq!(cddc.audit(&[])?, "cdd-c audit executed");
-        assert_eq!(cddc.fix(&[], false)?, "cdd-c fix applied");
-        assert_eq!(cddc.fix(&[], true)?, "[DRY RUN] cdd-c fix planned");
 
-        let tc = tools.iter().find(|t| t.name() == "type-correct").unwrap();
+        let tc = tools
+            .iter()
+            .find(|t| t.name() == "type-correct")
+            .ok_or("err")?;
         assert_eq!(
             tc.description(),
             "Identifies and resolves C/C++ type inconsistencies"
         );
         assert_eq!(tc.match_regex(), r".*\.(c|cpp|h|hpp)$");
         // Test with empty args (should fail)
-        assert!(tc.audit(&[]).is_err());
-        assert!(tc.fix(&[], false).is_err());
+        assert!(tc.audit(&[], None).is_err());
+        assert!(tc.fix(&[], false, None).is_err());
 
         // Cannot test with a valid path easily because it actually executes the C++ code
         // and expects a valid file. But we can mock or skip executing the full tool,
@@ -496,30 +508,30 @@ mod tests {
         // It returns >0 or error if file doesn't exist.
         // For unit testing purposes, we could just accept that it returns an error for invalid files.
         let args = vec!["nonexistent_file.cpp".to_string()];
-        assert!(tc.audit(&args).is_err()); // will fail because file doesn't exist or is invalid
+        assert!(tc.audit(&args, None).is_err()); // will fail because file doesn't exist or is invalid
 
         let ge = tools
             .iter()
             .find(|t| t.name() == "go-auto-err-handling")
-            .unwrap();
+            .ok_or("err")?;
         assert_eq!(ge.description(), "Go automatic error handling insertion");
         assert_eq!(ge.match_regex(), r".*\.go$");
-        let res_audit = ge.audit(&[".".to_string()])?;
+        let res_audit = ge.audit(&[".".to_string()], None)?;
         assert!(res_audit.contains("No issues found for ."));
 
-        let res_audit_no_arg = ge.audit(&[])?;
+        let res_audit_no_arg = ge.audit(&[], None)?;
         assert!(res_audit_no_arg.contains("No issues found for ."));
 
-        let res_fix = ge.fix(&[".".to_string()], false)?;
+        let res_fix = ge.fix(&[".".to_string()], false, None)?;
         assert!(res_fix.contains("fix applied successfully"));
 
-        let res_fix_dry = ge.fix(&[".".to_string()], true)?;
+        let res_fix_dry = ge.fix(&[".".to_string()], true, None)?;
         assert!(res_fix_dry.contains("[DRY RUN]"));
 
-        let invalid_c_string = String::from_utf8(vec![0x61, 0x00, 0x62]).unwrap(); // "a\0b"
-        let bad_audit_res = ge.audit(&[invalid_c_string.clone()]);
+        let invalid_c_string = String::from_utf8(vec![0x61, 0x00, 0x62])?; // "a\0b"
+        let bad_audit_res = ge.audit(std::slice::from_ref(&invalid_c_string), None);
         assert!(bad_audit_res.is_err());
-        let bad_fix_res = ge.fix(&[invalid_c_string.clone()], false);
+        let bad_fix_res = ge.fix(std::slice::from_ref(&invalid_c_string), false, None);
         assert!(bad_fix_res.is_err());
 
         // For go-auto-err-handling, how do we trigger an error that causes `bridle_sdk::ffi::audit_go_errors`
@@ -528,19 +540,18 @@ mod tests {
         std::fs::write(
             tmp_file,
             "package main\nfunc fail() error { return nil }\nfunc main() { fail() }\n",
-        )
-        .unwrap();
-        let audit_fail_res = ge.audit(&[tmp_file.to_string()]).unwrap();
+        )?;
+        let audit_fail_res = ge.audit(&[tmp_file.to_string()], None)?;
         assert!(audit_fail_res.contains("Issues found for"));
 
         // Also fix should work on it, wait we want to trigger fix failure
         // Let's make it read only so fix fails
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(tmp_file).unwrap().permissions();
+        let mut perms = std::fs::metadata(tmp_file)?.permissions();
         perms.set_mode(0o400); // Read only
-        std::fs::set_permissions(tmp_file, perms).unwrap();
+        std::fs::set_permissions(tmp_file, perms)?;
 
-        let fix_fail_res = ge.fix(&[tmp_file.to_string()], false);
+        let fix_fail_res = ge.fix(&[tmp_file.to_string()], false, None);
         assert!(fix_fail_res.is_err());
 
         std::fs::remove_file(tmp_file).unwrap_or_default(); // Cleanup
@@ -548,7 +559,7 @@ mod tests {
         let l2n = tools
             .iter()
             .find(|t| t.name() == "lib2notebook2lib")
-            .unwrap();
+            .ok_or("err")?;
         assert_eq!(
             l2n.description(),
             "Synchronizes logic between Python libraries and Jupyter notebooks."
@@ -559,10 +570,10 @@ mod tests {
         unsafe {
             std::env::set_var("RUST_TEST_MODE", "1");
         }
-        assert_eq!(l2n.audit(&[])?, "lib2notebook2lib audit executed");
-        assert_eq!(l2n.fix(&[], false)?, "lib2notebook2lib fix applied");
+        assert_eq!(l2n.audit(&[], None)?, "lib2notebook2lib audit executed");
+        assert_eq!(l2n.fix(&[], false, None)?, "lib2notebook2lib fix applied");
         assert_eq!(
-            l2n.fix(&[], true)?,
+            l2n.fix(&[], true, None)?,
             "[DRY RUN] lib2notebook2lib fix planned"
         );
         unsafe {
@@ -573,32 +584,32 @@ mod tests {
     }
 
     #[test]
-    fn test_file_lock_tester_tool() -> Result<(), CliError> {
+    fn test_file_lock_tester_tool() -> Result<(), Box<dyn std::error::Error>> {
         let tool = FileLockTesterTool;
         assert_eq!(tool.name(), "file-lock-tester");
         assert_eq!(tool.description(), "Tests exclusive file mutations");
         assert_eq!(tool.match_regex(), r".*\.txt$");
-        assert_eq!(tool.audit(&[])?, "file-lock-tester audit executed");
-        assert_eq!(tool.fix(&[], false)?, "No file provided");
+        assert_eq!(tool.audit(&[], None)?, "file-lock-tester audit executed");
+        assert_eq!(tool.fix(&[], false, None)?, "No file provided");
         assert_eq!(
-            tool.fix(&["test.txt".to_string()], true)?,
+            tool.fix(&["test.txt".to_string()], true, None)?,
             "[DRY RUN] Would mutate test.txt"
         );
 
         // Actually run it
         let tmp = "test_lock.txt";
-        std::fs::write(tmp, "hello LOCK_ME world").unwrap();
-        let res = tool.fix(&[tmp.to_string()], false)?;
+        std::fs::write(tmp, "hello LOCK_ME world")?;
+        let res = tool.fix(&[tmp.to_string()], false, None)?;
         assert!(res.contains("Exclusively mutated"));
-        let res2 = tool.fix(&[tmp.to_string()], false)?;
+        let res2 = tool.fix(&[tmp.to_string()], false, None)?;
         assert!(res2.contains("No mutation needed"));
-        std::fs::remove_file(tmp).unwrap();
+        std::fs::remove_file(tmp)?;
 
         Ok(())
     }
 
     #[test]
-    fn test_encoding_normalizer_tool() -> Result<(), CliError> {
+    fn test_encoding_normalizer_tool() -> Result<(), Box<dyn std::error::Error>> {
         let tool = EncodingNormalizerTool;
         assert_eq!(tool.name(), "encoding-normalizer");
         assert_eq!(
@@ -606,24 +617,24 @@ mod tests {
             "Normalizes file encodings and line endings"
         );
         assert_eq!(tool.match_regex(), r".*\.txt$");
-        assert_eq!(tool.audit(&[])?, "encoding-normalizer audit executed");
-        assert_eq!(tool.fix(&[], false)?, "No file provided");
+        assert_eq!(tool.audit(&[], None)?, "encoding-normalizer audit executed");
+        assert_eq!(tool.fix(&[], false, None)?, "No file provided");
         assert_eq!(
-            tool.fix(&["test.txt".to_string()], true)?,
+            tool.fix(&["test.txt".to_string()], true, None)?,
             "[DRY RUN] Would normalize test.txt"
         );
 
         let tmp = "test_enc.txt";
-        std::fs::write(tmp, "hello\r\nworld").unwrap();
-        let res = tool.fix(&[tmp.to_string()], false)?;
+        std::fs::write(tmp, "hello\r\nworld")?;
+        let res = tool.fix(&[tmp.to_string()], false, None)?;
         assert!(res.contains("Normalized"));
-        std::fs::remove_file(tmp).unwrap();
+        std::fs::remove_file(tmp)?;
 
         Ok(())
     }
 
     #[test]
-    fn test_db_migrator_tool() -> Result<(), CliError> {
+    fn test_db_migrator_tool() -> Result<(), Box<dyn std::error::Error>> {
         let tool = DBMigratorTool;
         assert_eq!(tool.name(), "db-migrator-tester");
         assert_eq!(
@@ -631,21 +642,21 @@ mod tests {
             "Tests establishing DB connections and fetching a mock user via SDK"
         );
         assert_eq!(tool.match_regex(), r".*\.sqlite3$");
-        assert_eq!(tool.audit(&[])?, "db-migrator-tester audit executed");
-        assert_eq!(tool.fix(&[], false)?, "No database path provided");
+        assert_eq!(tool.audit(&[], None)?, "db-migrator-tester audit executed");
+        assert_eq!(tool.fix(&[], false, None)?, "No database path provided");
         assert_eq!(
-            tool.fix(&["test.sqlite3".to_string()], true)?,
+            tool.fix(&["test.sqlite3".to_string()], true, None)?,
             "[DRY RUN] Would connect to and migrate test.sqlite3"
         );
 
         // To test real connection
-        let tf = tempfile::NamedTempFile::new().unwrap();
-        let tmp = tf.path().to_str().unwrap();
+        let tf = tempfile::NamedTempFile::new()?;
+        let tmp = tf.path().to_str().ok_or("Invalid path")?;
 
-        let res = tool.fix(&[tmp.to_string()], false)?;
+        let res = tool.fix(&[tmp.to_string()], false, None)?;
         assert!(res.contains("Connected"));
 
-        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(tmp).unwrap();
+        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(tmp)?;
         let now = chrono::Utc::now().naive_utc();
         let new_user = bridle_sdk::models::User {
             id: 999,
@@ -658,9 +669,9 @@ mod tests {
             created_at: now,
             updated_at: now,
         };
-        bridle_sdk::db::insert_user(&mut conn, &new_user).unwrap();
+        bridle_sdk::db::insert_user(&mut conn, &new_user)?;
 
-        let res2 = tool.fix(&[tmp.to_string()], false)?;
+        let res2 = tool.fix(&[tmp.to_string()], false, None)?;
         assert!(res2.contains("fetched user: testuser999"));
 
         Ok(())
@@ -669,7 +680,7 @@ mod tests {
     #[test]
     fn test_get_tools() {
         let tools = get_tools();
-        assert_eq!(tools.len(), 10);
+        assert_eq!(tools.len(), 9);
     }
 
     #[test]
@@ -694,7 +705,7 @@ mod tests {
         assert!(unknown_tools.is_empty());
 
         let c_tools = get_tools_for_pattern("c");
-        assert_eq!(c_tools.len(), 1);
+        assert_eq!(c_tools.len(), 0);
 
         let cpp_tools = get_tools_for_pattern("cpp");
         assert_eq!(cpp_tools.len(), 0);

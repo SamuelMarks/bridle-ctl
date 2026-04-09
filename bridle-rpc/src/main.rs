@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 //! JSON RPC Interface for bridle-ctl.
 
 pub mod error;
@@ -23,8 +24,8 @@ macro_rules! register_crud_methods {
                 let (item,): ($model,) = params.parse()?;
                 let mut conn =
                     bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
-                        .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
-                $sdk_insert(&mut conn, &item).map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+                        .map_err(RpcError::Sdk)?;
+                $sdk_insert(&mut conn, &item).map_err(RpcError::Sdk)?;
                 Ok::<(), jsonrpsee::types::error::ErrorObjectOwned>(())
             })
             .map_err(|e| RpcError::Register(e.to_string()))?;
@@ -34,8 +35,8 @@ macro_rules! register_crud_methods {
                 let (id,): (i32,) = params.parse()?;
                 let mut conn =
                     bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
-                        .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
-                let item = $sdk_get(&mut conn, id).map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
+                        .map_err(RpcError::Sdk)?;
+                let item = $sdk_get(&mut conn, id).map_err(RpcError::Sdk)?;
                 Ok::<$model, jsonrpsee::types::error::ErrorObjectOwned>(item)
             })
             .map_err(|e| RpcError::Register(e.to_string()))?;
@@ -60,40 +61,6 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
         .register_method("start_agent", |_, _, _| match bridle_agent::start_agent() {
             Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg.to_string()),
             Err(e) => Err(RpcError::from(e).into()),
-        })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
-
-    module
-        .register_method("sdk_add", |params, _, _| {
-            let (a, b): (usize, usize) = params.parse()?;
-            Ok::<usize, jsonrpsee::types::error::ErrorObjectOwned>(bridle_sdk::add(a, b))
-        })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
-
-    module
-        .register_method("get_sample_user", |_, state, _| {
-            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
-                .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
-
-            let now = chrono::Utc::now().naive_utc();
-            let new_user = bridle_sdk::models::User {
-                id: 1,
-                username: "agent_smith".to_string(),
-                email: "smith@matrix.com".to_string(),
-                password_hash: "hashed".to_string(),
-                avatar_url: None,
-                bio: Some("I am inevitable.".to_string()),
-                status: None,
-                created_at: now,
-                updated_at: now,
-            };
-
-            let _ = bridle_sdk::db::insert_user(&mut conn, &new_user);
-
-            let fetched = bridle_sdk::db::get_user(&mut conn, 1)
-                .map_err(|e| RpcError::from(RpcError::Sdk(e)))?;
-
-            Ok::<bridle_sdk::models::User, jsonrpsee::types::error::ErrorObjectOwned>(fetched)
         })
         .map_err(|e| RpcError::Register(e.to_string()))?;
 
@@ -273,6 +240,22 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
         bridle_sdk::db::insert_blob,
         bridle_sdk::models::Blob
     );
+    register_crud_methods!(
+        module,
+        "create_batch_job",
+        "get_batch_job",
+        bridle_sdk::batch_db::get_batch_job,
+        bridle_sdk::batch_db::insert_batch_job,
+        bridle_sdk::models::BatchJob
+    );
+    register_crud_methods!(
+        module,
+        "create_batch_task",
+        "get_batch_task",
+        bridle_sdk::batch_db::get_batch_task,
+        bridle_sdk::batch_db::insert_batch_task,
+        bridle_sdk::models::BatchTask
+    );
 
     module
         .register_method("run_tools", |params, _, _| {
@@ -280,10 +263,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
             let action = match req.action.as_deref() {
                 Some("audit") => bridle_cli::runner::Action::Audit,
                 _ => {
-                    let is_dry_run = match req.dry_run {
-                        Some(true) => true,
-                        _ => false,
-                    };
+                    let is_dry_run = matches!(req.dry_run, Some(true));
                     bridle_cli::runner::Action::Fix {
                         dry_run: is_dry_run,
                     }
@@ -299,6 +279,42 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
         })
         .map_err(|e| RpcError::Register(e.to_string()))?;
 
+    module
+        .register_method("batch_run", |params, state, _| {
+            let (req,): (bridle_sdk::models::BatchRunRequest,) = params.parse()?;
+            match bridle_cli::batch_pipeline::run_pipeline(
+                &req.config_path,
+                &state.db_url,
+                req.safety_mode,
+                req.max_repos,
+                req.max_prs_per_hour,
+            ) {
+                Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
+                Err(e) => Err(RpcError::Register(e.to_string()).into()),
+            }
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
+    module
+        .register_method("batch_fix", |params, state, _| {
+            let (req,): (bridle_sdk::models::BatchFixRequest,) = params.parse()?;
+            match bridle_cli::batch_fix::batch_fix(
+                &req.org,
+                &req.issue,
+                req.pattern,
+                req.tools,
+                req.tool_args,
+                &state.db_url,
+                req.safety_mode,
+                req.max_repos,
+                req.max_prs_per_hour,
+            ) {
+                Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
+                Err(e) => Err(RpcError::Register(e.to_string()).into()),
+            }
+        })
+        .map_err(|e| RpcError::Register(e.to_string()))?;
+
     let handle = server.start(module);
 
     tokio::spawn(handle.stopped());
@@ -310,6 +326,10 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
 #[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() -> Result<(), RpcError> {
+    if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
+        eprintln!("Warning: Failed to initialize telemetry: {}", e);
+    }
+
     let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "bridle.db".to_string());
     let addr = run_server(db_url).await?;
     println!("JSON-RPC server running at {}", addr);
@@ -356,37 +376,6 @@ mod tests {
             .await?;
 
         assert_eq!(response, "Agent started");
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_sdk_add_rpc() -> Result<(), RpcError> {
-        let addr = run_server(get_test_db()).await?;
-        let url = format!("http://{}", addr);
-
-        let client = HttpClientBuilder::default().build(url)?;
-        let response: usize = client
-            .request("sdk_add", jsonrpsee::rpc_params![2, 3])
-            .await?;
-
-        assert_eq!(response, 5);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_get_sample_user_rpc() -> Result<(), RpcError> {
-        let db_url = get_test_db();
-        let addr = run_server(db_url.clone()).await?;
-        let url = format!("http://{}", addr);
-
-        let client = HttpClientBuilder::default().build(url)?;
-        let user: User = client
-            .request("get_sample_user", jsonrpsee::rpc_params![])
-            .await?;
-
-        assert_eq!(user.username, "agent_smith");
-
-        let _ = std::fs::remove_file(db_url);
         Ok(())
     }
 

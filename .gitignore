@@ -61,3 +61,15 @@ __pycache__/
 prompt.txt
 context.txt
 
+
+# Rejected patch files
+*.rej
+
+# One-off scripts
+get_remote.sh
+
+# UI Generated docs
+bridle-ui/docs/
+# Scratch scripts
+fix_*.py
+patch*.py

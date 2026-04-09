@@ -1,21 +1,27 @@
+#![deny(missing_docs)]
 //! Agent Interface for bridle-ctl.
 
+pub mod agent_loop;
 pub mod error;
 pub mod mcp;
+pub mod simulation;
+pub mod team_simulation;
 
 use crate::error::AgentError;
 
 /// Starts the Agent service.
 pub fn start_agent() -> Result<&'static str, AgentError> {
-    mcp::start_mcp_server()?;
     mcp::register_tools()?;
-    mcp::expose_resources()?;
 
-    // Wire up context AST pruning and run the daemon
-    let _context = mcp::prune_context_ast()?;
-    let _plan = mcp::agent_planning_engine()?;
     mcp::self_healing_loop()?;
     mcp::run_agent_daemon()?;
+
+    // Auto-run simulation on startup for testing
+    let tf = tempfile::NamedTempFile::new().map_err(|e| AgentError::Daemon(e.to_string()))?;
+    if let Some(path) = tf.path().to_str() {
+        let _ = simulation::run_workflow_simulation(path);
+        let _ = team_simulation::run_ai_team_simulation(path);
+    }
 
     Ok("Agent started")
 }
@@ -34,18 +40,12 @@ mod tests {
         assert_eq!(start_agent()?, "Agent started");
         Ok(())
     }
-
     #[test]
     fn test_mcp_stubs() -> Result<(), AgentError> {
-        mcp::start_mcp_server()?;
         let tools = mcp::register_tools()?;
-        assert!(tools.contains(&"rust-unwrap-to-question-mark".to_string()));
-        let resources = mcp::expose_resources()?;
-        assert_eq!(resources.len(), 24);
-        assert_eq!(mcp::prune_context_ast()?, "Pruned AST context");
+        assert!(tools.contains(&"run_code_tool".to_string()));
         mcp::self_healing_loop()?;
         mcp::run_agent_daemon()?;
-        assert_eq!(mcp::agent_planning_engine()?, "Plan: run self-healing loop");
         Ok(())
     }
 
@@ -55,24 +55,41 @@ mod tests {
     }
 
     #[test]
-    fn test_mcp_add() -> Result<(), AgentError> {
-        assert_eq!(mcp::mcp_add(5, 5)?, 10);
-        Ok(())
-    }
-
-    #[test]
     fn test_execute_mcp_tool() -> Result<(), AgentError> {
-        let res = mcp::execute_mcp_tool("sdk_add", "5,5")?;
-        assert_eq!(res, "Result: 10");
-
         let err1 = mcp::execute_mcp_tool("unknown", "");
         assert!(err1.is_err());
+        // Test run_code_tool (valid)
+        let valid_code_tool_req = r#"{
+            "pattern": ".*\\.go$",
+            "tools": ["go-err-check"],
+            "action": "audit"
+        }"#;
+        let res2 = mcp::execute_mcp_tool("run_code_tool", valid_code_tool_req)?;
+        assert_eq!(res2, "Tool executed successfully");
 
-        let err2 = mcp::execute_mcp_tool("sdk_add", "5");
-        assert!(err2.is_err());
+        // Test run_code_tool (invalid JSON)
+        assert!(mcp::execute_mcp_tool("run_code_tool", "{invalid").is_err());
 
-        let err3 = mcp::execute_mcp_tool("sdk_add", "a,b");
-        assert!(err3.is_err());
+        // Test git_forge_db_action (valid)
+        let tf = tempfile::NamedTempFile::new().map_err(|e| AgentError::Daemon(e.to_string()))?;
+        let db_url = tf
+            .path()
+            .to_str()
+            .ok_or(AgentError::Daemon("Invalid path".to_string()))?
+            .to_string();
+        let valid_db_req = format!(
+            r#"{{
+                "action": "create_user",
+                "db_url": "{}",
+                "payload": "{{\"id\": 10, \"username\": \"mcp_user\", \"email\": \"mcp@ex.com\", \"password_hash\": \"x\", \"created_at\": \"2026-04-07T00:00:00\", \"updated_at\": \"2026-04-07T00:00:00\"}}"
+            }}"#,
+            db_url
+        );
+        let db_res = mcp::execute_mcp_tool("git_forge_db_action", &valid_db_req)?;
+        assert!(db_res.contains("Successfully executed create_user"));
+
+        // Test git_forge_db_action (invalid JSON)
+        assert!(mcp::execute_mcp_tool("git_forge_db_action", "{invalid").is_err());
 
         Ok(())
     }

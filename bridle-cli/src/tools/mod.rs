@@ -2,6 +2,7 @@
 pub mod registry;
 
 use crate::error::CliError;
+use bridle_sdk::path_scope::PathScope;
 
 /// Defines a standard interface for code processing tools.
 pub trait CodeTool {
@@ -13,8 +14,13 @@ pub trait CodeTool {
     fn match_regex(&self) -> &'static str;
 
     /// Runs the audit logic (checking for issues)
-    fn audit(&self, args: &[String]) -> Result<String, CliError>;
+    fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, CliError>;
 
     /// Runs the fix logic (automatically fixing issues)
-    fn fix(&self, args: &[String], dry_run: bool) -> Result<String, CliError>;
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        scope: Option<&PathScope>,
+    ) -> Result<String, CliError>;
 }

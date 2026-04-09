@@ -878,3 +878,166 @@ mod tests {
         assert_eq!(blob.sha, "789012");
     }
 }
+
+/// Batch Job database model.
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::Queryable,
+    diesel::Insertable,
+    diesel::AsChangeset,
+)]
+#[diesel(table_name = crate::schema::batch_jobs)]
+pub struct BatchJob {
+    /// ID
+    pub id: i32,
+    /// Pipeline name
+    pub pipeline_name: String,
+    /// Status
+    pub status: String,
+    /// Started at
+    pub started_at: chrono::NaiveDateTime,
+    /// Completed at
+    pub completed_at: Option<chrono::NaiveDateTime>,
+}
+
+/// Batch Task database model.
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::Queryable,
+    diesel::Insertable,
+    diesel::AsChangeset,
+)]
+#[diesel(table_name = crate::schema::batch_tasks)]
+pub struct BatchTask {
+    /// ID
+    pub id: i32,
+    /// Job ID
+    pub job_id: i32,
+    /// Repo ID
+    pub repo_id: i32,
+    /// Status
+    pub status: String,
+    /// Error reason
+    pub error_reason: Option<String>,
+    /// PR URL
+    pub pr_url: Option<String>,
+    /// Created at
+    pub created_at: chrono::NaiveDateTime,
+    /// Updated at
+    pub updated_at: chrono::NaiveDateTime,
+}
+
+/// Task Log database model.
+#[derive(
+    Debug, Clone, PartialEq, Eq, diesel::Queryable, diesel::Insertable, diesel::AsChangeset,
+)]
+#[diesel(table_name = crate::schema::task_logs)]
+pub struct TaskLog {
+    /// ID
+    pub id: i32,
+    /// Task ID
+    pub task_id: i32,
+    /// Step name
+    pub step_name: String,
+    /// Stdout
+    pub stdout: Option<String>,
+    /// Stderr
+    pub stderr: Option<String>,
+    /// Exit code
+    pub exit_code: Option<i32>,
+    /// Duration in milliseconds
+    pub duration_ms: Option<i32>,
+}
+
+/// Task Status mapped clean enum
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TaskStatus {
+    /// Pending
+    Pending,
+    /// InProgress
+    InProgress,
+    /// Clean
+    Clean,
+    /// FailedValidation
+    FailedValidation,
+    /// PRSubmitted
+    PRSubmitted,
+    /// AwaitingApproval (Safety Mode)
+    AwaitingApproval,
+    /// Error
+    Error,
+}
+
+impl std::fmt::Display for TaskStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TaskStatus::Pending => write!(f, "Pending"),
+            TaskStatus::InProgress => write!(f, "InProgress"),
+            TaskStatus::Clean => write!(f, "Clean"),
+            TaskStatus::FailedValidation => write!(f, "FailedValidation"),
+            TaskStatus::PRSubmitted => write!(f, "PRSubmitted"),
+            TaskStatus::AwaitingApproval => write!(f, "AwaitingApproval"),
+            TaskStatus::Error => write!(f, "Error"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod task_status_tests {
+    use super::*;
+
+    #[test]
+    fn test_task_status_display() {
+        assert_eq!(TaskStatus::Pending.to_string(), "Pending");
+        assert_eq!(TaskStatus::InProgress.to_string(), "InProgress");
+        assert_eq!(TaskStatus::Clean.to_string(), "Clean");
+        assert_eq!(TaskStatus::FailedValidation.to_string(), "FailedValidation");
+        assert_eq!(TaskStatus::PRSubmitted.to_string(), "PRSubmitted");
+        assert_eq!(TaskStatus::AwaitingApproval.to_string(), "AwaitingApproval");
+        assert_eq!(TaskStatus::Error.to_string(), "Error");
+    }
+}
+
+/// Request payload for batch run operations.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BatchRunRequest {
+    /// Path to the pipeline config file.
+    pub config_path: String,
+    /// Whether to run in safety mode.
+    pub safety_mode: bool,
+    /// Maximum number of repositories to process.
+    pub max_repos: Option<usize>,
+    /// Global limit of number of PRs to send per hour.
+    pub max_prs_per_hour: Option<usize>,
+}
+
+/// Request payload for batch fix operations.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BatchFixRequest {
+    /// The target organization or repository.
+    pub org: String,
+    /// The issue/PR title.
+    pub issue: String,
+    /// The regex pattern for tools.
+    pub pattern: Option<String>,
+    /// The tools to execute.
+    pub tools: Option<Vec<String>>,
+    /// Tool specific arguments.
+    pub tool_args: Option<HashMap<String, Vec<String>>>,
+    /// Whether to run in safety mode.
+    pub safety_mode: bool,
+    /// Maximum number of repositories to process.
+    pub max_repos: Option<usize>,
+    /// Global limit of number of PRs to send per hour.
+    pub max_prs_per_hour: Option<usize>,
+}

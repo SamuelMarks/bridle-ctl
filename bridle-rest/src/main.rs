@@ -24,13 +24,6 @@ pub async fn start_agent() -> Result<HttpResponse, RestError> {
     Ok(HttpResponse::Ok().body(msg))
 }
 
-/// Endpoint to add numbers using SDK.
-pub async fn sdk_add(path: web::Path<(usize, usize)>) -> impl Responder {
-    let (a, b) = path.into_inner();
-    let res = bridle_sdk::add(a, b);
-    HttpResponse::Ok().body(res.to_string())
-}
-
 /// Endpoint to run tools using ToolRunRequest.
 #[cfg(not(tarpaulin_include))]
 pub async fn run_tools(
@@ -40,10 +33,7 @@ pub async fn run_tools(
     let action = match payload.action.as_deref() {
         Some("audit") => bridle_cli::runner::Action::Audit,
         _ => {
-            let is_dry_run = match payload.dry_run {
-                Some(true) => true,
-                _ => false,
-            };
+            let is_dry_run = matches!(payload.dry_run, Some(true));
             bridle_cli::runner::Action::Fix {
                 dry_run: is_dry_run,
             }
@@ -54,33 +44,8 @@ pub async fn run_tools(
     Ok(HttpResponse::Ok().body("Tools executed successfully"))
 }
 
-/// Endpoint to fetch a sample user (kept for legacy tests).
-pub async fn get_sample_user(data: web::Data<AppState>) -> Result<HttpResponse, RestError> {
-    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&data.db_url)
-        .map_err(RestError::Sdk)?;
-
-    let now = chrono::Utc::now().naive_utc();
-    let new_user = bridle_sdk::models::User {
-        id: 1,
-        username: "agent_smith".to_string(),
-        email: "smith@matrix.com".to_string(),
-        password_hash: "hashed".to_string(),
-        avatar_url: None,
-        bio: Some("I am inevitable.".to_string()),
-        status: None,
-        created_at: now,
-        updated_at: now,
-    };
-
-    // Ignore error if already exists
-    let _ = bridle_sdk::db::insert_user(&mut conn, &new_user);
-
-    let fetched = bridle_sdk::db::get_user(&mut conn, 1).map_err(RestError::Sdk)?;
-
-    Ok(HttpResponse::Ok().json(fetched))
-}
-
 // MACRO to quickly generate REST endpoints for a specific model type.
+/// Define CRUD endpoints
 macro_rules! define_crud_endpoints {
     ($get_fn:ident, $create_fn:ident, $sdk_get:path, $sdk_insert:path, $model:ty) => {
         /// Creates a new item in the database.
@@ -268,6 +233,10 @@ define_crud_endpoints!(
 #[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
+        eprintln!("Warning: Failed to initialize telemetry: {}", e);
+    }
+
     // In production, you might get this from an environment variable.
     let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "bridle.db".to_string());
 
@@ -278,8 +247,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_state.clone())
             .route("/health", web::get().to(health_check))
             .route("/agent/start", web::post().to(start_agent))
-            .route("/sdk/add/{a}/{b}", web::get().to(sdk_add))
-            .route("/users/sample", web::get().to(get_sample_user))
             .route("/tools/run", web::post().to(run_tools))
             .route("/users", web::post().to(create_user))
             .route("/users/{id}", web::get().to(get_user))
@@ -382,38 +349,6 @@ mod tests {
         let req = test::TestRequest::post().uri("/agent/start").to_request();
         let resp = test::call_service(&app, req).await;
         assert!(resp.status().is_success());
-    }
-
-    #[actix_web::test]
-    async fn test_sdk_add() {
-        let app =
-            test::init_service(App::new().route("/sdk/add/{a}/{b}", web::get().to(sdk_add))).await;
-        let req = test::TestRequest::get().uri("/sdk/add/5/7").to_request();
-        let resp = test::call_service(&app, req).await;
-        assert!(resp.status().is_success());
-    }
-
-    #[actix_web::test]
-    async fn test_get_sample_user() -> Result<(), actix_web::Error> {
-        let state = test_app_state();
-        let db_url = state.db_url.clone();
-        let app = test::init_service(
-            App::new()
-                .app_data(state)
-                .route("/users/sample", web::get().to(get_sample_user)),
-        )
-        .await;
-        let req = test::TestRequest::get().uri("/users/sample").to_request();
-        let resp = test::call_service(&app, req).await;
-        assert!(resp.status().is_success());
-
-        let body = test::read_body(resp).await;
-        let user: bridle_sdk::models::User = serde_json::from_slice(&body)?;
-        assert_eq!(user.username, "agent_smith");
-
-        // cleanup
-        let _ = std::fs::remove_file(db_url);
-        Ok(())
     }
 
     #[actix_web::test]

@@ -1,594 +1,1583 @@
 //! Database connection and migration management.
 
 use crate::error::BridleError;
+use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
+
+/// A dynamic connection wrapper supporting both SQLite and PostgreSQL backends.
+pub enum DbConnection {
+    /// SQLite connection variant.
+    Sqlite(SqliteConnection),
+    /// PostgreSQL connection variant.
+    Pg(PgConnection),
+}
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 /// Embedded database migrations.
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+pub const MIGRATIONS_SQLITE: EmbeddedMigrations = embed_migrations!("migrations");
+/// Embedded database migrations for PostgreSQL.
+pub const MIGRATIONS_PG: EmbeddedMigrations = embed_migrations!("migrations_pg");
 
 /// Establishes a SQLite connection and runs pending migrations.
+
+#[cfg(not(tarpaulin_include))]
+fn establish_pg(database_url: &str) -> Result<DbConnection, BridleError> {
+    let mut connection = PgConnection::establish(database_url).map_err(|e| {
+        BridleError::Database(diesel::result::Error::DatabaseError(
+            diesel::result::DatabaseErrorKind::UnableToSendCommand,
+            Box::new(e.to_string()),
+        ))
+    })?;
+    connection
+        .run_pending_migrations(MIGRATIONS_PG)
+        .map_err(|e| BridleError::Migration(e.to_string()))?;
+    Ok(DbConnection::Pg(connection))
+}
+
+/// Establishes a database connection and runs pending migrations.
 pub fn establish_connection_and_run_migrations(
     database_url: &str,
-) -> Result<SqliteConnection, BridleError> {
-    let mut connection = SqliteConnection::establish(database_url)?;
-    connection
-        .run_pending_migrations(MIGRATIONS)
-        .map_err(|e| BridleError::Migration(e.to_string()))?;
-    Ok(connection)
+) -> Result<DbConnection, BridleError> {
+    if database_url.starts_with("postgres://") || database_url.starts_with("postgresql://") {
+        #[cfg(not(tarpaulin_include))]
+        return establish_pg(database_url);
+        #[cfg(tarpaulin_include)]
+        unreachable!()
+    } else {
+        let mut connection = SqliteConnection::establish(database_url).map_err(|e| {
+            BridleError::Database(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                Box::new(e.to_string()),
+            ))
+        })?;
+        connection
+            .run_pending_migrations(MIGRATIONS_SQLITE)
+            .map_err(|e| BridleError::Migration(e.to_string()))?;
+        Ok(DbConnection::Sqlite(connection))
+    }
 }
 
 /// Inserts a new user into the database.
 pub fn insert_user(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_user: &crate::models::User,
 ) -> Result<(), BridleError> {
     use crate::schema::users::dsl::*;
-    diesel::insert_into(users)
-        .values(new_user)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(users)
+                .values(new_user)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(users)
+                .values(new_user)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a user from the database by ID.
-pub fn get_user(
-    conn: &mut SqliteConnection,
-    user_id: i32,
-) -> Result<crate::models::User, BridleError> {
+pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::User, BridleError> {
     use crate::schema::users::dsl::*;
-    let fetched = users
-        .filter(id.eq(user_id))
-        .first::<crate::models::User>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = users
+                .filter(id.eq(user_id))
+                .first::<crate::models::User>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = users
+                .filter(id.eq(user_id))
+                .first::<crate::models::User>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new organisation into the database.
 pub fn insert_organisation(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_org: &crate::models::Organisation,
 ) -> Result<(), BridleError> {
     use crate::schema::organisations::dsl::*;
-    diesel::insert_into(organisations)
-        .values(new_org)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(organisations)
+                .values(new_org)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(organisations)
+                .values(new_org)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves an organisation from the database by ID.
 pub fn get_organisation(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     org_id: i32,
 ) -> Result<crate::models::Organisation, BridleError> {
     use crate::schema::organisations::dsl::*;
-    let fetched = organisations
-        .filter(id.eq(org_id))
-        .first::<crate::models::Organisation>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = organisations
+                .filter(id.eq(org_id))
+                .first::<crate::models::Organisation>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = organisations
+                .filter(id.eq(org_id))
+                .first::<crate::models::Organisation>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new repository into the database.
 pub fn insert_repository(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_repo: &crate::models::Repository,
 ) -> Result<(), BridleError> {
     use crate::schema::repositories::dsl::*;
-    diesel::insert_into(repositories)
-        .values(new_repo)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(repositories)
+                .values(new_repo)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(repositories)
+                .values(new_repo)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a repository from the database by ID.
 pub fn get_repository(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     repo_id: i32,
 ) -> Result<crate::models::Repository, BridleError> {
     use crate::schema::repositories::dsl::*;
-    let fetched = repositories
-        .filter(id.eq(repo_id))
-        .first::<crate::models::Repository>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = repositories
+                .filter(id.eq(repo_id))
+                .first::<crate::models::Repository>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = repositories
+                .filter(id.eq(repo_id))
+                .first::<crate::models::Repository>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Team into the database.
 pub fn insert_team(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Team,
 ) -> Result<(), BridleError> {
     use crate::schema::teams::dsl::*;
-    diesel::insert_into(teams)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(teams)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(teams)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Team from the database by ID.
-pub fn get_team(
-    conn: &mut SqliteConnection,
-    item_id: i32,
-) -> Result<crate::models::Team, BridleError> {
+pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Team, BridleError> {
     use crate::schema::teams::dsl::*;
-    let fetched = teams
-        .filter(id.eq(item_id))
-        .first::<crate::models::Team>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = teams
+                .filter(id.eq(item_id))
+                .first::<crate::models::Team>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = teams
+                .filter(id.eq(item_id))
+                .first::<crate::models::Team>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Branch into the database.
 pub fn insert_branch(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Branch,
 ) -> Result<(), BridleError> {
     use crate::schema::branches::dsl::*;
-    diesel::insert_into(branches)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(branches)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(branches)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Branch from the database by ID.
 pub fn get_branch(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Branch, BridleError> {
     use crate::schema::branches::dsl::*;
-    let fetched = branches
-        .filter(id.eq(item_id))
-        .first::<crate::models::Branch>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = branches
+                .filter(id.eq(item_id))
+                .first::<crate::models::Branch>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = branches
+                .filter(id.eq(item_id))
+                .first::<crate::models::Branch>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new BranchProtectionRule into the database.
 pub fn insert_branch_protection_rule(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::BranchProtectionRule,
 ) -> Result<(), BridleError> {
     use crate::schema::branch_protection_rules::dsl::*;
-    diesel::insert_into(branch_protection_rules)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(branch_protection_rules)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(branch_protection_rules)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a BranchProtectionRule from the database by ID.
 pub fn get_branch_protection_rule(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::BranchProtectionRule, BridleError> {
     use crate::schema::branch_protection_rules::dsl::*;
-    let fetched = branch_protection_rules
-        .filter(id.eq(item_id))
-        .first::<crate::models::BranchProtectionRule>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = branch_protection_rules
+                .filter(id.eq(item_id))
+                .first::<crate::models::BranchProtectionRule>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = branch_protection_rules
+                .filter(id.eq(item_id))
+                .first::<crate::models::BranchProtectionRule>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Key into the database.
 pub fn insert_key(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Key,
 ) -> Result<(), BridleError> {
     use crate::schema::keys::dsl::*;
-    diesel::insert_into(keys)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(keys)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(keys)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Key from the database by ID.
-pub fn get_key(
-    conn: &mut SqliteConnection,
-    item_id: i32,
-) -> Result<crate::models::Key, BridleError> {
+pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Key, BridleError> {
     use crate::schema::keys::dsl::*;
-    let fetched = keys
-        .filter(id.eq(item_id))
-        .first::<crate::models::Key>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = keys
+                .filter(id.eq(item_id))
+                .first::<crate::models::Key>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = keys
+                .filter(id.eq(item_id))
+                .first::<crate::models::Key>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Follow into the database.
 pub fn insert_follow(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Follow,
 ) -> Result<(), BridleError> {
     use crate::schema::follows::dsl::*;
-    diesel::insert_into(follows)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(follows)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(follows)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Follow from the database by ID.
 pub fn get_follow(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Follow, BridleError> {
     use crate::schema::follows::dsl::*;
-    let fetched = follows
-        .filter(id.eq(item_id))
-        .first::<crate::models::Follow>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = follows
+                .filter(id.eq(item_id))
+                .first::<crate::models::Follow>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = follows
+                .filter(id.eq(item_id))
+                .first::<crate::models::Follow>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Star into the database.
 pub fn insert_star(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Star,
 ) -> Result<(), BridleError> {
     use crate::schema::stars::dsl::*;
-    diesel::insert_into(stars)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(stars)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(stars)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Star from the database by ID.
-pub fn get_star(
-    conn: &mut SqliteConnection,
-    item_id: i32,
-) -> Result<crate::models::Star, BridleError> {
+pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Star, BridleError> {
     use crate::schema::stars::dsl::*;
-    let fetched = stars
-        .filter(id.eq(item_id))
-        .first::<crate::models::Star>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = stars
+                .filter(id.eq(item_id))
+                .first::<crate::models::Star>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = stars
+                .filter(id.eq(item_id))
+                .first::<crate::models::Star>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new OrgMembership into the database.
 pub fn insert_org_membership(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::OrgMembership,
 ) -> Result<(), BridleError> {
     use crate::schema::org_memberships::dsl::*;
-    diesel::insert_into(org_memberships)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(org_memberships)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(org_memberships)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a OrgMembership from the database by ID.
 pub fn get_org_membership(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::OrgMembership, BridleError> {
     use crate::schema::org_memberships::dsl::*;
-    let fetched = org_memberships
-        .filter(id.eq(item_id))
-        .first::<crate::models::OrgMembership>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = org_memberships
+                .filter(id.eq(item_id))
+                .first::<crate::models::OrgMembership>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = org_memberships
+                .filter(id.eq(item_id))
+                .first::<crate::models::OrgMembership>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new RepoCollaborator into the database.
 pub fn insert_repo_collaborator(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::RepoCollaborator,
 ) -> Result<(), BridleError> {
     use crate::schema::repo_collaborators::dsl::*;
-    diesel::insert_into(repo_collaborators)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(repo_collaborators)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(repo_collaborators)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a RepoCollaborator from the database by ID.
 pub fn get_repo_collaborator(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::RepoCollaborator, BridleError> {
     use crate::schema::repo_collaborators::dsl::*;
-    let fetched = repo_collaborators
-        .filter(id.eq(item_id))
-        .first::<crate::models::RepoCollaborator>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = repo_collaborators
+                .filter(id.eq(item_id))
+                .first::<crate::models::RepoCollaborator>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = repo_collaborators
+                .filter(id.eq(item_id))
+                .first::<crate::models::RepoCollaborator>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Milestone into the database.
 pub fn insert_milestone(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Milestone,
 ) -> Result<(), BridleError> {
     use crate::schema::milestones::dsl::*;
-    diesel::insert_into(milestones)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(milestones)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(milestones)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Milestone from the database by ID.
 pub fn get_milestone(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Milestone, BridleError> {
     use crate::schema::milestones::dsl::*;
-    let fetched = milestones
-        .filter(id.eq(item_id))
-        .first::<crate::models::Milestone>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = milestones
+                .filter(id.eq(item_id))
+                .first::<crate::models::Milestone>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = milestones
+                .filter(id.eq(item_id))
+                .first::<crate::models::Milestone>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Label into the database.
 pub fn insert_label(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Label,
 ) -> Result<(), BridleError> {
     use crate::schema::labels::dsl::*;
-    diesel::insert_into(labels)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(labels)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(labels)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Label from the database by ID.
 pub fn get_label(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Label, BridleError> {
     use crate::schema::labels::dsl::*;
-    let fetched = labels
-        .filter(id.eq(item_id))
-        .first::<crate::models::Label>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = labels
+                .filter(id.eq(item_id))
+                .first::<crate::models::Label>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = labels
+                .filter(id.eq(item_id))
+                .first::<crate::models::Label>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Issue into the database.
 pub fn insert_issue(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Issue,
 ) -> Result<(), BridleError> {
     use crate::schema::issues::dsl::*;
-    diesel::insert_into(issues)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(issues)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(issues)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Issue from the database by ID.
 pub fn get_issue(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Issue, BridleError> {
     use crate::schema::issues::dsl::*;
-    let fetched = issues
-        .filter(id.eq(item_id))
-        .first::<crate::models::Issue>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = issues
+                .filter(id.eq(item_id))
+                .first::<crate::models::Issue>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = issues
+                .filter(id.eq(item_id))
+                .first::<crate::models::Issue>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new IssueLabel into the database.
 pub fn insert_issue_label(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::IssueLabel,
 ) -> Result<(), BridleError> {
     use crate::schema::issue_labels::dsl::*;
-    diesel::insert_into(issue_labels)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(issue_labels)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(issue_labels)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a IssueLabel from the database by ID.
 pub fn get_issue_label(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::IssueLabel, BridleError> {
     use crate::schema::issue_labels::dsl::*;
-    let fetched = issue_labels
-        .filter(id.eq(item_id))
-        .first::<crate::models::IssueLabel>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = issue_labels
+                .filter(id.eq(item_id))
+                .first::<crate::models::IssueLabel>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = issue_labels
+                .filter(id.eq(item_id))
+                .first::<crate::models::IssueLabel>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new PullRequest into the database.
 pub fn insert_pull_request(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::PullRequest,
 ) -> Result<(), BridleError> {
     use crate::schema::pull_requests::dsl::*;
-    diesel::insert_into(pull_requests)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(pull_requests)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(pull_requests)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a PullRequest from the database by ID.
 pub fn get_pull_request(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::PullRequest, BridleError> {
     use crate::schema::pull_requests::dsl::*;
-    let fetched = pull_requests
-        .filter(id.eq(item_id))
-        .first::<crate::models::PullRequest>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = pull_requests
+                .filter(id.eq(item_id))
+                .first::<crate::models::PullRequest>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = pull_requests
+                .filter(id.eq(item_id))
+                .first::<crate::models::PullRequest>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new PullRequestReview into the database.
 pub fn insert_pull_request_review(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::PullRequestReview,
 ) -> Result<(), BridleError> {
     use crate::schema::pull_request_reviews::dsl::*;
-    diesel::insert_into(pull_request_reviews)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(pull_request_reviews)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(pull_request_reviews)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a PullRequestReview from the database by ID.
 pub fn get_pull_request_review(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::PullRequestReview, BridleError> {
     use crate::schema::pull_request_reviews::dsl::*;
-    let fetched = pull_request_reviews
-        .filter(id.eq(item_id))
-        .first::<crate::models::PullRequestReview>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = pull_request_reviews
+                .filter(id.eq(item_id))
+                .first::<crate::models::PullRequestReview>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = pull_request_reviews
+                .filter(id.eq(item_id))
+                .first::<crate::models::PullRequestReview>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Release into the database.
 pub fn insert_release(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Release,
 ) -> Result<(), BridleError> {
     use crate::schema::releases::dsl::*;
-    diesel::insert_into(releases)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(releases)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(releases)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Release from the database by ID.
 pub fn get_release(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Release, BridleError> {
     use crate::schema::releases::dsl::*;
-    let fetched = releases
-        .filter(id.eq(item_id))
-        .first::<crate::models::Release>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = releases
+                .filter(id.eq(item_id))
+                .first::<crate::models::Release>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = releases
+                .filter(id.eq(item_id))
+                .first::<crate::models::Release>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Webhook into the database.
 pub fn insert_webhook(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Webhook,
 ) -> Result<(), BridleError> {
     use crate::schema::webhooks::dsl::*;
-    diesel::insert_into(webhooks)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(webhooks)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(webhooks)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Webhook from the database by ID.
 pub fn get_webhook(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Webhook, BridleError> {
     use crate::schema::webhooks::dsl::*;
-    let fetched = webhooks
-        .filter(id.eq(item_id))
-        .first::<crate::models::Webhook>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = webhooks
+                .filter(id.eq(item_id))
+                .first::<crate::models::Webhook>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = webhooks
+                .filter(id.eq(item_id))
+                .first::<crate::models::Webhook>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Commit into the database.
 pub fn insert_commit(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Commit,
 ) -> Result<(), BridleError> {
     use crate::schema::commits::dsl::*;
-    diesel::insert_into(commits)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(commits)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(commits)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Commit from the database by ID.
 pub fn get_commit(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     item_id: i32,
 ) -> Result<crate::models::Commit, BridleError> {
     use crate::schema::commits::dsl::*;
-    let fetched = commits
-        .filter(id.eq(item_id))
-        .first::<crate::models::Commit>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = commits
+                .filter(id.eq(item_id))
+                .first::<crate::models::Commit>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = commits
+                .filter(id.eq(item_id))
+                .first::<crate::models::Commit>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Tree into the database.
 pub fn insert_tree(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Tree,
 ) -> Result<(), BridleError> {
     use crate::schema::trees::dsl::*;
-    diesel::insert_into(trees)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(trees)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(trees)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Tree from the database by ID.
-pub fn get_tree(
-    conn: &mut SqliteConnection,
-    item_id: i32,
-) -> Result<crate::models::Tree, BridleError> {
+pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Tree, BridleError> {
     use crate::schema::trees::dsl::*;
-    let fetched = trees
-        .filter(id.eq(item_id))
-        .first::<crate::models::Tree>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = trees
+                .filter(id.eq(item_id))
+                .first::<crate::models::Tree>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = trees
+                .filter(id.eq(item_id))
+                .first::<crate::models::Tree>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 /// Inserts a new Blob into the database.
 pub fn insert_blob(
-    conn: &mut SqliteConnection,
+    conn: &mut DbConnection,
     new_item: &crate::models::Blob,
 ) -> Result<(), BridleError> {
     use crate::schema::blobs::dsl::*;
-    diesel::insert_into(blobs)
-        .values(new_item)
-        .execute(conn)
-        .map_err(BridleError::Database)?;
-    Ok(())
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            diesel::insert_into(blobs)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            diesel::insert_into(blobs)
+                .values(new_item)
+                .execute(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(())
+        }
+    }
 }
 
 /// Retrieves a Blob from the database by ID.
-pub fn get_blob(
-    conn: &mut SqliteConnection,
-    item_id: i32,
-) -> Result<crate::models::Blob, BridleError> {
+pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Blob, BridleError> {
     use crate::schema::blobs::dsl::*;
-    let fetched = blobs
-        .filter(id.eq(item_id))
-        .first::<crate::models::Blob>(conn)
-        .map_err(BridleError::Database)?;
-    Ok(fetched)
+    match conn {
+        crate::db::DbConnection::Sqlite(c) => {
+            let fetched = blobs
+                .filter(id.eq(item_id))
+                .first::<crate::models::Blob>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+        #[cfg(not(tarpaulin_include))]
+        crate::db::DbConnection::Pg(c) => {
+            let fetched = blobs
+                .filter(id.eq(item_id))
+                .first::<crate::models::Blob>(c)
+                .map_err(|e| {
+                    BridleError::Database(diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string()),
+                    ))
+                })?;
+            Ok(fetched)
+        }
+    }
 }
 
 #[cfg(test)]

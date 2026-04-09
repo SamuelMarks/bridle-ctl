@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 #![warn(missing_docs)]
 //! CLI Interface for bridle-ctl.
 
@@ -51,15 +52,7 @@ pub enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Add two numbers together using the SDK (placeholder command).
-    Add {
-        /// The left number
-        #[arg(long)]
-        left: usize,
-        /// The right number
-        #[arg(long)]
-        right: usize,
-    },
+
     /// Execute a database operation via JSON.
     Db {
         /// The path to the SQLite database.
@@ -74,6 +67,87 @@ pub enum Commands {
         /// The ID to fetch (only needed for get_* actions).
         #[arg(long)]
         id: Option<i32>,
+    },
+    /// Ingests all repositories for an organization from an upstream provider.
+    IngestOrg {
+        /// The name of the organization.
+        #[arg(long)]
+        org: String,
+        /// The upstream provider (e.g., github).
+        #[arg(long, default_value = "github")]
+        provider: String,
+        /// Optional DB URL to sync the org.
+        #[arg(long, default_value = "bridle.db")]
+        db_url: String,
+    },
+    /// Executes a batch fix across all repositories in an organization.
+    BatchFix {
+        /// The name of the organization.
+        #[arg(long)]
+        org: String,
+        /// The issue title or description.
+        #[arg(long)]
+        issue: String,
+        /// Target a specific regex pattern (passed to tools).
+        #[arg(long)]
+        pattern: Option<String>,
+        /// Comma-separated list of tools to run.
+        #[arg(long, value_delimiter = ',')]
+        tools: Option<Vec<String>>,
+        /// Arguments for specific tools.
+        #[arg(long, value_delimiter = ',')]
+        tool_args: Option<Vec<String>>,
+        /// Database URL.
+        #[arg(long, default_value = "bridle.db")]
+        db_url: String,
+        /// If true, will not fork and submit PRs automatically.
+        #[arg(long)]
+        safety_mode: bool,
+        /// Limit the maximum number of repositories processed.
+        #[arg(long)]
+        max_repos: Option<usize>,
+        /// Global limit of number of PRs to send per hour.
+        #[arg(long)]
+        max_prs_per_hour: Option<usize>,
+    },
+    /// Syncs local PRs to the upstream provider.
+    SyncPrs {
+        /// The name of the organization.
+        #[arg(long)]
+        org: String,
+        /// Database URL.
+        #[arg(long, default_value = "bridle.db")]
+        db_url: String,
+        /// Global limit of number of PRs to send per hour.
+        #[arg(long)]
+        max_prs_per_hour: Option<usize>,
+    },
+    /// Runs a batch pipeline configuration.
+    BatchRun {
+        /// Path to the YAML/TOML config file.
+        #[arg(long)]
+        config: String,
+        /// If true, will not fork and submit PRs automatically.
+        #[arg(long)]
+        safety_mode: bool,
+        /// Limit the maximum number of repositories processed.
+        #[arg(long)]
+        max_repos: Option<usize>,
+        /// Global limit of number of PRs to send per hour.
+        #[arg(long)]
+        max_prs_per_hour: Option<usize>,
+    },
+    /// Resumes an interrupted batch run.
+    BatchResume {
+        /// ID of the batch job to resume.
+        #[arg(long)]
+        job_id: i32,
+    },
+    /// Displays the status of a batch run via TUI.
+    BatchStatus {
+        /// ID of the batch job to track.
+        #[arg(long)]
+        job_id: i32,
     },
 }
 
@@ -90,204 +164,6 @@ fn parse_tool_args(args: Option<Vec<String>>) -> std::collections::HashMap<Strin
         }
     }
     map
-}
-
-/// Macro to simplify generating CRUD CLI commands that serialize and deserialize JSON logic.
-macro_rules! handle_cli_crud {
-    ($action:expr, $db_url:expr, $payload:expr, $id:expr, $( ($create_name:expr, $get_name:expr, $sdk_insert:path, $sdk_get:path, $model:ty) ),+ $(,)?) => {
-        match $action {
-            $(
-                $create_name => {
-                    let data = $payload.ok_or_else(|| error::CliError::Execution(format!("Missing payload for {}", $create_name)))?;
-                    let parsed: $model = serde_json::from_str(&data).map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations($db_url)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    $sdk_insert(&mut conn, &parsed)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    Ok(format!("Successfully executed {}", $create_name))
-                }
-                $get_name => {
-                    let target_id = $id.ok_or_else(|| error::CliError::Execution(format!("Missing id for {}", $get_name)))?;
-                    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations($db_url)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    let fetched = $sdk_get(&mut conn, target_id)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    let json = serde_json::to_string_pretty(&fetched).map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    Ok(json)
-                }
-            )+
-            _ => Err(error::CliError::Execution(format!("Unknown action: {}", $action)))
-        }
-    };
-}
-
-#[cfg(not(tarpaulin_include))]
-fn execute_db_command(
-    db_url: &str,
-    action: &str,
-    payload: Option<String>,
-    id: Option<i32>,
-) -> Result<String, error::CliError> {
-    handle_cli_crud!(
-        action,
-        db_url,
-        payload,
-        id,
-        (
-            "create_user",
-            "get_user",
-            bridle_sdk::db::insert_user,
-            bridle_sdk::db::get_user,
-            bridle_sdk::models::User
-        ),
-        (
-            "create_org",
-            "get_org",
-            bridle_sdk::db::insert_organisation,
-            bridle_sdk::db::get_organisation,
-            bridle_sdk::models::Organisation
-        ),
-        (
-            "create_repo",
-            "get_repo",
-            bridle_sdk::db::insert_repository,
-            bridle_sdk::db::get_repository,
-            bridle_sdk::models::Repository
-        ),
-        (
-            "create_team",
-            "get_team",
-            bridle_sdk::db::insert_team,
-            bridle_sdk::db::get_team,
-            bridle_sdk::models::Team
-        ),
-        (
-            "create_branch",
-            "get_branch",
-            bridle_sdk::db::insert_branch,
-            bridle_sdk::db::get_branch,
-            bridle_sdk::models::Branch
-        ),
-        (
-            "create_branch_protection_rule",
-            "get_branch_protection_rule",
-            bridle_sdk::db::insert_branch_protection_rule,
-            bridle_sdk::db::get_branch_protection_rule,
-            bridle_sdk::models::BranchProtectionRule
-        ),
-        (
-            "create_key",
-            "get_key",
-            bridle_sdk::db::insert_key,
-            bridle_sdk::db::get_key,
-            bridle_sdk::models::Key
-        ),
-        (
-            "create_follow",
-            "get_follow",
-            bridle_sdk::db::insert_follow,
-            bridle_sdk::db::get_follow,
-            bridle_sdk::models::Follow
-        ),
-        (
-            "create_star",
-            "get_star",
-            bridle_sdk::db::insert_star,
-            bridle_sdk::db::get_star,
-            bridle_sdk::models::Star
-        ),
-        (
-            "create_org_membership",
-            "get_org_membership",
-            bridle_sdk::db::insert_org_membership,
-            bridle_sdk::db::get_org_membership,
-            bridle_sdk::models::OrgMembership
-        ),
-        (
-            "create_repo_collaborator",
-            "get_repo_collaborator",
-            bridle_sdk::db::insert_repo_collaborator,
-            bridle_sdk::db::get_repo_collaborator,
-            bridle_sdk::models::RepoCollaborator
-        ),
-        (
-            "create_milestone",
-            "get_milestone",
-            bridle_sdk::db::insert_milestone,
-            bridle_sdk::db::get_milestone,
-            bridle_sdk::models::Milestone
-        ),
-        (
-            "create_label",
-            "get_label",
-            bridle_sdk::db::insert_label,
-            bridle_sdk::db::get_label,
-            bridle_sdk::models::Label
-        ),
-        (
-            "create_issue",
-            "get_issue",
-            bridle_sdk::db::insert_issue,
-            bridle_sdk::db::get_issue,
-            bridle_sdk::models::Issue
-        ),
-        (
-            "create_issue_label",
-            "get_issue_label",
-            bridle_sdk::db::insert_issue_label,
-            bridle_sdk::db::get_issue_label,
-            bridle_sdk::models::IssueLabel
-        ),
-        (
-            "create_pull_request",
-            "get_pull_request",
-            bridle_sdk::db::insert_pull_request,
-            bridle_sdk::db::get_pull_request,
-            bridle_sdk::models::PullRequest
-        ),
-        (
-            "create_pull_request_review",
-            "get_pull_request_review",
-            bridle_sdk::db::insert_pull_request_review,
-            bridle_sdk::db::get_pull_request_review,
-            bridle_sdk::models::PullRequestReview
-        ),
-        (
-            "create_release",
-            "get_release",
-            bridle_sdk::db::insert_release,
-            bridle_sdk::db::get_release,
-            bridle_sdk::models::Release
-        ),
-        (
-            "create_webhook",
-            "get_webhook",
-            bridle_sdk::db::insert_webhook,
-            bridle_sdk::db::get_webhook,
-            bridle_sdk::models::Webhook
-        ),
-        (
-            "create_commit",
-            "get_commit",
-            bridle_sdk::db::insert_commit,
-            bridle_sdk::db::get_commit,
-            bridle_sdk::models::Commit
-        ),
-        (
-            "create_tree",
-            "get_tree",
-            bridle_sdk::db::insert_tree,
-            bridle_sdk::db::get_tree,
-            bridle_sdk::models::Tree
-        ),
-        (
-            "create_blob",
-            "get_blob",
-            bridle_sdk::db::insert_blob,
-            bridle_sdk::db::get_blob,
-            bridle_sdk::models::Blob
-        )
-    )
 }
 
 /// Executes the provided command.
@@ -365,16 +241,69 @@ pub fn execute(command: &Commands) -> Result<String, error::CliError> {
             runner::run(runner::Action::Fix { dry_run: *dry_run }, req)?;
             Ok("Fix completed.".to_string())
         }
-        Commands::Add { left, right } => {
-            let result = bridle_sdk::add(*left, *right);
-            Ok(format!("{} + {} = {}", left, right, result))
-        }
+
         Commands::Db {
             db_url,
             action,
             payload,
             id,
-        } => execute_db_command(db_url, action, payload.clone(), *id),
+        } => bridle_cli::db::execute_db_command(db_url, action, payload.clone(), *id),
+        Commands::IngestOrg {
+            org,
+            provider,
+            db_url,
+        } => bridle_cli::ingest::ingest_org(org, provider, db_url),
+        Commands::BatchFix {
+            org,
+            issue,
+            pattern,
+            tools,
+            tool_args,
+            db_url,
+            safety_mode,
+            max_repos,
+            max_prs_per_hour,
+        } => {
+            let parsed_args = if let Some(args) = tool_args {
+                Some(parse_tool_args(Some(args.clone())))
+            } else {
+                None
+            };
+            bridle_cli::batch_fix::batch_fix(
+                org,
+                issue,
+                pattern.clone(),
+                tools.clone(),
+                parsed_args,
+                db_url,
+                *safety_mode,
+                *max_repos,
+                *max_prs_per_hour,
+            )
+        }
+        Commands::SyncPrs {
+            org,
+            db_url,
+            max_prs_per_hour,
+        } => bridle_cli::sync_prs::sync_prs(org, db_url, *max_prs_per_hour),
+        Commands::BatchRun {
+            config,
+            safety_mode,
+            max_repos,
+            max_prs_per_hour,
+        } => bridle_cli::batch_pipeline::run_pipeline(
+            config,
+            "bridle.db",
+            *safety_mode,
+            *max_repos,
+            *max_prs_per_hour,
+        ),
+        Commands::BatchResume { job_id } => {
+            bridle_cli::batch_pipeline::resume_pipeline(*job_id, "bridle.db")
+        }
+        Commands::BatchStatus { job_id } => {
+            bridle_cli::batch_pipeline::status_pipeline(*job_id, "bridle.db")
+        }
     }
 }
 
@@ -416,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_commands() -> Result<(), error::CliError> {
+    fn test_execute_commands() -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(execute(&Commands::Rest)?, "REST API stopped.");
         assert_eq!(execute(&Commands::Rpc)?, "JSON-RPC stopped.");
         assert_eq!(execute(&Commands::Agent)?, "Agent stopped.");
@@ -441,10 +370,8 @@ mod tests {
             "Fix completed."
         );
 
-        assert_eq!(execute(&Commands::Add { left: 2, right: 3 })?, "2 + 3 = 5");
-
-        let tf = tempfile::NamedTempFile::new().unwrap();
-        let db_url = tf.path().to_str().unwrap().to_string();
+        let tf = tempfile::NamedTempFile::new()?;
+        let db_url = tf.path().to_str().ok_or("invalid path")?.to_string();
 
         let new_user = bridle_sdk::models::User {
             id: 11,
@@ -505,6 +432,24 @@ mod tests {
                 id: None
             })
             .is_err()
+        );
+
+        assert_eq!(
+            execute(&Commands::BatchRun {
+                config: "config.yml".to_string(),
+                safety_mode: false,
+                max_repos: None,
+                max_prs_per_hour: None
+            })?,
+            "Batch pipeline run from config.yml"
+        );
+        assert_eq!(
+            execute(&Commands::BatchResume { job_id: 123 })?,
+            "Resumed batch job 123"
+        );
+        assert_eq!(
+            execute(&Commands::BatchStatus { job_id: 123 })?,
+            "Status of batch job 123"
         );
 
         Ok(())

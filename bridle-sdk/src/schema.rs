@@ -339,3 +339,43 @@ diesel::allow_tables_to_appear_in_same_query!(
     users,
     webhooks,
 );
+diesel::table! {
+    batch_jobs (id) {
+        id -> Integer,
+        pipeline_name -> Text,
+        status -> Text,
+        started_at -> Timestamp,
+        completed_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
+    batch_tasks (id) {
+        id -> Integer,
+        job_id -> Integer,
+        repo_id -> Integer,
+        status -> Text,
+        error_reason -> Nullable<Text>,
+        pr_url -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    task_logs (id) {
+        id -> Integer,
+        task_id -> Integer,
+        step_name -> Text,
+        stdout -> Nullable<Text>,
+        stderr -> Nullable<Text>,
+        exit_code -> Nullable<Integer>,
+        duration_ms -> Nullable<Integer>,
+    }
+}
+
+diesel::joinable!(batch_tasks -> batch_jobs (job_id));
+diesel::joinable!(batch_tasks -> repositories (repo_id));
+diesel::joinable!(task_logs -> batch_tasks (task_id));
+
+diesel::allow_tables_to_appear_in_same_query!(batch_jobs, batch_tasks, task_logs,);

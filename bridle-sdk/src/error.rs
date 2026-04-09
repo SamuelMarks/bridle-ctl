@@ -22,6 +22,16 @@ pub enum BridleError {
     #[error(ignore)]
     Migration(String),
 
+    /// A telemetry initialization error.
+    #[display("Telemetry error: {}", _0)]
+    #[error(ignore)]
+    Telemetry(String),
+
+    /// A configuration error.
+    #[display("Configuration error: {}", _0)]
+    #[error(ignore)]
+    Config(String),
+
     /// A generic error used as a fallback.
     #[display("Generic error: {}", _0)]
     #[error(ignore)]
@@ -69,11 +79,32 @@ mod tests {
 
         let mig_err = BridleError::Migration("mig fail".to_string());
         assert_eq!(format!("{}", mig_err), "Migration error: mig fail");
+
+        let tel_err = BridleError::Telemetry("init fail".to_string());
+        assert_eq!(format!("{}", tel_err), "Telemetry error: init fail");
     }
 
     #[test]
     fn test_generic_error_display() {
         let err = BridleError::Generic("something broke".to_string());
         assert_eq!(format!("{}", err), "Generic error: something broke");
+
+        let conf_err = BridleError::Config("bad conf".to_string());
+        assert_eq!(format!("{}", conf_err), "Configuration error: bad conf");
+    }
+
+    #[test]
+    fn test_from_traits() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "not found");
+        let bridle_io = BridleError::from(io_err);
+        assert!(matches!(bridle_io, BridleError::Io(_)));
+
+        let conn_err = diesel::ConnectionError::BadConnection("bad".to_string());
+        let bridle_conn = BridleError::from(conn_err);
+        assert!(matches!(bridle_conn, BridleError::Connection(_)));
+
+        let db_err = diesel::result::Error::NotFound;
+        let bridle_db = BridleError::from(db_err);
+        assert!(matches!(bridle_db, BridleError::Database(_)));
     }
 }

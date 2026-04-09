@@ -1,59 +1,40 @@
-# Usage Guide
+# Usage
 
-## Purpose
-This document outlines how to use `bridle-ctl` and its associated tools, reflecting the current repository state where regex-based code tooling AND local Git Forge database commands are fully implemented.
+`bridle-ctl` offers several subcommands to run agents, tools, databases, and upstream syncs.
 
-`bridle-ctl` acts as a unified facade for codebase operations and embedded Git data management using the `bridle` executable.
-
-## Core Commands
-
+## General Operations
 ```bash
-bridle audit [OPTIONS]
-bridle fix [OPTIONS]
-bridle db [OPTIONS]
+# Start the agent daemon
+bridle agent
+
+# Start REST or RPC APIs
 bridle rest
 bridle rpc
-bridle agent
+
+# Start the Angular Web UI (from within bridle-ui/)
+cd bridle-ui && npm start
 ```
 
-## Options: Codebase Operations (Audit/Fix)
-
-- `--pattern <REGEX>`: The regex pattern to target (e.g., `.*\.go$`). 
-- `--tools <TOOL1,TOOL2>`: Specify exact tools to run.
-- `--tool-args <TOOL:ARG,...>`: Pass arbitrary flags to specific tools.
-- `--dry-run`: (Fix only) Simulate the change without actually editing files.
-
-### Determinism & Context Size
-By explicitly defining `pattern` and `tools`, users bypass interactive modes, delegating codebase modifications to pre-compiled, FFI-backed logic. The `--pattern` flag ensures that the tool only reads matching files, aggressively reducing the context size that tools and AI agents must process.
-
-## Options: Git Forge (Db)
-
-The `db` command allows you to interact with the local SQLite Git Forge backend.
-
-- `--db-url <PATH>`: The path to the SQLite database (defaults to `bridle.db`).
-- `--action <ACTION>`: The CRUD action (e.g., `create_user`, `get_repo`, `create_pull_request`).
-- `--payload <JSON>`: The JSON representation of the entity for `create_*` actions.
-- `--id <ID>`: The ID of the entity for `get_*` actions.
-
-## Examples
-
-### Fix GitHub Actions (Dry-Run)
+## Batch Processing & Fixes
 ```bash
-bridle fix --pattern '\.github/workflows/.*\.ya?ml$' --tools gha-improver --dry-run
+# Batch fix issues across multiple repositories
+bridle batch-fix --org "my-org" --issue "Fix deprecated API" --tools "ffi_fixer" --db-url "postgres://user:pass@localhost/bridle"
+
+# Run a YAML/TOML pipeline
+bridle batch-run --config pipeline.yml
+bridle batch-resume --job-id 12
+bridle batch-status --job-id 12
 ```
 
-### Create a Local Pull Request
-```bash
-bridle db --action create_pull_request --payload '{"id":1, "repo_id":1, "number":1, "title":"Fix auth", "state":"open", "head_branch":"fix-auth", "base_branch":"main", "author_id":1, "is_draft":false, "created_at":"2026-04-07T00:00:00", "updated_at":"2026-04-07T00:00:00"}'
-```
+## Upstream Synchronization (PRs & Forks)
+When you have analyzed and prepared numerous Pull Requests locally, you can sync them to the upstream real repositories (e.g., GitHub) using the `sync-prs` command.
 
-### Fetch a User via CLI
 ```bash
-bridle db --action get_user --id 1
+bridle sync-prs --org "my-org" --db-url "sqlite://bridle.db" --max-prs-per-hour 10
 ```
-
-### Start Servers
-```bash
-bridle rest  # Starts the Actix REST API
-bridle rpc   # Starts the JSON-RPC server
-```
+This command automatically:
+1. **Checks for forks**: Looks for an existing fork in your personal account or organizations.
+2. **Reuses/Creates**: Uses the existing fork or creates a new one.
+3. **Pushes**: Pushes the branch to the remote fork.
+4. **Sends PR**: Sends the Pull Request to the upstream organization.
+5. **Rate Limits**: Enforces the global limit set by `--max-prs-per-hour` to prevent flooding the upstream provider.

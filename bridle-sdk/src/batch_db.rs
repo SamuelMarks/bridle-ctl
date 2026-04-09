@@ -1,0 +1,268 @@
+use crate::db::DbConnection;
+use crate::error::BridleError;
+use crate::models::{BatchJob, BatchTask, TaskStatus};
+use crate::schema::{batch_jobs, batch_tasks};
+use chrono::Utc;
+use diesel::prelude::*;
+
+/// Creates a new batch job.
+pub fn create_batch_job(
+    conn: &mut DbConnection,
+    pipeline_name: &str,
+) -> Result<BatchJob, BridleError> {
+    let new_job = (
+        batch_jobs::pipeline_name.eq(pipeline_name),
+        batch_jobs::status.eq(TaskStatus::Pending.to_string()),
+        batch_jobs::started_at.eq(Utc::now().naive_utc()),
+    );
+    match conn {
+        DbConnection::Sqlite(c) => {
+            diesel::insert_into(batch_jobs::table)
+                .values(&new_job)
+                .execute(c)
+                .map_err(BridleError::Database)?;
+            batch_jobs::table
+                .order(batch_jobs::id.desc())
+                .first::<BatchJob>(c)
+                .map_err(BridleError::Database)
+        }
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => {
+            diesel::insert_into(batch_jobs::table)
+                .values(&new_job)
+                .execute(_c)
+                .map_err(BridleError::Database)?;
+            batch_jobs::table
+                .order(batch_jobs::id.desc())
+                .first::<BatchJob>(_c)
+                .map_err(BridleError::Database)
+        }
+    }
+}
+
+/// Retrieves a batch job by ID.
+pub fn get_batch_job(conn: &mut DbConnection, job_id: i32) -> Result<BatchJob, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => batch_jobs::table
+            .find(job_id)
+            .first::<BatchJob>(c)
+            .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => batch_jobs::table
+            .find(job_id)
+            .first::<BatchJob>(_c)
+            .map_err(BridleError::Database),
+    }
+}
+
+/// Inserts a batch job directly.
+pub fn insert_batch_job(conn: &mut DbConnection, job: &BatchJob) -> Result<BatchJob, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => {
+            diesel::insert_into(batch_jobs::table)
+                .values(job)
+                .execute(c)
+                .map_err(BridleError::Database)?;
+            Ok(job.clone())
+        }
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => {
+            diesel::insert_into(batch_jobs::table)
+                .values(job)
+                .execute(_c)
+                .map_err(BridleError::Database)?;
+            Ok(job.clone())
+        }
+    }
+}
+
+/// Updates a batch job status atomically.
+pub fn update_batch_job_status(
+    conn: &mut DbConnection,
+    job_id: i32,
+    new_status: &str,
+) -> Result<BatchJob, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => c
+            .transaction(|c| {
+                diesel::update(batch_jobs::table.find(job_id))
+                    .set((batch_jobs::status.eq(new_status),))
+                    .execute(c)?;
+                batch_jobs::table.find(job_id).first::<BatchJob>(c)
+            })
+            .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => _c
+            .transaction(|c| {
+                diesel::update(batch_jobs::table.find(job_id))
+                    .set((batch_jobs::status.eq(new_status),))
+                    .execute(c)?;
+                batch_jobs::table.find(job_id).first::<BatchJob>(c)
+            })
+            .map_err(BridleError::Database),
+    }
+}
+
+/// Retrieves a batch task by ID.
+pub fn get_batch_task(conn: &mut DbConnection, task_id: i32) -> Result<BatchTask, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => batch_tasks::table
+            .find(task_id)
+            .first::<BatchTask>(c)
+            .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => batch_tasks::table
+            .find(task_id)
+            .first::<BatchTask>(_c)
+            .map_err(BridleError::Database),
+    }
+}
+
+/// Inserts a batch task directly.
+pub fn insert_batch_task(
+    conn: &mut DbConnection,
+    task: &BatchTask,
+) -> Result<BatchTask, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => {
+            diesel::insert_into(batch_tasks::table)
+                .values(task)
+                .execute(c)
+                .map_err(BridleError::Database)?;
+            Ok(task.clone())
+        }
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => {
+            diesel::insert_into(batch_tasks::table)
+                .values(task)
+                .execute(_c)
+                .map_err(BridleError::Database)?;
+            Ok(task.clone())
+        }
+    }
+}
+
+/// Updates task status atomically.
+pub fn update_task_status(
+    conn: &mut DbConnection,
+    task_id: i32,
+    new_status: TaskStatus,
+    error_reason: Option<String>,
+) -> Result<BatchTask, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => c
+            .transaction(|c| {
+                diesel::update(batch_tasks::table.find(task_id))
+                    .set((
+                        batch_tasks::status.eq(new_status.to_string()),
+                        batch_tasks::error_reason.eq(error_reason),
+                        batch_tasks::updated_at.eq(Utc::now().naive_utc()),
+                    ))
+                    .execute(c)?;
+                batch_tasks::table.find(task_id).first::<BatchTask>(c)
+            })
+            .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => _c
+            .transaction(|c| {
+                diesel::update(batch_tasks::table.find(task_id))
+                    .set((
+                        batch_tasks::status.eq(new_status.to_string()),
+                        batch_tasks::error_reason.eq(error_reason),
+                        batch_tasks::updated_at.eq(Utc::now().naive_utc()),
+                    ))
+                    .execute(c)?;
+                batch_tasks::table.find(task_id).first::<BatchTask>(c)
+            })
+            .map_err(BridleError::Database),
+    }
+}
+
+/// Resumes a job by returning its tasks.
+pub fn get_job_tasks(conn: &mut DbConnection, job_id: i32) -> Result<Vec<BatchTask>, BridleError> {
+    match conn {
+        DbConnection::Sqlite(c) => batch_tasks::table
+            .filter(batch_tasks::job_id.eq(job_id))
+            .load::<BatchTask>(c)
+            .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
+        DbConnection::Pg(_c) => batch_tasks::table
+            .filter(batch_tasks::job_id.eq(job_id))
+            .load::<BatchTask>(_c)
+            .map_err(BridleError::Database),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::establish_connection_and_run_migrations;
+
+    #[test]
+    fn test_create_and_get_job_tasks() -> Result<(), crate::error::BridleError> {
+        let mut conn = establish_connection_and_run_migrations(":memory:")?;
+
+        let job = create_batch_job(&mut conn, "test_pipeline")?;
+        assert_eq!(job.pipeline_name, "test_pipeline");
+
+        let tasks = get_job_tasks(&mut conn, job.id)?;
+        assert!(tasks.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_task_status() -> Result<(), crate::error::BridleError> {
+        let mut conn = establish_connection_and_run_migrations(":memory:")?;
+
+        let job = create_batch_job(&mut conn, "test_pipeline")?;
+
+        let res = update_task_status(&mut conn, 999, TaskStatus::InProgress, None);
+        assert!(res.is_err());
+
+        match &mut conn {
+            DbConnection::Sqlite(c) => {
+                let new_task = (
+                    crate::schema::batch_tasks::job_id.eq(job.id),
+                    crate::schema::batch_tasks::repo_id.eq(1),
+                    crate::schema::batch_tasks::status.eq(TaskStatus::Pending.to_string()),
+                );
+                diesel::insert_into(crate::schema::batch_tasks::table)
+                    .values(&new_task)
+                    .execute(c)
+                    .map_err(crate::error::BridleError::Database)?;
+
+                let inserted_task = crate::schema::batch_tasks::table
+                    .order(crate::schema::batch_tasks::id.desc())
+                    .first::<BatchTask>(c)
+                    .map_err(crate::error::BridleError::Database)?;
+
+                let updated = update_task_status(
+                    &mut conn,
+                    inserted_task.id,
+                    TaskStatus::Clean,
+                    Some("cleaned".to_string()),
+                )?;
+                assert_eq!(updated.status, "Clean");
+                assert_eq!(updated.error_reason.as_deref(), Some("cleaned"));
+            }
+            #[cfg(not(tarpaulin_include))]
+            _ => unreachable!(),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_batch_job_status() -> Result<(), crate::error::BridleError> {
+        let mut conn = establish_connection_and_run_migrations(":memory:")?;
+
+        let job = create_batch_job(&mut conn, "test_pipeline")?;
+        assert_eq!(job.status, "Pending");
+
+        let updated_job = update_batch_job_status(&mut conn, job.id, "ABORTED")?;
+        assert_eq!(updated_job.status, "ABORTED");
+
+        Ok(())
+    }
+}

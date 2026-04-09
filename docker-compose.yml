@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  rest-api:
+    build:
+      context: .
+      dockerfile: debian.Dockerfile
+    command: ["bridle-rest"]
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+
+  rpc-api:
+    build:
+      context: .
+      dockerfile: debian.Dockerfile
+    command: ["bridle-rpc"]
+    environment:
+      - RUST_LOG=info
+
+  agent:
+    build:
+      context: .
+      dockerfile: debian.Dockerfile
+    command: ["bridle-agent"]
+    environment:
+      - RUST_LOG=info
+
+  ui:
+    image: node:lts-alpine
+    working_dir: /app
+    volumes:
+      - ./bridle-ui:/app
+    command: sh -c "npm install && npm run build && npm run serve:ssr:bridle-ui"
+    ports:
+      - "4000:4000"
+    depends_on:
+      - rest-api

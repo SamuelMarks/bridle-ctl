@@ -9,12 +9,12 @@ use std::time::Duration;
 
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle};
-use inquire::MultiSelect;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::error::CliError;
 use crate::tools::{self, registry};
+use crate::tui;
 
 /// Defines the action to be performed by the runner.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -31,9 +31,13 @@ pub enum Action {
 /// Represents the final report generated after running tools.
 #[derive(Serialize, Deserialize, Debug)]
 struct Report {
+    /// Action
     action: String,
+    /// Tools
     tools_run: Vec<String>,
+    /// Status
     status: String,
+    /// Details
     details: HashMap<String, String>,
 }
 
@@ -49,14 +53,12 @@ fn detect_applicable_tools(tools: &[Box<dyn tools::CodeTool>]) -> Vec<String> {
     }
 
     let walker = WalkBuilder::new(".").follow_links(false).build();
-    for result in walker {
-        if let Ok(entry) = result {
-            if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                let path_str = entry.path().to_string_lossy();
-                for (name, re) in &regexes {
-                    if !applicable.contains(name) && re.is_match(&path_str) {
-                        applicable.insert(name.clone());
-                    }
+    for entry in walker.flatten() {
+        if entry.file_type().is_some_and(|ft| ft.is_file()) {
+            let path_str = entry.path().to_string_lossy();
+            for (name, re) in &regexes {
+                if !applicable.contains(name) && re.is_match(&path_str) {
+                    applicable.insert(name.clone());
                 }
             }
         }
@@ -68,6 +70,7 @@ fn detect_applicable_tools(tools: &[Box<dyn tools::CodeTool>]) -> Vec<String> {
 }
 
 #[cfg(not(tarpaulin_include))]
+/// Interactive selection
 fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
     let all_tools = registry::get_tools();
     let detected_names = detect_applicable_tools(&all_tools);
@@ -82,27 +85,29 @@ fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
         .filter(|t| detected_names.contains(&t.name().to_string()))
         .collect();
 
-    let tool_names: Vec<String> = available_tools
-        .iter()
-        .map(|t| format!("{} ({})", t.name(), t.description()))
-        .collect();
+    let selected_indices = tui::select_tools(&available_tools)?;
 
-    let tool_selection =
-        MultiSelect::new("Select tools to run based on detected files:", tool_names)
-            .with_help_message("Space to select, Enter to confirm")
-            .prompt()?;
-
+    // Need to extract the selected tools from the vector, taking ownership.
+    // We can do this by keeping the ones that were selected.
     let mut selected_tools = Vec::new();
-    for t in available_tools {
-        let display_name = format!("{} ({})", t.name(), t.description());
-        if tool_selection.contains(&display_name) {
-            selected_tools.push(t);
+    // iterate backwards to safely remove from available_tools, or just use indices directly
+    for index in selected_indices {
+        if let Some(tool) = available_tools.get(index) {
+            // Need to reconstruct from registry to get owned boxes since we can't easily move out of the filtered vec dynamically without complicated ownership
+            // simpler: just re-fetch the ones we selected by name
+            let name = tool.name().to_string();
+            let all = registry::get_tools();
+            if let Some(t) = all.into_iter().find(|t| t.name() == name) {
+                selected_tools.push(t);
+            }
         }
     }
+
     Ok(selected_tools)
 }
 
 #[cfg(not(tarpaulin_include))]
+/// Append to README
 fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), CliError> {
     if Path::new("README.md").exists() {
         let mut file = OpenOptions::new().append(true).open("README.md")?;
@@ -240,8 +245,8 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
             .unwrap_or(&empty_args);
 
         let result = match action {
-            Action::Audit => tool.audit(current_args),
-            Action::Fix { dry_run } => tool.fix(current_args, dry_run),
+            Action::Audit => tool.audit(current_args, None),
+            Action::Fix { dry_run } => tool.fix(current_args, dry_run, None),
         };
 
         match result {

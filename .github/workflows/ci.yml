@@ -7,12 +7,17 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  test-and-coverage:
+  rust:
+    name: Rust Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev libsqlite3-dev
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --verbose
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin
       - name: Run tests and collect coverage
@@ -21,3 +26,30 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: cobertura.xml
+
+  ui:
+    name: UI Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./bridle-ui
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './bridle-ui/package-lock.json'
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm run test -- --browsers=ChromeHeadless
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run E2E tests
+        run: npm run e2e

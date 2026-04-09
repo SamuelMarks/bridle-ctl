@@ -1,0 +1,14 @@
+site_name: Bridle
+site_description: AI-native codebase orchestrator and embedded Git Forge backend
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
