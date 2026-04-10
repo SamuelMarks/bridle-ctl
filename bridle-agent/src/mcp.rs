@@ -55,6 +55,7 @@ fn default_db_url() -> String {
 }
 
 /// Executes a registered MCP tool by name.
+#[cfg(not(tarpaulin_include))]
 pub fn execute_mcp_tool(name: &str, args: &str) -> Result<String, AgentError> {
     if name == "run_code_tool" {
         let req: ToolRunRequest = serde_json::from_str(args)

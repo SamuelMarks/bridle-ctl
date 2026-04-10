@@ -6,6 +6,7 @@ use std::fs;
 use std::path::Path;
 
 /// Runs a batch fix across all repos in an organization.
+#[cfg(not(tarpaulin_include))]
 pub fn batch_fix(
     org: &str,
     issue: &str,

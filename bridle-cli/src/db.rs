@@ -210,3 +210,27 @@ mod tests {
         assert!(res.is_err());
     }
 }
+#[test]
+fn test_execute_db_command_missing_payload() {
+    let res = execute_db_command("bridle.db", "create_key", None, None);
+    assert!(res.is_err());
+    assert!(res.unwrap_err().to_string().contains("Missing payload"));
+}
+
+#[test]
+fn test_execute_db_command_bad_json() {
+    let res = execute_db_command(
+        "bridle.db",
+        "create_key",
+        Some("{bad json}".to_string()),
+        None,
+    );
+    assert!(res.is_err());
+}
+
+#[test]
+fn test_execute_db_command_missing_id() {
+    let res = execute_db_command("bridle.db", "get_key", None, None);
+    assert!(res.is_err());
+    assert!(res.unwrap_err().to_string().contains("Missing id"));
+}

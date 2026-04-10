@@ -22,6 +22,9 @@ fn main() {
         let git_dir = out_path.join("go-auto-err-handling");
         if !git_dir.exists() {
             let status = Command::new("git")
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
                 .arg("clone")
                 .arg("--depth=1")
                 .arg("https://github.com/SamuelMarks/go-auto-err-handling.git")
@@ -66,6 +69,9 @@ fn main() {
         let git_dir = out_path.join("type-correct");
         if !git_dir.exists() {
             let status = Command::new("git")
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
                 .arg("clone")
                 .arg("--depth=1")
                 .arg("https://github.com/SamuelMarks/type-correct.git")
@@ -104,4 +110,8 @@ fn main() {
 
     // Add rpath so the binary can find the dylib at runtime
     println!("cargo:rustc-link-arg=-Wl,-rpath,{}/lib", dst.display());
+    // --- cdd-c stub ---
+
+    println!("cargo:rerun-if-changed=src/cdd_stub.c");
+    cc::Build::new().file("src/cdd_stub.c").compile("cdd_stub");
 }

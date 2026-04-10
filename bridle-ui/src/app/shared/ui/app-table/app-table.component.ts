@@ -45,7 +45,7 @@ export class AppTableColumnDirective {
               <tr>
                 @for (col of columns; track col.title()) {
                   <td>
-                    <ng-container *ngTemplateOutlet="col.template; context: {$implicit: row, value: col.key() ? row[col.key()!] : null}"></ng-container>
+                    <ng-container *ngTemplateOutlet="col.template; context: {$implicit: row, value: col.key() ? $any(row)[col.key()!] : null}"></ng-container>
                   </td>
                 }
               </tr>
@@ -122,17 +122,17 @@ export class AppTableColumnDirective {
     }
   `
 })
-export class AppTableComponent {
+export class AppTableComponent<T = any> {
   /** Optional title for the table box */
   title = input<string>('');
   
   /** Data to render */
-  data = input<Record<string, unknown>[]>([]);
+  data = input<T[]>([]);
   
   /** Function to track rows */
-  trackByFn = input<(item: unknown) => unknown>((item: unknown) => {
+  trackByFn = input<(item: T) => unknown>((item: T) => {
     if (item && typeof item === 'object' && 'id' in item) {
-      return (item as Record<string, unknown>)['id'];
+      return (item as any).id;
     }
     return item;
   });

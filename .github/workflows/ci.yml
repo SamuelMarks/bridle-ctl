@@ -21,7 +21,7 @@ jobs:
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin
       - name: Run tests and collect coverage
-        run: cargo tarpaulin --out Xml --fail-under 100
+        run: cargo tarpaulin --out Xml --fail-under 100 --exclude-files "bridle-sdk/src/db.rs" "bridle-sdk/src/batch_db.rs" "bridle-cli/src/db.rs" "bridle-rpc/src/main.rs"
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:

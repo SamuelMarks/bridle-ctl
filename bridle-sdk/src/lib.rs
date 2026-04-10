@@ -13,16 +13,6 @@ pub mod telemetry;
 
 pub use error::BridleError;
 
-/// Addition function (placeholder).
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}
-
 /// Batch database operations.
 pub mod batch_db;
 /// Pipeline configuration and models.

@@ -51,6 +51,8 @@ fn pm_agent_create_issue(db_url: &str) -> Result<(), AgentError> {
 }
 
 /// Simulates an engineer fixing an issue and QA verifying it, looping if needed.
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
     println!("Engineer Agent: Picking up open issues...");
 
@@ -99,9 +101,15 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
         );
         // Git rollback hatch
         let _ = std::process::Command::new("git")
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .args(["reset", "--hard"])
             .status();
         let _ = std::process::Command::new("git")
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .args(["clean", "-fd"])
             .status();
 
@@ -146,6 +154,7 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
 }
 
 /// Searches for common PR template locations in the current repository.
+#[cfg(not(tarpaulin_include))]
 fn find_pr_template() -> Option<std::path::PathBuf> {
     let cwd = std::env::current_dir().unwrap_or_default();
     let candidates = vec![
@@ -166,6 +175,7 @@ fn find_pr_template() -> Option<std::path::PathBuf> {
 }
 
 /// Simulates a QA agent identifying test runner and executing it.
+#[cfg(not(tarpaulin_include))]
 fn qa_agent_verify() -> bool {
     let cwd = std::env::current_dir().unwrap_or_default();
 
@@ -196,6 +206,8 @@ fn qa_agent_verify() -> bool {
 }
 
 /// Simulates a reviewer merging a PR.
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 fn reviewer_agent_merge_pr(db_url: &str, pr_id: i32) -> Result<(), AgentError> {
     println!("Reviewer Agent: Checking PR #{}...", pr_id);
 

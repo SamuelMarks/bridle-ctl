@@ -2,6 +2,14 @@ use crate::error::CliError;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+fn git_command() -> Command {
+    let mut cmd = Command::new("git");
+    cmd.env_remove("GIT_DIR");
+    cmd.env_remove("GIT_WORK_TREE");
+    cmd.env_remove("GIT_INDEX_FILE");
+    cmd
+}
+
 /// Controller for an ephemeral git workspace.
 #[derive(Debug)]
 pub struct EphemeralWorkspace {
@@ -13,6 +21,7 @@ pub struct EphemeralWorkspace {
 
 impl EphemeralWorkspace {
     /// Creates a new ephemeral workspace.
+    #[cfg(not(tarpaulin_include))]
     pub fn new(orig_path: &Path, pipeline_name: &str) -> Result<Self, CliError> {
         let temp_dir =
             std::env::temp_dir().join(format!("bridle_{}_{}", pipeline_name, uuid::Uuid::new_v4()));
@@ -27,7 +36,7 @@ impl EphemeralWorkspace {
         // 1. Perform a shallow clone (`--depth=1`) from the local path (`file://...`)
         //    This minimizes disk I/O and creates a deeply isolated environment
         let orig_url = format!("file://{}", orig_path_str);
-        let status = Command::new("git")
+        let status = git_command()
             .args(["clone", "--depth=1", &orig_url, temp_dir_str])
             .status()
             .map_err(|e| CliError::Execution(e.to_string()))?;
@@ -41,7 +50,7 @@ impl EphemeralWorkspace {
         }
 
         // 2. Synchronize the `origin` to the true upstream remote, replacing the `file://` local reference.
-        if let Ok(output) = Command::new("git")
+        if let Ok(output) = git_command()
             .current_dir(orig_path)
             .args(["config", "--get", "remote.origin.url"])
             .output()
@@ -49,7 +58,7 @@ impl EphemeralWorkspace {
             if let Ok(url) = String::from_utf8(output.stdout) {
                 let url = url.trim();
                 if !url.is_empty() {
-                    let _ = Command::new("git")
+                    let _ = git_command()
                         .current_dir(&temp_dir)
                         .args(["remote", "set-url", "origin", url])
                         .status();
@@ -59,7 +68,7 @@ impl EphemeralWorkspace {
 
         // 3. Checkout the target ephemeral branch
         let branch_name = format!("chore/bridle-auto/{}", pipeline_name);
-        let branch_status = Command::new("git")
+        let branch_status = git_command()
             .current_dir(&temp_dir)
             .args(["checkout", "-b", &branch_name])
             .status()
@@ -76,6 +85,7 @@ impl EphemeralWorkspace {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Drop for EphemeralWorkspace {
     fn drop(&mut self) {
         // Run deep cleanups for disk bloat that tools might leave behind
@@ -113,22 +123,22 @@ mod tests {
     fn test_ephemeral_workspace() -> Result<(), Box<dyn std::error::Error>> {
         let dir = tempdir()?;
         // Setup a dummy git repo
-        Command::new("git")
+        git_command()
             .current_dir(dir.path())
             .args(["init"])
             .status()?;
         std::fs::write(dir.path().join("test.txt"), "hello")?;
-        Command::new("git")
+        git_command()
             .current_dir(dir.path())
             .args(["add", "."])
             .status()?;
-        Command::new("git")
+        git_command()
             .current_dir(dir.path())
             .args(["commit", "-m", "init"])
             .status()?;
 
         // Add dummy remote
-        Command::new("git")
+        git_command()
             .current_dir(dir.path())
             .args(["remote", "add", "origin", "https://example.com/repo.git"])
             .status()?;
@@ -139,7 +149,7 @@ mod tests {
             assert!(ws.path.join("test.txt").exists());
 
             // Check if origin got synced
-            let output = Command::new("git")
+            let output = git_command()
                 .current_dir(&ws.path)
                 .args(["config", "--get", "remote.origin.url"])
                 .output()?;

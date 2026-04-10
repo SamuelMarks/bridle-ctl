@@ -97,6 +97,66 @@ impl CodeTool for GithubActionsTool {
     }
 }
 
+/// Tool mapping for FFI into cdd-c
+struct CddCTool;
+
+#[cfg(not(tarpaulin_include))]
+impl CodeTool for CddCTool {
+    fn name(&self) -> &'static str {
+        "cdd-c"
+    }
+    fn description(&self) -> &'static str {
+        "Code Generation/Refactoring using cdd-c transformers"
+    }
+    fn match_regex(&self) -> &'static str {
+        r".*\.(c|cpp|h|hpp)$"
+    }
+    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+        if args.is_empty() {
+            return Err(CliError::Execution(
+                "Missing target file argument".to_string(),
+            ));
+        }
+        let c_path = CString::new(args[0].clone())
+            .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
+        let result = bridle_sdk::ffi::cdd_audit_safe(&c_path, _scope)
+            .map_err(|e| CliError::Execution(e.to_string()))?;
+        if result != 0 {
+            return Err(CliError::Execution(format!(
+                "Audit returned error code: {}",
+                result
+            )));
+        }
+        Ok("cdd-c audit executed".into())
+    }
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        _scope: Option<&PathScope>,
+    ) -> Result<String, CliError> {
+        if args.is_empty() {
+            return Err(CliError::Execution(
+                "Missing target file argument".to_string(),
+            ));
+        }
+        let c_path = CString::new(args[0].clone())
+            .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
+        let result = bridle_sdk::ffi::cdd_fix_safe(&c_path, dry_run, _scope)
+            .map_err(|e| CliError::Execution(e.to_string()))?;
+        if result != 0 {
+            return Err(CliError::Execution(format!(
+                "Fix returned error code: {}",
+                result
+            )));
+        }
+        if dry_run {
+            return Ok("[DRY RUN] cdd-c fix planned".into());
+        }
+        Ok("cdd-c fix applied".into())
+    }
+}
+
 /// Tool mapping for FFI into type-correct
 struct TypeCorrectTool;
 #[cfg(not(tarpaulin_include))]
@@ -424,6 +484,7 @@ pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
         Box::new(MockRustTool),
         Box::new(MockGoTool),
         Box::new(GithubActionsTool),
+        Box::new(CddCTool),
         Box::new(TypeCorrectTool),
         Box::new(GoAutoErrHandlingTool),
         Box::new(Lib2Notebook2LibTool),
@@ -482,6 +543,32 @@ mod tests {
         assert!(tool.audit(&[], None)?.contains("2 workflow"));
         assert!(tool.fix(&[], false, None)?.contains("Applied 2 workflow"));
         assert!(tool.fix(&[], true, None)?.contains("[DRY RUN]"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_cdd_c_tool() -> Result<(), Box<dyn std::error::Error>> {
+        let tools = get_tools();
+        let cddc = tools.iter().find(|t| t.name() == "cdd-c").ok_or("err")?;
+        assert_eq!(
+            cddc.description(),
+            "Code Generation/Refactoring using cdd-c transformers"
+        );
+        assert_eq!(cddc.match_regex(), r".*\.(c|cpp|h|hpp)$");
+
+        unsafe {
+            std::env::set_var("RUST_TEST_MODE", "1");
+        }
+        let cddc_args = vec!["target_file.c".to_string()];
+        assert_eq!(cddc.audit(&cddc_args, None)?, "cdd-c audit executed");
+        assert_eq!(cddc.fix(&cddc_args, false, None)?, "cdd-c fix applied");
+        assert_eq!(
+            cddc.fix(&cddc_args, true, None)?,
+            "[DRY RUN] cdd-c fix planned"
+        );
+        unsafe {
+            std::env::remove_var("RUST_TEST_MODE");
+        }
         Ok(())
     }
 
@@ -680,7 +767,7 @@ mod tests {
     #[test]
     fn test_get_tools() {
         let tools = get_tools();
-        assert_eq!(tools.len(), 9);
+        assert_eq!(tools.len(), 10);
     }
 
     #[test]
@@ -705,7 +792,7 @@ mod tests {
         assert!(unknown_tools.is_empty());
 
         let c_tools = get_tools_for_pattern("c");
-        assert_eq!(c_tools.len(), 0);
+        assert_eq!(c_tools.len(), 0); // wait, c alias maps to .*[ch] which cdd-c doesnt match exactly, actually c alias is r".*\.[ch]$"
 
         let cpp_tools = get_tools_for_pattern("cpp");
         assert_eq!(cpp_tools.len(), 0);

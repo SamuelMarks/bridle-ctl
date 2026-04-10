@@ -121,7 +121,13 @@ fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), CliError
 
         // Run git diff
         println!("\n🔍 Running `git diff README.md` to detail changes:");
-        let output = Command::new("git").arg("diff").arg("README.md").output()?;
+        let output = Command::new("git")
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
+            .arg("diff")
+            .arg("README.md")
+            .output()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         if stdout.trim().is_empty() {

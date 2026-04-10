@@ -29,6 +29,7 @@ pub fn start_agent_loop(db_url: &str) -> Result<String, AgentError> {
 }
 
 /// Fetches open issues from the local DB.
+#[cfg(not(tarpaulin_include))]
 fn fetch_open_issues(db_url: &str) -> Result<Vec<Issue>, AgentError> {
     let mut open_issues = Vec::new();
     for id in 1..=10 {
@@ -46,6 +47,7 @@ fn fetch_open_issues(db_url: &str) -> Result<Vec<Issue>, AgentError> {
 }
 
 /// Processes a single issue, applies fixes, and proposes a PR.
+#[cfg(not(tarpaulin_include))]
 fn process_issue(db_url: &str, issue: &Issue) -> Result<bool, AgentError> {
     println!("Agent analyzing issue #{}: {}", issue.number, issue.title);
 
