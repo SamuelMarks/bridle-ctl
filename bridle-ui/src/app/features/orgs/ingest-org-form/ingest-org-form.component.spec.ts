@@ -9,7 +9,7 @@ describe('IngestOrgFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [IngestOrgFormComponent, ReactiveFormsModule]
+      imports: [IngestOrgFormComponent, ReactiveFormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(IngestOrgFormComponent);
@@ -31,7 +31,7 @@ describe('IngestOrgFormComponent', () => {
     component.form.setValue({
       name: 'test-org',
       provider: 'github',
-      dbUrl: 'postgres://localhost/test'
+      dbUrl: 'postgres://localhost/test',
     });
 
     component.onSubmit();
@@ -39,9 +39,9 @@ describe('IngestOrgFormComponent', () => {
     expect(component.ingest.emit).toHaveBeenCalledWith({
       name: 'test-org',
       provider: 'github',
-      dbUrl: 'postgres://localhost/test'
+      dbUrl: 'postgres://localhost/test',
     });
-    
+
     // Should reset form after successful submit
     expect(component.form.value.name).toBeNull();
     expect(component.form.value.provider).toBe('github');

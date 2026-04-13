@@ -8,12 +8,12 @@ import { Observable } from 'rxjs';
  * Service for managing batch jobs.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class BatchService {
   /** API Service instance */
   private api = inject(ApiService);
-  
+
   /** Signal holding job list */
   private jobsSignal = signal<BatchJob[]>([]);
   /** Signal holding active job */
@@ -28,9 +28,9 @@ export class BatchService {
    * Loads all batch jobs.
    */
   loadJobs(): Observable<BatchJob[]> {
-    return this.api.get<BatchJob[]>('/batch/jobs').pipe(
-      tap(jobs => this.jobsSignal.set(jobs))
-    );
+    return this.api
+      .get<BatchJob[]>('/batch/jobs')
+      .pipe(tap((jobs) => this.jobsSignal.set(jobs)));
   }
 
   /**
@@ -38,9 +38,9 @@ export class BatchService {
    * @param id Job ID
    */
   loadJob(id: string): Observable<BatchJob> {
-    return this.api.get<BatchJob>(`/batch/jobs/${id}`).pipe(
-      tap(job => this.activeJobSignal.set(job))
-    );
+    return this.api
+      .get<BatchJob>(`/batch/jobs/${id}`)
+      .pipe(tap((job) => this.activeJobSignal.set(job)));
   }
 
   /**
@@ -55,10 +55,30 @@ export class BatchService {
    * @param max_repos Maximum number of repositories to process
    * @param max_prs_per_hour Maximum number of PRs per hour
    */
-  createBatchFix(target: string, title: string, description: string, pattern: string, tools: string[], args: Record<string, unknown>, safety_mode = true, max_repos?: number, max_prs_per_hour?: number): Observable<BatchJob> {
-    return this.api.post<BatchJob>('/batch/fix', { org: target, issue: title, description, pattern, tools, tool_args: args, safety_mode, max_repos, max_prs_per_hour }).pipe(
-      tap(job => this.jobsSignal.update(jobs => [job, ...jobs]))
-    );
+  createBatchFix(
+    target: string,
+    title: string,
+    description: string,
+    pattern: string,
+    tools: string[],
+    args: Record<string, unknown>,
+    safety_mode = true,
+    max_repos?: number,
+    max_prs_per_hour?: number,
+  ): Observable<BatchJob> {
+    return this.api
+      .post<BatchJob>('/batch/fix', {
+        org: target,
+        issue: title,
+        description,
+        pattern,
+        tools,
+        tool_args: args,
+        safety_mode,
+        max_repos,
+        max_prs_per_hour,
+      })
+      .pipe(tap((job) => this.jobsSignal.update((jobs) => [job, ...jobs])));
   }
 
   /**
@@ -68,10 +88,20 @@ export class BatchService {
    * @param max_repos Maximum number of repositories to process
    * @param max_prs_per_hour Maximum number of PRs per hour
    */
-  runPipeline(config: string, safety_mode = true, max_repos?: number, max_prs_per_hour?: number): Observable<BatchJob> {
-    return this.api.post<BatchJob>('/batch/run', { config_path: config, safety_mode, max_repos, max_prs_per_hour }).pipe(
-      tap(job => this.jobsSignal.update(jobs => [job, ...jobs]))
-    );
+  runPipeline(
+    config: string,
+    safety_mode = true,
+    max_repos?: number,
+    max_prs_per_hour?: number,
+  ): Observable<BatchJob> {
+    return this.api
+      .post<BatchJob>('/batch/run', {
+        config_path: config,
+        safety_mode,
+        max_repos,
+        max_prs_per_hour,
+      })
+      .pipe(tap((job) => this.jobsSignal.update((jobs) => [job, ...jobs])));
   }
 
   /**
@@ -80,10 +110,12 @@ export class BatchService {
    */
   resumeJob(id: string): Observable<BatchJob> {
     return this.api.post<BatchJob>(`/batch/jobs/${id}/resume`).pipe(
-      tap(job => {
+      tap((job) => {
         this.activeJobSignal.set(job);
-        this.jobsSignal.update(jobs => jobs.map(j => j.id === id ? job : j));
-      })
+        this.jobsSignal.update((jobs) =>
+          jobs.map((j) => (j.id === id ? job : j)),
+        );
+      }),
     );
   }
 

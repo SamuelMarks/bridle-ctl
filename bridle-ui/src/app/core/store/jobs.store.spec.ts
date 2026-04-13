@@ -12,17 +12,24 @@ describe('JobsStore', () => {
 
   beforeEach(() => {
     const batchSpy = jasmine.createSpyObj('BatchService', ['loadJobs']);
-    const notifSpy = jasmine.createSpyObj('NotificationService', ['error', 'success']);
+    const notifSpy = jasmine.createSpyObj('NotificationService', [
+      'error',
+      'success',
+    ]);
 
     TestBed.configureTestingModule({
       providers: [
         { provide: BatchService, useValue: batchSpy },
-        { provide: NotificationService, useValue: notifSpy }
-      ]
+        { provide: NotificationService, useValue: notifSpy },
+      ],
     });
 
-    batchServiceSpy = TestBed.inject(BatchService) as jasmine.SpyObj<BatchService>;
-    notificationServiceSpy = TestBed.inject(NotificationService) as jasmine.SpyObj<NotificationService>;
+    batchServiceSpy = TestBed.inject(
+      BatchService,
+    ) as jasmine.SpyObj<BatchService>;
+    notificationServiceSpy = TestBed.inject(
+      NotificationService,
+    ) as jasmine.SpyObj<NotificationService>;
     store = TestBed.inject(JobsStore);
   });
 
@@ -47,7 +54,11 @@ describe('JobsStore', () => {
   });
 
   it('should add a job', () => {
-    const job = { id: 'job-1', name: 'Job 1', status: 'PENDING' } as unknown as BatchJob;
+    const job = {
+      id: 'job-1',
+      name: 'Job 1',
+      status: 'PENDING',
+    } as unknown as BatchJob;
     store.addJob(job);
     expect(store.jobs()).toEqual([job]);
   });
@@ -59,13 +70,13 @@ describe('JobsStore', () => {
     store.addJob(job2);
 
     expect(store.filteredJobs()).toEqual([job2, job1]);
-    
+
     store.setFilter(BatchJobStatus.PENDING);
     expect(store.filteredJobs()).toEqual([job1]);
-    
+
     store.setFilter(BatchJobStatus.RUNNING);
     expect(store.filteredJobs()).toEqual([job2]);
-    
+
     store.setFilter('ALL');
     expect(store.filteredJobs()).toEqual([job2, job1]);
   });
@@ -88,9 +99,9 @@ describe('JobsStore', () => {
   it('should load jobs successfully', () => {
     const jobs = [{ id: '1' } as unknown as BatchJob];
     batchServiceSpy.loadJobs.and.returnValue(of(jobs));
-    
+
     store.loadJobs();
-    
+
     expect(batchServiceSpy.loadJobs).toHaveBeenCalled();
     expect(store.jobs()).toEqual(jobs);
     expect(store.isLoading()).toBeFalse();
@@ -98,10 +109,12 @@ describe('JobsStore', () => {
   });
 
   it('should handle error when loading jobs', () => {
-    batchServiceSpy.loadJobs.and.returnValue(throwError(() => new Error('Load failed')));
-    
+    batchServiceSpy.loadJobs.and.returnValue(
+      throwError(() => new Error('Load failed')),
+    );
+
     store.loadJobs();
-    
+
     expect(store.error()).toBe('Load failed');
     expect(store.isLoading()).toBeFalse();
     expect(notificationServiceSpy.error).toHaveBeenCalledWith('Load failed');
@@ -110,12 +123,14 @@ describe('JobsStore', () => {
 
   it('should handle error without message when loading jobs', () => {
     batchServiceSpy.loadJobs.and.returnValue(throwError(() => ({})));
-    
+
     store.loadJobs();
-    
+
     expect(store.error()).toBe('Failed to load jobs');
     expect(store.isLoading()).toBeFalse();
-    expect(notificationServiceSpy.error).toHaveBeenCalledWith('Failed to load jobs');
+    expect(notificationServiceSpy.error).toHaveBeenCalledWith(
+      'Failed to load jobs',
+    );
     expect(store.jobs()).toEqual([]);
   });
 });

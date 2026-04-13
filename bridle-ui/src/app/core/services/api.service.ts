@@ -7,12 +7,12 @@ import { catchError, retry } from 'rxjs/operators';
  * Generic API Service for making HTTP requests.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   /** HTTP Client instance */
   private http = inject(HttpClient);
-  
+
   /** Base API URL */
   private baseUrl = '/api';
 
@@ -22,10 +22,9 @@ export class ApiService {
    * @returns Observable of the response
    */
   get<T>(path: string): Observable<T> {
-    return this.http.get<T>(`${this.baseUrl}${path}`).pipe(
-      retry(2),
-      catchError(this.handleError)
-    );
+    return this.http
+      .get<T>(`${this.baseUrl}${path}`)
+      .pipe(retry(2), catchError(this.handleError));
   }
 
   /**
@@ -35,9 +34,9 @@ export class ApiService {
    * @returns Observable of the response
    */
   post<T>(path: string, body: Record<string, unknown> = {}): Observable<T> {
-    return this.http.post<T>(`${this.baseUrl}${path}`, body).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .post<T>(`${this.baseUrl}${path}`, body)
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -47,9 +46,9 @@ export class ApiService {
    * @returns Observable of the response
    */
   put<T>(path: string, body: Record<string, unknown> = {}): Observable<T> {
-    return this.http.put<T>(`${this.baseUrl}${path}`, body).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .put<T>(`${this.baseUrl}${path}`, body)
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -58,9 +57,9 @@ export class ApiService {
    * @returns Observable of the response
    */
   delete<T>(path: string): Observable<T> {
-    return this.http.delete<T>(`${this.baseUrl}${path}`).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .delete<T>(`${this.baseUrl}${path}`)
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -70,7 +69,10 @@ export class ApiService {
    */
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An unknown error occurred!';
-    if (typeof ErrorEvent !== 'undefined' && error.error instanceof ErrorEvent) {
+    if (
+      typeof ErrorEvent !== 'undefined' &&
+      error.error instanceof ErrorEvent
+    ) {
       // Client-side or network error
       errorMessage = `Error: ${error.error.message}`;
     } else {

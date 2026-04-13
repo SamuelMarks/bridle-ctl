@@ -16,19 +16,23 @@ describe('PrSyncComponent', () => {
   beforeEach(async () => {
     mockOrgService = {
       orgs: signal([{ id: '1', name: 'Org 1', provider: 'github' }]),
-      loadOrgs: jasmine.createSpy('loadOrgs').and.returnValue(of([]))
+      loadOrgs: jasmine.createSpy('loadOrgs').and.returnValue(of([])),
     };
 
     mockPrService = {
-      prs: signal([{ id: 'pr1', title: 'Test PR', repoId: 'repo1', status: 'LOCAL' }]),
+      prs: signal([
+        { id: 'pr1', title: 'Test PR', repoId: 'repo1', status: 'LOCAL' },
+      ]),
       isSyncing: signal(false),
       loadPrs: jasmine.createSpy('loadPrs').and.returnValue(of([])),
-      syncPrs: jasmine.createSpy('syncPrs').and.returnValue(of({ syncedCount: 1 }))
+      syncPrs: jasmine
+        .createSpy('syncPrs')
+        .and.returnValue(of({ syncedCount: 1 })),
     };
 
     mockNotificationService = {
       success: jasmine.createSpy('success'),
-      error: jasmine.createSpy('error')
+      error: jasmine.createSpy('error'),
     };
 
     await TestBed.configureTestingModule({
@@ -36,8 +40,8 @@ describe('PrSyncComponent', () => {
       providers: [
         { provide: OrgService, useValue: mockOrgService },
         { provide: PrService, useValue: mockPrService },
-        { provide: NotificationService, useValue: mockNotificationService }
-      ]
+        { provide: NotificationService, useValue: mockNotificationService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PrSyncComponent);
@@ -68,46 +72,63 @@ describe('PrSyncComponent', () => {
   });
 
   it('should handle load PRs error', () => {
-    mockPrService.loadPrs.and.returnValue(throwError(() => new Error('Failed to load PRs')));
+    mockPrService.loadPrs.and.returnValue(
+      throwError(() => new Error('Failed to load PRs')),
+    );
     component.form.get('orgId')?.setValue('2');
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to load PRs');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to load PRs',
+    );
   });
 
   it('should sync PRs and show success', () => {
     component.form.setValue({
       orgId: '1',
-      maxRate: 5
+      maxRate: 5,
     });
 
     component.onSync();
 
     expect(mockPrService.syncPrs).toHaveBeenCalledWith('1', 5);
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Successfully synced 1 PRs.');
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Successfully synced 1 PRs.',
+    );
     expect(mockPrService.loadPrs).toHaveBeenCalledWith('1'); // Should reload after sync
   });
 
   it('should handle sync PRs error', () => {
-    mockPrService.syncPrs.and.returnValue(throwError(() => new Error('Failed to sync PRs')));
-    
+    mockPrService.syncPrs.and.returnValue(
+      throwError(() => new Error('Failed to sync PRs')),
+    );
+
     component.form.setValue({
       orgId: '1',
-      maxRate: 5
+      maxRate: 5,
     });
 
     component.onSync();
 
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to sync PRs');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to sync PRs',
+    );
   });
 
   it('should track by id', () => {
-    expect(component.trackById(0, { id: 'pr123', title: '', repoId: '', status: 'LOCAL' })).toBe('pr123');
+    expect(
+      component.trackById(0, {
+        id: 'pr123',
+        title: '',
+        repoId: '',
+        status: 'LOCAL',
+      }),
+    ).toBe('pr123');
   });
 
   it('should not sync if form is invalid', () => {
     mockPrService.syncPrs.calls.reset();
     component.form.setValue({
       orgId: '',
-      maxRate: 5
+      maxRate: 5,
     });
     component.onSync();
     expect(mockPrService.syncPrs).not.toHaveBeenCalled();

@@ -42,7 +42,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       color: var(--color-accent-fg);
       border-color: var(--color-accent-fg);
     }
-  `
+  `,
 })
 export class AppBadgeComponent {
   /**

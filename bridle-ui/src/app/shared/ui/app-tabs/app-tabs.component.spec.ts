@@ -4,13 +4,17 @@ import { AppTabsComponent, TabItem } from './app-tabs.component';
 import { By } from '@angular/platform-browser';
 
 @Component({
-  template: `<app-tabs [tabs]="tabs" [activeTabId]="activeTabId" (tabChange)="onTabChange($event)"></app-tabs>`,
-  imports: [AppTabsComponent]
+  template: `<app-tabs
+    [tabs]="tabs"
+    [activeTabId]="activeTabId"
+    (tabChange)="onTabChange($event)"
+  ></app-tabs>`,
+  imports: [AppTabsComponent],
 })
 class TestHostComponent {
   tabs: TabItem[] = [
     { id: '1', label: 'Tab 1' },
-    { id: '2', label: 'Tab 2', badge: 5 }
+    { id: '2', label: 'Tab 2', badge: 5 },
   ];
   activeTabId = '1';
   lastSelected = '';
@@ -27,7 +31,7 @@ describe('AppTabsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, AppTabsComponent]
+      imports: [TestHostComponent, AppTabsComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -59,10 +63,14 @@ describe('AppTabsComponent', () => {
     fixture.detectChanges();
     expect(component.lastSelected).toBe('2');
     expect(component.activeTabId).toBe('2');
-    
+
     // Check if the DOM updated
     const updatedButtons = fixture.debugElement.queryAll(By.css('button'));
-    expect(updatedButtons[0].nativeElement.classList.contains('selected')).toBeFalse();
-    expect(updatedButtons[1].nativeElement.classList.contains('selected')).toBeTrue();
+    expect(
+      updatedButtons[0].nativeElement.classList.contains('selected'),
+    ).toBeFalse();
+    expect(
+      updatedButtons[1].nativeElement.classList.contains('selected'),
+    ).toBeTrue();
   });
 });

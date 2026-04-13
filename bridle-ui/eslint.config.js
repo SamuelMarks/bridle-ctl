@@ -13,7 +13,7 @@ module.exports = defineConfig([
       tseslint.configs.recommended,
       tseslint.configs.stylistic,
       angular.configs.tsRecommended,
-      jsdoc.configs['flat/recommended-typescript'],
+      jsdoc.configs["flat/recommended-typescript"],
     ],
     processor: angular.processInlineTemplates,
     rules: {
@@ -44,7 +44,7 @@ module.exports = defineConfig([
       "@angular-eslint/no-output-native": "off",
       "@angular-eslint/template/click-events-have-key-events": "off",
       "@angular-eslint/template/interactive-supports-focus": "off",
-      "@angular-eslint/prefer-inject": "off"
+      "@angular-eslint/prefer-inject": "off",
     },
   },
   {
@@ -54,5 +54,5 @@ module.exports = defineConfig([
       angular.configs.templateAccessibility,
     ],
     rules: {},
-  }
+  },
 ]);

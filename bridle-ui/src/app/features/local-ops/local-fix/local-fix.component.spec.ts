@@ -9,7 +9,7 @@ describe('LocalFixComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [LocalFixComponent, ReactiveFormsModule]
+      imports: [LocalFixComponent, ReactiveFormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LocalFixComponent);
@@ -32,7 +32,7 @@ describe('LocalFixComponent', () => {
       pattern: 'TODO',
       tools: 'sed, replace',
       args: '{"replace": {"new_string": "FIXED"}}',
-      dryRun: false
+      dryRun: false,
     });
 
     component.onSubmit();
@@ -41,7 +41,7 @@ describe('LocalFixComponent', () => {
       pattern: 'TODO',
       tools: ['sed', 'replace'],
       args: { replace: { new_string: 'FIXED' } },
-      dryRun: false
+      dryRun: false,
     });
   });
 
@@ -52,7 +52,7 @@ describe('LocalFixComponent', () => {
       pattern: 'TODO',
       tools: '',
       args: '{invalid json}',
-      dryRun: true
+      dryRun: true,
     });
 
     component.onSubmit();
@@ -61,7 +61,7 @@ describe('LocalFixComponent', () => {
       pattern: 'TODO',
       tools: [],
       args: {},
-      dryRun: true
+      dryRun: true,
     });
   });
 
@@ -72,7 +72,7 @@ describe('LocalFixComponent', () => {
       pattern: 'TODO',
       tools: '',
       args: '{}',
-      dryRun: null
+      dryRun: null,
     });
 
     component.onSubmit();
@@ -81,7 +81,7 @@ describe('LocalFixComponent', () => {
       pattern: 'TODO',
       tools: [],
       args: {},
-      dryRun: true
+      dryRun: true,
     });
   });
   it('should set operating state', () => {
@@ -91,18 +91,20 @@ describe('LocalFixComponent', () => {
   });
 
   it('should display result panel with modified files and diff when result is set', () => {
-    component.setResult({ 
+    component.setResult({
       output: 'Fix completed',
       modifiedFiles: ['src/main.ts'],
-      diff: '--- src/main.ts\n+++ src/main.ts'
+      diff: '--- src/main.ts\n+++ src/main.ts',
     });
     fixture.detectChanges();
-    
+
     const preElements = fixture.debugElement.queryAll(By.css('pre'));
     expect(preElements.length).toBe(2);
     expect(preElements[0].nativeElement.textContent).toContain('Fix completed');
-    expect(preElements[1].nativeElement.textContent).toContain('--- src/main.ts');
-    
+    expect(preElements[1].nativeElement.textContent).toContain(
+      '--- src/main.ts',
+    );
+
     const listItems = fixture.debugElement.queryAll(By.css('.file-list li'));
     expect(listItems.length).toBe(1);
     expect(listItems[0].nativeElement.textContent).toContain('src/main.ts');

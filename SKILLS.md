@@ -1,6 +1,7 @@
 # Skills
 
 ## Purpose
+
 `SKILLS.md` defines the list of AI-enabled capabilities supported out-of-the-box.
 
 1. `CodeTool` Execution via FFI.

@@ -8,7 +8,7 @@ describe('BatchRunFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BatchRunFormComponent, ReactiveFormsModule]
+      imports: [BatchRunFormComponent, ReactiveFormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BatchRunFormComponent);
@@ -31,7 +31,7 @@ describe('BatchRunFormComponent', () => {
       config: 'name: Pipeline',
       safety_mode: true,
       max_repos: null,
-      max_prs_per_hour: null
+      max_prs_per_hour: null,
     });
 
     component.onSubmit();
@@ -40,18 +40,18 @@ describe('BatchRunFormComponent', () => {
       config: 'name: Pipeline',
       safety_mode: true,
       max_repos: undefined,
-      max_prs_per_hour: undefined
+      max_prs_per_hour: undefined,
     });
   });
 
   it('should toggle isSubmitting state and reset form on success', () => {
     expect(component.isSubmitting()).toBeFalse();
-    
+
     component.form.setValue({
       config: 'yaml',
       safety_mode: true,
       max_repos: null,
-      max_prs_per_hour: null
+      max_prs_per_hour: null,
     });
 
     component.setSubmitting(true);
@@ -81,7 +81,7 @@ describe('BatchRunFormComponent', () => {
       config: 'test-config',
       safety_mode: null,
       max_repos: 5,
-      max_prs_per_hour: 10
+      max_prs_per_hour: 10,
     });
 
     component.onSubmit();
@@ -90,8 +90,7 @@ describe('BatchRunFormComponent', () => {
       config: 'test-config',
       safety_mode: true,
       max_repos: 5,
-      max_prs_per_hour: 10
+      max_prs_per_hour: 10,
     });
   });
 });
-

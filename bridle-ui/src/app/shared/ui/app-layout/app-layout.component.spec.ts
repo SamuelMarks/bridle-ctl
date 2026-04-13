@@ -6,7 +6,7 @@ import { provideRouter } from '@angular/router';
 
 @Component({
   template: `<app-layout><div class="content">Test Content</div></app-layout>`,
-  imports: [AppLayoutComponent]
+  imports: [AppLayoutComponent],
 })
 class TestHostComponent {}
 
@@ -17,7 +17,7 @@ describe('AppLayoutComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TestHostComponent, AppLayoutComponent],
-      providers: [provideRouter([])]
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -30,7 +30,9 @@ describe('AppLayoutComponent', () => {
   });
 
   it('should render header with title', () => {
-    const title = fixture.debugElement.query(By.css('.Header-title')).nativeElement;
+    const title = fixture.debugElement.query(
+      By.css('.Header-title'),
+    ).nativeElement;
     expect(title.textContent.trim()).toBe('Bridle');
   });
 
@@ -41,7 +43,9 @@ describe('AppLayoutComponent', () => {
   });
 
   it('should render content', () => {
-    const content = fixture.debugElement.query(By.css('.content')).nativeElement;
+    const content = fixture.debugElement.query(
+      By.css('.content'),
+    ).nativeElement;
     expect(content.textContent.trim()).toBe('Test Content');
   });
 });

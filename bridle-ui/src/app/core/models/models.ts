@@ -34,7 +34,7 @@ export enum BatchJobStatus {
   RUNNING = 'RUNNING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  INTERRUPTED = 'INTERRUPTED'
+  INTERRUPTED = 'INTERRUPTED',
 }
 
 /**

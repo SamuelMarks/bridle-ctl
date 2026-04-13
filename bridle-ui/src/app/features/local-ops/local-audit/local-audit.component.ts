@@ -1,4 +1,10 @@
-import { Component, ChangeDetectionStrategy, output, inject, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  output,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AppButtonComponent } from '../../../shared/ui/app-button/app-button.component';
@@ -10,7 +16,12 @@ import { OpResult } from '../../../core/services/local-op.service';
  */
 @Component({
   selector: 'app-local-audit',
-  imports: [CommonModule, ReactiveFormsModule, AppButtonComponent, AppInputComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    AppButtonComponent,
+    AppInputComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="Box p-3 mb-4">
@@ -45,7 +56,11 @@ import { OpResult } from '../../../core/services/local-op.service';
         </div>
 
         <div class="d-flex justify-content-end">
-          <app-button type="submit" variant="primary" [disabled]="form.invalid || isOperating()">
+          <app-button
+            type="submit"
+            variant="primary"
+            [disabled]="form.invalid || isOperating()"
+          >
             {{ isOperating() ? 'Auditing...' : 'Audit' }}
           </app-button>
         </div>
@@ -77,18 +92,44 @@ import { OpResult } from '../../../core/services/local-op.service';
       border-top-left-radius: var(--border-radius-2);
       border-top-right-radius: var(--border-radius-2);
     }
-    .Box-title { font-size: 14px; font-weight: 600; margin: 0; }
-    .Box-body { border-bottom: 1px solid var(--color-border-default); }
-    .p-3 { padding: 16px; }
-    .p-0 { padding: 0; }
-    .m-0 { margin: 0; }
-    .mb-3 { margin-bottom: 16px; }
-    .mb-4 { margin-bottom: 24px; }
-    .mt-1 { margin-top: 4px; }
-    .h4 { font-size: 16px; font-weight: 600; margin-top: 0; }
-    .text-danger { color: var(--color-danger-fg); }
-    .text-small { font-size: 12px; }
-    
+    .Box-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .Box-body {
+      border-bottom: 1px solid var(--color-border-default);
+    }
+    .p-3 {
+      padding: 16px;
+    }
+    .p-0 {
+      padding: 0;
+    }
+    .m-0 {
+      margin: 0;
+    }
+    .mb-3 {
+      margin-bottom: 16px;
+    }
+    .mb-4 {
+      margin-bottom: 24px;
+    }
+    .mt-1 {
+      margin-top: 4px;
+    }
+    .h4 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 0;
+    }
+    .text-danger {
+      color: var(--color-danger-fg);
+    }
+    .text-small {
+      font-size: 12px;
+    }
+
     .cli-output {
       font-family: var(--font-family-mono);
       font-size: 12px;
@@ -98,20 +139,24 @@ import { OpResult } from '../../../core/services/local-op.service';
       overflow-x: auto;
       white-space: pre-wrap;
     }
-  `
+  `,
 })
 export class LocalAuditComponent {
   /** FormBuilder instance */
   private fb = inject(FormBuilder);
 
   /** Emitted when the form is submitted */
-  audit = output<{ pattern: string; tools: string[]; args: Record<string, unknown> }>();
+  audit = output<{
+    pattern: string;
+    tools: string[];
+    args: Record<string, unknown>;
+  }>();
 
   /** Form model */
   form = this.fb.group({
     pattern: ['', Validators.required],
     tools: [''],
-    args: ['{}']
+    args: ['{}'],
   });
 
   /** Whether the operation is currently running */
@@ -125,9 +170,12 @@ export class LocalAuditComponent {
     if (this.form.valid) {
       let toolsArr: string[] = [];
       if (this.form.value.tools) {
-        toolsArr = this.form.value.tools.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        toolsArr = this.form.value.tools
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
       }
-      
+
       let parsedArgs = {};
       try {
         if (this.form.value.args) {
@@ -140,7 +188,7 @@ export class LocalAuditComponent {
       this.audit.emit({
         pattern: this.form.value.pattern!,
         tools: toolsArr,
-        args: parsedArgs
+        args: parsedArgs,
       });
     }
   }

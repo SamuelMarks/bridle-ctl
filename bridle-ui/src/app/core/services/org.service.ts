@@ -8,12 +8,12 @@ import { Observable } from 'rxjs';
  * Service for managing organizations and repositories.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class OrgService {
   /** API Service instance */
   private api = inject(ApiService);
-  
+
   /** Signal for orgs */
   private orgsSignal = signal<Organization[]>([]);
   /** Signal for repos */
@@ -39,8 +39,8 @@ export class OrgService {
           this.orgsSignal.set(orgs);
           this.isLoadingSignal.set(false);
         },
-        error: () => this.isLoadingSignal.set(false)
-      })
+        error: () => this.isLoadingSignal.set(false),
+      }),
     );
   }
 
@@ -50,17 +50,23 @@ export class OrgService {
    * @param provider Provider
    * @param dbUrl Database URL
    */
-  ingestOrg(name: string, provider: string, dbUrl: string): Observable<Organization> {
+  ingestOrg(
+    name: string,
+    provider: string,
+    dbUrl: string,
+  ): Observable<Organization> {
     this.isLoadingSignal.set(true);
-    return this.api.post<Organization>('/orgs/ingest', { name, provider, dbUrl }).pipe(
-      tap({
-        next: (org) => {
-          this.orgsSignal.update(orgs => [...orgs, org]);
-          this.isLoadingSignal.set(false);
-        },
-        error: () => this.isLoadingSignal.set(false)
-      })
-    );
+    return this.api
+      .post<Organization>('/orgs/ingest', { name, provider, dbUrl })
+      .pipe(
+        tap({
+          next: (org) => {
+            this.orgsSignal.update((orgs) => [...orgs, org]);
+            this.isLoadingSignal.set(false);
+          },
+          error: () => this.isLoadingSignal.set(false),
+        }),
+      );
   }
 
   /**
@@ -75,8 +81,8 @@ export class OrgService {
           this.reposSignal.set(repos);
           this.isLoadingSignal.set(false);
         },
-        error: () => this.isLoadingSignal.set(false)
-      })
+        error: () => this.isLoadingSignal.set(false),
+      }),
     );
   }
 }

@@ -1,4 +1,11 @@
-import { Component, ChangeDetectionStrategy, inject, OnInit, computed, DestroyRef } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  OnInit,
+  computed,
+  DestroyRef,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -16,17 +23,31 @@ import { PullRequest } from '../../../core/models/models';
  */
 @Component({
   selector: 'app-pr-sync',
-  imports: [CommonModule, ReactiveFormsModule, ScrollingModule, AppButtonComponent, AppInputComponent, AppBadgeComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ScrollingModule,
+    AppButtonComponent,
+    AppInputComponent,
+    AppBadgeComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container-lg">
       <div class="mb-4">
         <h2 class="mb-2">Pull Requests Synchronization</h2>
-        <p class="text-muted">Review local pull requests and sync them to the upstream source control provider.</p>
+        <p class="text-muted">
+          Review local pull requests and sync them to the upstream source
+          control provider.
+        </p>
       </div>
 
       <div class="Box p-3 mb-4">
-        <form [formGroup]="form" (ngSubmit)="onSync()" class="d-flex align-items-end gap-3 form-row">
+        <form
+          [formGroup]="form"
+          (ngSubmit)="onSync()"
+          class="d-flex align-items-end gap-3 form-row"
+        >
           <div class="flex-1">
             <app-input
               formControlName="orgId"
@@ -46,7 +67,15 @@ import { PullRequest } from '../../../core/models/models';
           </div>
 
           <div>
-            <app-button type="submit" variant="primary" [disabled]="form.invalid || prsStore.isSyncing() || prsStore.prs().length === 0">
+            <app-button
+              type="submit"
+              variant="primary"
+              [disabled]="
+                form.invalid ||
+                prsStore.isSyncing() ||
+                prsStore.prs().length === 0
+              "
+            >
               {{ prsStore.isSyncing() ? 'Syncing...' : 'Sync to Upstream' }}
             </app-button>
           </div>
@@ -54,10 +83,18 @@ import { PullRequest } from '../../../core/models/models';
       </div>
 
       <div class="summary-stats mb-3">
-        <span class="mr-3"><strong>Total PRs:</strong> {{ prsStore.totalPrs() }}</span>
-        <span class="mr-3"><strong>Local:</strong> {{ prsStore.localPrs().length }}</span>
-        <span class="mr-3"><strong>Synced:</strong> {{ prsStore.syncedPrs().length }}</span>
-        <span class="mr-3 text-danger"><strong>Conflicts:</strong> {{ prsStore.conflictPrs().length }}</span>
+        <span class="mr-3"
+          ><strong>Total PRs:</strong> {{ prsStore.totalPrs() }}</span
+        >
+        <span class="mr-3"
+          ><strong>Local:</strong> {{ prsStore.localPrs().length }}</span
+        >
+        <span class="mr-3"
+          ><strong>Synced:</strong> {{ prsStore.syncedPrs().length }}</span
+        >
+        <span class="mr-3 text-danger"
+          ><strong>Conflicts:</strong> {{ prsStore.conflictPrs().length }}</span
+        >
       </div>
 
       <div class="list-container">
@@ -73,16 +110,29 @@ import { PullRequest } from '../../../core/models/models';
           </div>
         } @else {
           <cdk-virtual-scroll-viewport itemSize="64" class="viewport">
-            <div *cdkVirtualFor="let pr of prsStore.prs(); trackBy: trackById" class="list-item">
+            <div
+              *cdkVirtualFor="let pr of prsStore.prs(); trackBy: trackById"
+              class="list-item"
+            >
               <div class="item-info">
                 <span class="text-bold color-fg-default">
                   #{{ pr.id.substring(0, 8) }} - {{ pr.title }}
                 </span>
-                <span class="text-muted text-small ml-2">Repo: {{ pr.repoId }}</span>
+                <span class="text-muted text-small ml-2"
+                  >Repo: {{ pr.repoId }}</span
+                >
               </div>
-              
+
               <div class="item-meta">
-                <app-badge [variant]="pr.status === 'LOCAL' ? 'default' : (pr.status === 'SYNCED' ? 'success' : 'danger')">
+                <app-badge
+                  [variant]="
+                    pr.status === 'LOCAL'
+                      ? 'default'
+                      : pr.status === 'SYNCED'
+                        ? 'success'
+                        : 'danger'
+                  "
+                >
                   {{ pr.status }}
                 </app-badge>
               </div>
@@ -93,37 +143,73 @@ import { PullRequest } from '../../../core/models/models';
     </div>
   `,
   styles: `
-    .mb-2 { margin-bottom: 8px; }
-    .mb-3 { margin-bottom: 16px; }
-    .mb-4 { margin-bottom: 24px; }
-    .m-0 { margin: 0; }
-    .p-3 { padding: 16px; }
-    .p-4 { padding: 24px; }
-    .mr-3 { margin-right: 16px; }
-    .ml-2 { margin-left: 8px; }
-    .text-center { text-align: center; }
-    .text-muted { color: var(--color-fg-muted, #57606a); }
-    .text-bold { font-weight: 600; }
-    .text-small { font-size: 12px; }
-    .text-danger { color: var(--color-danger-fg, #cf222e); }
-    .color-fg-default { color: var(--color-fg-default, #24292f); }
-    
+    .mb-2 {
+      margin-bottom: 8px;
+    }
+    .mb-3 {
+      margin-bottom: 16px;
+    }
+    .mb-4 {
+      margin-bottom: 24px;
+    }
+    .m-0 {
+      margin: 0;
+    }
+    .p-3 {
+      padding: 16px;
+    }
+    .p-4 {
+      padding: 24px;
+    }
+    .mr-3 {
+      margin-right: 16px;
+    }
+    .ml-2 {
+      margin-left: 8px;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .text-muted {
+      color: var(--color-fg-muted, #57606a);
+    }
+    .text-bold {
+      font-weight: 600;
+    }
+    .text-small {
+      font-size: 12px;
+    }
+    .text-danger {
+      color: var(--color-danger-fg, #cf222e);
+    }
+    .color-fg-default {
+      color: var(--color-fg-default, #24292f);
+    }
+
     .Box {
       background-color: var(--color-canvas-default, #ffffff);
       border: 1px solid var(--color-border-default, #d0d7de);
       border-radius: 6px;
     }
-    
-    .flex-1 { flex: 1; }
-    .gap-3 { gap: 16px; }
-    .d-flex { display: flex; }
-    .align-items-end { align-items: flex-end; }
-    
+
+    .flex-1 {
+      flex: 1;
+    }
+    .gap-3 {
+      gap: 16px;
+    }
+    .d-flex {
+      display: flex;
+    }
+    .align-items-end {
+      align-items: flex-end;
+    }
+
     .summary-stats {
       font-size: 14px;
       color: var(--color-fg-default, #24292f);
     }
-    
+
     .list-container {
       border: 1px solid var(--color-border-default, #d0d7de);
       border-radius: 6px;
@@ -135,12 +221,12 @@ import { PullRequest } from '../../../core/models/models';
       border-bottom: 1px solid var(--color-border-default, #d0d7de);
       background-color: var(--color-canvas-subtle, #f6f8fa);
     }
-    
+
     .viewport {
       height: 600px;
       width: 100%;
     }
-    
+
     .list-item {
       display: flex;
       justify-content: space-between;
@@ -153,14 +239,14 @@ import { PullRequest } from '../../../core/models/models';
     .list-item:hover {
       background-color: var(--color-canvas-subtle, #f6f8fa);
     }
-    
+
     @media (max-width: 768px) {
       .form-row {
         flex-direction: column;
         align-items: stretch;
       }
     }
-  `
+  `,
 })
 export class PrSyncComponent implements OnInit {
   /** FormBuilder instance */
@@ -173,7 +259,7 @@ export class PrSyncComponent implements OnInit {
   /** Form model */
   form = this.fb.group({
     orgId: ['', Validators.required],
-    maxRate: [10, [Validators.required, Validators.min(1)]]
+    maxRate: [10, [Validators.required, Validators.min(1)]],
   });
 
   /** Computed options for the org select */
@@ -181,7 +267,7 @@ export class PrSyncComponent implements OnInit {
     const orgs = this.orgService.orgs();
     return [
       { label: '-- Select Organization --', value: '' },
-      ...orgs.map(o => ({ label: o.name, value: o.id }))
+      ...orgs.map((o) => ({ label: o.name, value: o.id })),
     ];
   });
 
@@ -192,15 +278,21 @@ export class PrSyncComponent implements OnInit {
   ngOnInit(): void {
     // Load orgs if not loaded
     if (this.orgService.orgs().length === 0) {
-      this.orgService.loadOrgs().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+      this.orgService
+        .loadOrgs()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe();
     }
 
     // Listen to orgId changes and load PRs via the store rxMethod
-    this.form.get('orgId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(orgId => {
-      if (orgId) {
-        this.prsStore.loadPrs(orgId);
-      }
-    });
+    this.form
+      .get('orgId')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((orgId) => {
+        if (orgId) {
+          this.prsStore.loadPrs(orgId);
+        }
+      });
   }
 
   /**

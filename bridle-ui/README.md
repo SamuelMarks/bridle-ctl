@@ -3,6 +3,7 @@
 This project is the Angular-based visual dashboard for `bridle-ctl`.
 
 ## 🚀 Technology Stack
+
 - **Framework:** Angular v18+ (Standalone Components, Strict Typing)
 - **State Management:** NgRx SignalStore
 - **Styling:** Vanilla CSS (GitHub Primer aesthetics)
@@ -20,14 +21,18 @@ Run `npm run build` (or `ng build`) to build the project. The build artifacts wi
 ## 🧪 Testing
 
 ### Unit Tests
+
 Run `npm run test` to execute the unit tests via [Karma](https://karma-runner.github.io).
 
 ### End-to-End Tests
+
 Run `npx playwright test` to execute the end-to-end tests.
+
 - View report: `npx playwright show-report`
 - Run UI mode: `npx playwright test --ui`
 
 ## ✨ Code Quality & Best Practices
+
 - **Strict TypeScript:** No `any`, `unknown`, or `never` bypasses.
 - **Modern Angular:**
   - Uses `inject()` exclusively instead of constructors.

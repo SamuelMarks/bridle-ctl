@@ -8,8 +8,8 @@ Welcome to the Bridle documentation portal.
 
 The following references are auto-generated from the source code during the `make docs` build process:
 
-*   🦀 **[Rust SDK & CLI API Reference](/rust/bridle_cli/index.html)** (Generated via `cargo doc`)
-*   🅰️ **[Angular UI Reference](/angular/index.html)** (Generated via `compodoc`)
+- 🦀 **[Rust SDK & CLI API Reference](/rust/bridle_cli/index.html)** (Generated via `cargo doc`)
+- 🅰️ **[Angular UI Reference](/angular/index.html)** (Generated via `compodoc`)
 
 ---
 

@@ -7,14 +7,18 @@ import { tap } from 'rxjs/operators';
  * Service for managing system health state.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SystemStateService {
   /** API Service instance */
   private api = inject(ApiService);
-  
+
   /** Signal for health */
-  private healthSignal = signal<SystemHealth>({ rest: 'DOWN', rpc: 'DOWN', agent: 'DOWN' });
+  private healthSignal = signal<SystemHealth>({
+    rest: 'DOWN',
+    rpc: 'DOWN',
+    agent: 'DOWN',
+  });
   /** Signal for loading state */
   private isLoadingSignal = signal<boolean>(false);
 
@@ -37,8 +41,8 @@ export class SystemStateService {
         error: () => {
           this.healthSignal.set({ rest: 'DOWN', rpc: 'DOWN', agent: 'DOWN' });
           this.isLoadingSignal.set(false);
-        }
-      })
+        },
+      }),
     );
   }
 }

@@ -4,13 +4,14 @@ import { OrgListComponent } from './org-list.component';
 import { By } from '@angular/platform-browser';
 
 @Component({
-  template: `<app-org-list [orgs]="orgs" (select)="onSelect($event)"></app-org-list>`,
-  imports: [OrgListComponent]
+  template: `<app-org-list
+    [orgs]="orgs"
+    (select)="onSelect($event)"
+  ></app-org-list>`,
+  imports: [OrgListComponent],
 })
 class TestHostComponent {
-  orgs = [
-    { id: '1', name: 'org-1', provider: 'github' }
-  ];
+  orgs = [{ id: '1', name: 'org-1', provider: 'github' }];
   selectedId = '';
 
   onSelect(id: string) {
@@ -24,7 +25,7 @@ describe('OrgListComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, OrgListComponent]
+      imports: [TestHostComponent, OrgListComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -50,7 +51,9 @@ describe('OrgListComponent', () => {
   });
 
   it('should emit select event on action click', () => {
-    const action = fixture.debugElement.query(By.css('.text-muted')).nativeElement;
+    const action = fixture.debugElement.query(
+      By.css('.text-muted'),
+    ).nativeElement;
     action.click();
     expect(component.selectedId).toBe('1');
   });

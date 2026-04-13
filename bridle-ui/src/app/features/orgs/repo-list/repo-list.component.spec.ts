@@ -4,13 +4,22 @@ import { RepoListComponent } from './repo-list.component';
 import { By } from '@angular/platform-browser';
 
 @Component({
-  template: `<app-repo-list [orgName]="orgName" [repos]="repos"></app-repo-list>`,
-  imports: [RepoListComponent]
+  template: `<app-repo-list
+    [orgName]="orgName"
+    [repos]="repos"
+  ></app-repo-list>`,
+  imports: [RepoListComponent],
 })
 class TestHostComponent {
   orgName = 'TestOrg';
   repos = [
-    { id: '1', orgId: '1', name: 'repo-1', description: 'desc 1', url: 'http://link' }
+    {
+      id: '1',
+      orgId: '1',
+      name: 'repo-1',
+      description: 'desc 1',
+      url: 'http://link',
+    },
   ];
 }
 
@@ -20,7 +29,7 @@ describe('RepoListComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, RepoListComponent]
+      imports: [TestHostComponent, RepoListComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -33,17 +42,19 @@ describe('RepoListComponent', () => {
   });
 
   it('should render title with org name', () => {
-    const title = fixture.debugElement.query(By.css('.Box-title')).nativeElement;
+    const title = fixture.debugElement.query(
+      By.css('.Box-title'),
+    ).nativeElement;
     expect(title.textContent).toContain('TestOrg');
   });
 
   it('should render repo details', () => {
     const trs = fixture.debugElement.queryAll(By.css('tbody tr'));
     expect(trs.length).toBe(1);
-    
+
     expect(trs[0].nativeElement.textContent).toContain('repo-1');
     expect(trs[0].nativeElement.textContent).toContain('desc 1');
-    
+
     const link = trs[0].query(By.css('a')).nativeElement;
     expect(link.href).toBe('http://link/');
   });

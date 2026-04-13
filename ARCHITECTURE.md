@@ -1,9 +1,11 @@
 # Architecture
 
 ## Purpose
+
 `ARCHITECTURE.md` details the architectural layout, modules, and paradigms driving `bridle-ctl`.
 
 ## Overview
+
 - **SDK (`bridle-sdk`)**: Core models, encoding tools, DB models, and pipeline batch DB modules.
   - Supports dynamic database execution, dynamically connecting to PostgreSQL or SQLite via connection strings.
   - Runs diesel migrations dynamically per provider.
@@ -16,4 +18,5 @@
 - **Frontend UI (`bridle-ui`)**: Angular 17+ standalone web application interfacing with the REST API. Provides visual dashboards for system health, org/repo management, and batch pipeline monitoring.
 
 ## FFI Integration
+
 Compiled tools communicate through C ABIs (defined in `ffi.rs`) to mutate trees securely without unconstrained prompt generation.

@@ -1,4 +1,12 @@
-import { Component, ChangeDetectionStrategy, input, forwardRef, Provider, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  input,
+  forwardRef,
+  Provider,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 let nextId = 0;
@@ -7,7 +15,7 @@ let nextId = 0;
 export const APP_INPUT_VALUE_ACCESSOR: Provider = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => AppInputComponent),
-  multi: true
+  multi: true,
 };
 
 /**
@@ -21,7 +29,7 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
     @if (label()) {
       <label class="input-label" [for]="inputId()">{{ label() }}</label>
     }
-    
+
     @if (type() === 'textarea') {
       <textarea
         class="form-control"
@@ -72,7 +80,8 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
       color: var(--color-fg-default);
     }
 
-    .form-control, .form-select {
+    .form-control,
+    .form-select {
       padding: 5px 12px;
       font-size: 14px;
       line-height: 20px;
@@ -81,43 +90,47 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
       border: 1px solid var(--color-border-default);
       border-radius: var(--border-radius-1);
       outline: none;
-      transition: border-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+      transition:
+        border-color 0.1s ease-in-out,
+        box-shadow 0.1s ease-in-out;
       width: 100%;
       font-family: inherit;
       box-sizing: border-box;
     }
 
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
       border-color: var(--color-accent-fg);
       box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
     }
 
-    .form-control:disabled, .form-select:disabled {
+    .form-control:disabled,
+    .form-select:disabled {
       color: var(--color-fg-muted);
       background-color: var(--color-canvas-subtle);
       cursor: not-allowed;
     }
-  `
+  `,
 })
 export class AppInputComponent implements ControlValueAccessor {
   /** Input type (text, password, textarea, select, etc) */
   type = input<string>('text');
-  
+
   /** Label text for the input */
   label = input<string>('');
-  
+
   /** Placeholder text */
   placeholder = input<string>('');
-  
+
   /** Unique ID for the input element */
   inputId = input<string>(`input-${nextId++}`);
-  
+
   /** Options array, only used when type is 'select' */
-  options = input<{label: string, value: string}[]>([]);
+  options = input<{ label: string; value: string }[]>([]);
 
   /** Internal value of the input */
   value = '';
-  
+
   /** Whether the input is disabled */
   isDisabled = false;
 
@@ -126,7 +139,7 @@ export class AppInputComponent implements ControlValueAccessor {
    * @param value The changed value
    */
   onChange(value: string): void {}
-  
+
   /** Called when the input is touched */
   onTouched(): void {}
 

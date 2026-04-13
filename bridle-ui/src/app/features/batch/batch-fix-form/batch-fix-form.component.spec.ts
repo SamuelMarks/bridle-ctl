@@ -8,7 +8,7 @@ describe('BatchFixFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BatchFixFormComponent, ReactiveFormsModule]
+      imports: [BatchFixFormComponent, ReactiveFormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BatchFixFormComponent);
@@ -36,7 +36,7 @@ describe('BatchFixFormComponent', () => {
       args: '{"replace": {"new_string": "FIXED"}}',
       safety_mode: true,
       max_repos: null,
-      max_prs_per_hour: null
+      max_prs_per_hour: null,
     });
 
     component.onSubmit();
@@ -50,7 +50,7 @@ describe('BatchFixFormComponent', () => {
       args: { replace: { new_string: 'FIXED' } },
       safety_mode: true,
       max_repos: undefined,
-      max_prs_per_hour: undefined
+      max_prs_per_hour: undefined,
     });
   });
 
@@ -66,7 +66,7 @@ describe('BatchFixFormComponent', () => {
       args: '{}',
       safety_mode: false,
       max_repos: 10,
-      max_prs_per_hour: 2
+      max_prs_per_hour: 2,
     });
 
     component.onSubmit();
@@ -80,7 +80,7 @@ describe('BatchFixFormComponent', () => {
       args: {},
       safety_mode: false,
       max_repos: 10,
-      max_prs_per_hour: 2
+      max_prs_per_hour: 2,
     });
   });
   it('should handle invalid JSON in args', () => {
@@ -95,7 +95,7 @@ describe('BatchFixFormComponent', () => {
       args: '{invalid json}',
       safety_mode: true,
       max_repos: null,
-      max_prs_per_hour: null
+      max_prs_per_hour: null,
     });
 
     component.onSubmit();
@@ -109,13 +109,13 @@ describe('BatchFixFormComponent', () => {
       args: {},
       safety_mode: true,
       max_repos: undefined,
-      max_prs_per_hour: undefined
+      max_prs_per_hour: undefined,
     });
   });
 
   it('should toggle isSubmitting state and reset form on success', () => {
     expect(component.isSubmitting()).toBeFalse();
-    
+
     component.form.setValue({
       target: 'org1',
       title: 'Fix things',
@@ -125,7 +125,7 @@ describe('BatchFixFormComponent', () => {
       args: '{}',
       safety_mode: true,
       max_repos: null,
-      max_prs_per_hour: null
+      max_prs_per_hour: null,
     });
 
     component.setSubmitting(true);
@@ -159,16 +159,17 @@ describe('BatchFixFormComponent', () => {
       pattern: 'TODO',
       args: null,
       safety_mode: null,
-      tools: 'sed, ,'
+      tools: 'sed, ,',
     });
 
     component.onSubmit();
 
-    expect(component.createJob.emit).toHaveBeenCalledWith(jasmine.objectContaining({
-      args: {},
-      safety_mode: true,
-      tools: ['sed']
-    }));
+    expect(component.createJob.emit).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        args: {},
+        safety_mode: true,
+        tools: ['sed'],
+      }),
+    );
   });
 });
-

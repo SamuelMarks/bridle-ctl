@@ -1,5 +1,11 @@
 import { computed, inject } from '@angular/core';
-import { signalStore, withState, withMethods, withComputed, patchState } from '@ngrx/signals';
+import {
+  signalStore,
+  withState,
+  withMethods,
+  withComputed,
+  patchState,
+} from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap, map, catchError, of } from 'rxjs';
 import { BatchJob, BatchJobStatus } from '../models/models';
@@ -43,7 +49,9 @@ export const JobsStore = signalStore(
     filteredJobs: computed(() => {
       const jobs = store.jobs();
       const status = store.filterStatus();
-      return status === 'ALL' ? jobs : jobs.filter((job) => job.status === status);
+      return status === 'ALL'
+        ? jobs
+        : jobs.filter((job) => job.status === status);
     }),
     activeJob: computed(() => {
       const id = store.activeJobId();
@@ -51,31 +59,37 @@ export const JobsStore = signalStore(
     }),
     totalJobs: computed(() => store.jobs().length),
   })),
-  withMethods((store, batchService = inject(BatchService), notificationService = inject(NotificationService)) => ({
-    setFilter(status: BatchJobStatus | 'ALL') {
-      patchState(store, { filterStatus: status });
-    },
-    setActiveJob(id: string | null) {
-      patchState(store, { activeJobId: id });
-    },
-    addJob(job: BatchJob) {
-      patchState(store, { jobs: [job, ...store.jobs()] });
-    },
-    loadJobs: rxMethod<void>(
-      pipe(
-        tap(() => patchState(store, { isLoading: true, error: null })),
-        switchMap(() => {
-          return batchService.loadJobs().pipe(
-            tap((jobs) => patchState(store, { jobs, isLoading: false })),
-            catchError((err) => {
-              const errorMsg = err.message || 'Failed to load jobs';
-              patchState(store, { error: errorMsg, isLoading: false });
-              notificationService.error(errorMsg);
-              return of([]);
-            })
-          );
-        })
-      )
-    ),
-  }))
+  withMethods(
+    (
+      store,
+      batchService = inject(BatchService),
+      notificationService = inject(NotificationService),
+    ) => ({
+      setFilter(status: BatchJobStatus | 'ALL') {
+        patchState(store, { filterStatus: status });
+      },
+      setActiveJob(id: string | null) {
+        patchState(store, { activeJobId: id });
+      },
+      addJob(job: BatchJob) {
+        patchState(store, { jobs: [job, ...store.jobs()] });
+      },
+      loadJobs: rxMethod<void>(
+        pipe(
+          tap(() => patchState(store, { isLoading: true, error: null })),
+          switchMap(() => {
+            return batchService.loadJobs().pipe(
+              tap((jobs) => patchState(store, { jobs, isLoading: false })),
+              catchError((err) => {
+                const errorMsg = err.message || 'Failed to load jobs';
+                patchState(store, { error: errorMsg, isLoading: false });
+                notificationService.error(errorMsg);
+                return of([]);
+              }),
+            );
+          }),
+        ),
+      ),
+    }),
+  ),
 );

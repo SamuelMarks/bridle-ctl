@@ -14,23 +14,25 @@ describe('LocalOpsPageComponent', () => {
 
   beforeEach(async () => {
     mockLocalOpService = {
-      audit: jasmine.createSpy('audit').and.returnValue(of({ output: 'audit res' })),
+      audit: jasmine
+        .createSpy('audit')
+        .and.returnValue(of({ output: 'audit res' })),
       fix: jasmine.createSpy('fix').and.returnValue(of({ output: 'fix res' })),
-      clearResult: jasmine.createSpy('clearResult')
+      clearResult: jasmine.createSpy('clearResult'),
     };
 
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       info: jasmine.createSpy('info'),
-      error: jasmine.createSpy('error')
+      error: jasmine.createSpy('error'),
     };
 
     await TestBed.configureTestingModule({
       imports: [LocalOpsPageComponent, NoopAnimationsModule],
       providers: [
         { provide: LocalOpService, useValue: mockLocalOpService },
-        { provide: NotificationService, useValue: mockNotificationService }
-      ]
+        { provide: NotificationService, useValue: mockNotificationService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LocalOpsPageComponent);
@@ -50,7 +52,7 @@ describe('LocalOpsPageComponent', () => {
   it('should render audit component initially', () => {
     const audit = fixture.debugElement.query(By.css('app-local-audit'));
     expect(audit).toBeTruthy();
-    
+
     const fix = fixture.debugElement.query(By.css('app-local-fix'));
     expect(fix).toBeNull();
   });
@@ -58,10 +60,10 @@ describe('LocalOpsPageComponent', () => {
   it('should switch to fix component on tab change', () => {
     component.onTabChange('fix');
     fixture.detectChanges();
-    
+
     const audit = fixture.debugElement.query(By.css('app-local-audit'));
     expect(audit).toBeNull();
-    
+
     const fix = fixture.debugElement.query(By.css('app-local-fix'));
     expect(fix).toBeTruthy();
   });
@@ -91,35 +93,45 @@ describe('LocalOpsPageComponent', () => {
   });
 
   it('should handle audit service error', () => {
-    mockLocalOpService.audit.and.returnValue(throwError(() => new Error('err')));
+    mockLocalOpService.audit.and.returnValue(
+      throwError(() => new Error('err')),
+    );
     component.onAudit({ pattern: 'test', tools: [], args: {} });
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Audit operation failed');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Audit operation failed',
+    );
   });
 
   it('should call fix service and handle success for dry run', () => {
     component.onTabChange('fix');
     fixture.detectChanges();
-    
+
     component.onFix({ pattern: 'test', tools: [], args: {}, dryRun: true });
     expect(mockLocalOpService.fix).toHaveBeenCalledWith('test', [], {}, true);
-    expect(mockNotificationService.info).toHaveBeenCalledWith('Dry run completed');
+    expect(mockNotificationService.info).toHaveBeenCalledWith(
+      'Dry run completed',
+    );
   });
 
   it('should call fix service and handle success for actual run', () => {
     component.onTabChange('fix');
     fixture.detectChanges();
-    
+
     component.onFix({ pattern: 'test', tools: [], args: {}, dryRun: false });
     expect(mockLocalOpService.fix).toHaveBeenCalledWith('test', [], {}, false);
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Fix operation completed');
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Fix operation completed',
+    );
   });
 
   it('should handle fix service error', () => {
     component.onTabChange('fix');
     fixture.detectChanges();
-    
+
     mockLocalOpService.fix.and.returnValue(throwError(() => new Error('err')));
     component.onFix({ pattern: 'test', tools: [], args: {}, dryRun: false });
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Fix operation failed');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Fix operation failed',
+    );
   });
 });

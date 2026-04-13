@@ -15,14 +15,18 @@ describe('BatchActionsPageComponent', () => {
 
   beforeEach(async () => {
     mockBatchService = {
-      createBatchFix: jasmine.createSpy('createBatchFix').and.returnValue(of({ id: '123' })),
-      runPipeline: jasmine.createSpy('runPipeline').and.returnValue(of({ id: '456' })),
-      resumeJob: jasmine.createSpy('resumeJob').and.returnValue(of({}))
+      createBatchFix: jasmine
+        .createSpy('createBatchFix')
+        .and.returnValue(of({ id: '123' })),
+      runPipeline: jasmine
+        .createSpy('runPipeline')
+        .and.returnValue(of({ id: '456' })),
+      resumeJob: jasmine.createSpy('resumeJob').and.returnValue(of({})),
     };
 
     mockNotificationService = {
       success: jasmine.createSpy('success'),
-      error: jasmine.createSpy('error')
+      error: jasmine.createSpy('error'),
     };
 
     mockJobsStore = {
@@ -31,7 +35,7 @@ describe('BatchActionsPageComponent', () => {
       filteredJobs: signal([]),
       loadJobs: jasmine.createSpy('loadJobs'),
       setActiveJob: jasmine.createSpy('setActiveJob'),
-      addJob: jasmine.createSpy('addJob')
+      addJob: jasmine.createSpy('addJob'),
     };
 
     await TestBed.configureTestingModule({
@@ -39,8 +43,8 @@ describe('BatchActionsPageComponent', () => {
       providers: [
         { provide: BatchService, useValue: mockBatchService },
         { provide: NotificationService, useValue: mockNotificationService },
-        { provide: JobsStore, useValue: mockJobsStore }
-      ]
+        { provide: JobsStore, useValue: mockJobsStore },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BatchActionsPageComponent);
@@ -63,39 +67,104 @@ describe('BatchActionsPageComponent', () => {
   });
 
   it('should create batch fix', () => {
-    component.fixFormComponent = { setSubmitting: jasmine.createSpy('setSubmitting') } as any;
-    
-    component.onCreateBatchFix({ target: 'org', title: 't', description: 'd', pattern: 'p', tools: [], args: {}, safety_mode: true, max_repos: 10, max_prs_per_hour: 5 });
-    expect(mockBatchService.createBatchFix).toHaveBeenCalledWith('org', 't', 'd', 'p', [], {}, true, 10, 5);
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Job 123 queued successfully');
+    component.fixFormComponent = {
+      setSubmitting: jasmine.createSpy('setSubmitting'),
+    } as any;
+
+    component.onCreateBatchFix({
+      target: 'org',
+      title: 't',
+      description: 'd',
+      pattern: 'p',
+      tools: [],
+      args: {},
+      safety_mode: true,
+      max_repos: 10,
+      max_prs_per_hour: 5,
+    });
+    expect(mockBatchService.createBatchFix).toHaveBeenCalledWith(
+      'org',
+      't',
+      'd',
+      'p',
+      [],
+      {},
+      true,
+      10,
+      5,
+    );
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Job 123 queued successfully',
+    );
     expect(mockJobsStore['addJob']).toHaveBeenCalledWith({ id: '123' });
     expect(mockJobsStore['setActiveJob']).toHaveBeenCalledWith('123');
   });
 
   it('should handle create batch fix error', () => {
-    component.fixFormComponent = { setSubmitting: jasmine.createSpy('setSubmitting') } as any;
-    mockBatchService.createBatchFix.and.returnValue(throwError(() => new Error('err')));
-    
-    component.onCreateBatchFix({ target: 'org', title: 't', description: 'd', pattern: 'p', tools: [], args: {}, safety_mode: true, max_repos: 10, max_prs_per_hour: 5 });
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to queue batch fix');
+    component.fixFormComponent = {
+      setSubmitting: jasmine.createSpy('setSubmitting'),
+    } as any;
+    mockBatchService.createBatchFix.and.returnValue(
+      throwError(() => new Error('err')),
+    );
+
+    component.onCreateBatchFix({
+      target: 'org',
+      title: 't',
+      description: 'd',
+      pattern: 'p',
+      tools: [],
+      args: {},
+      safety_mode: true,
+      max_repos: 10,
+      max_prs_per_hour: 5,
+    });
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to queue batch fix',
+    );
   });
 
   it('should run pipeline', () => {
-    component.runFormComponent = { setSubmitting: jasmine.createSpy('setSubmitting') } as any;
-    
-    component.onRunPipeline({ config: 'yaml', safety_mode: true, max_repos: 10, max_prs_per_hour: 5 });
-    expect(mockBatchService.runPipeline).toHaveBeenCalledWith('yaml', true, 10, 5);
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Pipeline job 456 started');
+    component.runFormComponent = {
+      setSubmitting: jasmine.createSpy('setSubmitting'),
+    } as any;
+
+    component.onRunPipeline({
+      config: 'yaml',
+      safety_mode: true,
+      max_repos: 10,
+      max_prs_per_hour: 5,
+    });
+    expect(mockBatchService.runPipeline).toHaveBeenCalledWith(
+      'yaml',
+      true,
+      10,
+      5,
+    );
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Pipeline job 456 started',
+    );
     expect(mockJobsStore['addJob']).toHaveBeenCalledWith({ id: '456' });
     expect(mockJobsStore['setActiveJob']).toHaveBeenCalledWith('456');
   });
 
   it('should handle run pipeline error', () => {
-    component.runFormComponent = { setSubmitting: jasmine.createSpy('setSubmitting') } as any;
-    mockBatchService.runPipeline.and.returnValue(throwError(() => new Error('err')));
-    
-    component.onRunPipeline({ config: 'yaml', safety_mode: true, max_repos: 10, max_prs_per_hour: 5 });
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to start pipeline');
+    component.runFormComponent = {
+      setSubmitting: jasmine.createSpy('setSubmitting'),
+    } as any;
+    mockBatchService.runPipeline.and.returnValue(
+      throwError(() => new Error('err')),
+    );
+
+    component.onRunPipeline({
+      config: 'yaml',
+      safety_mode: true,
+      max_repos: 10,
+      max_prs_per_hour: 5,
+    });
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to start pipeline',
+    );
   });
 
   it('should select job', () => {
@@ -106,14 +175,20 @@ describe('BatchActionsPageComponent', () => {
   it('should resume job', () => {
     component.onResumeJob('123');
     expect(mockBatchService.resumeJob).toHaveBeenCalledWith('123');
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Job resumed successfully');
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Job resumed successfully',
+    );
     expect(mockJobsStore['loadJobs']).toHaveBeenCalled();
   });
 
   it('should handle resume job error', () => {
-    mockBatchService.resumeJob.and.returnValue(throwError(() => new Error('err')));
+    mockBatchService.resumeJob.and.returnValue(
+      throwError(() => new Error('err')),
+    );
     component.onResumeJob('123');
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to resume job');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to resume job',
+    );
   });
 
   it('should close job detail', () => {

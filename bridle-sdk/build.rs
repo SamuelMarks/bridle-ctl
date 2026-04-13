@@ -110,8 +110,48 @@ fn main() {
 
     // Add rpath so the binary can find the dylib at runtime
     println!("cargo:rustc-link-arg=-Wl,-rpath,{}/lib", dst.display());
-    // --- cdd-c stub ---
 
-    println!("cargo:rerun-if-changed=src/cdd_stub.c");
-    cc::Build::new().file("src/cdd_stub.c").compile("cdd_stub");
+    // --- cdd-c ---
+    let cdd_local = Path::new(&manifest_dir).join("../../cdd-c");
+    let cdd_repo = if cdd_local.exists() {
+        cdd_local
+    } else {
+        let git_dir = out_path.join("cdd-c");
+        if !git_dir.exists() {
+            let status = Command::new("git")
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
+                .arg("clone")
+                .arg("--depth=1")
+                .arg("https://github.com/SamuelMarks/cdd-c.git")
+                .arg(&git_dir)
+                .status()
+                .expect("Failed to run git clone cdd-c");
+            assert!(status.success(), "Failed to clone cdd-c");
+        }
+        git_dir
+    };
+
+    println!("cargo:rerun-if-changed={}", cdd_repo.display());
+
+    let cdd_dst = cmake::Config::new(&cdd_repo)
+        .define("C_CDD_BUILD_TESTS", "OFF")
+        .define("BUILD_SHARED_LIBS", "OFF")
+        .define("C_CDD_USE_LIBCURL", "OFF")
+        .profile("Release")
+        .build();
+
+    println!("cargo:rustc-link-search=native={}/lib", cdd_dst.display());
+    println!("cargo:rustc-link-lib=static=c_cdd");
+    // Link cdd-c dependencies
+    println!("cargo:rustc-link-lib=static=parson");
+    println!("cargo:rustc-link-lib=static=cfs");
+    println!("cargo:rustc-link-lib=static=c_str_span");
+    println!("cargo:rustc-link-lib=static=c89stringutils");
+
+    if cfg!(target_os = "macos") {
+        println!("cargo:rustc-link-lib=framework=CoreFoundation");
+        println!("cargo:rustc-link-lib=framework=Security");
+    }
 }

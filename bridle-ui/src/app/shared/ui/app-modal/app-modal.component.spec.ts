@@ -5,9 +5,9 @@ import { By } from '@angular/platform-browser';
 
 @Component({
   template: `
-    <app-modal 
-      [isOpen]="isOpen" 
-      [title]="title" 
+    <app-modal
+      [isOpen]="isOpen"
+      [title]="title"
       [closeOnBackdropClick]="closeOnBackdropClick"
       [showFooter]="showFooter"
       (close)="onClose()"
@@ -18,7 +18,7 @@ import { By } from '@angular/platform-browser';
       </div>
     </app-modal>
   `,
-  imports: [AppModalComponent]
+  imports: [AppModalComponent],
 })
 class TestHostComponent {
   isOpen = true;
@@ -38,7 +38,7 @@ describe('AppModalComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, AppModalComponent]
+      imports: [TestHostComponent, AppModalComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -63,17 +63,21 @@ describe('AppModalComponent', () => {
   });
 
   it('should render title and content', () => {
-    const title = fixture.debugElement.query(By.css('.Box-title')).nativeElement;
+    const title = fixture.debugElement.query(
+      By.css('.Box-title'),
+    ).nativeElement;
     expect(title.textContent.trim()).toBe('Test Modal');
-    
-    const content = fixture.debugElement.query(By.css('.modal-content')).nativeElement;
+
+    const content = fixture.debugElement.query(
+      By.css('.modal-content'),
+    ).nativeElement;
     expect(content.textContent.trim()).toBe('Modal Content');
   });
 
   it('should render footer when showFooter is true', () => {
     const footer = fixture.debugElement.query(By.css('.modal-footer'));
     expect(footer).toBeTruthy();
-    
+
     const btn = footer.query(By.css('.footer-btn')).nativeElement;
     expect(btn.textContent.trim()).toBe('OK');
   });
@@ -86,13 +90,17 @@ describe('AppModalComponent', () => {
   });
 
   it('should emit close on close button click', () => {
-    const closeBtn = fixture.debugElement.query(By.css('.close-button')).nativeElement;
+    const closeBtn = fixture.debugElement.query(
+      By.css('.close-button'),
+    ).nativeElement;
     closeBtn.click();
     expect(component.closed).toBeTrue();
   });
 
   it('should emit close on backdrop click if closeOnBackdropClick is true', () => {
-    const backdrop = fixture.debugElement.query(By.css('.modal-backdrop')).nativeElement;
+    const backdrop = fixture.debugElement.query(
+      By.css('.modal-backdrop'),
+    ).nativeElement;
     backdrop.click();
     expect(component.closed).toBeTrue();
   });
@@ -101,15 +109,19 @@ describe('AppModalComponent', () => {
     component.closed = false;
     component.closeOnBackdropClick = false;
     fixture.detectChanges();
-    
-    const backdrop = fixture.debugElement.query(By.css('.modal-backdrop')).nativeElement;
+
+    const backdrop = fixture.debugElement.query(
+      By.css('.modal-backdrop'),
+    ).nativeElement;
     backdrop.click();
     expect(component.closed).toBeFalse();
   });
 
   it('should not emit close when clicking inside the dialog', () => {
     component.closed = false;
-    const dialog = fixture.debugElement.query(By.css('.modal-dialog')).nativeElement;
+    const dialog = fixture.debugElement.query(
+      By.css('.modal-dialog'),
+    ).nativeElement;
     dialog.click();
     expect(component.closed).toBeFalse();
   });

@@ -1,3 +1,4 @@
+pub mod cdd;
 /// Contains the registry of all available code tools.
 pub mod registry;
 

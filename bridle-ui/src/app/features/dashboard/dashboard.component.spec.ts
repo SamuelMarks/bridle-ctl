@@ -14,14 +14,16 @@ describe('DashboardComponent', () => {
     mockSystemStateService = {
       health: signal({ rest: 'UP', rpc: 'DOWN', agent: 'UP' }),
       isLoading: signal(false),
-      checkHealth: jasmine.createSpy('checkHealth').and.returnValue(of({ rest: 'UP', rpc: 'DOWN', agent: 'UP' }))
+      checkHealth: jasmine
+        .createSpy('checkHealth')
+        .and.returnValue(of({ rest: 'UP', rpc: 'DOWN', agent: 'UP' })),
     };
 
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
       providers: [
-        { provide: SystemStateService, useValue: mockSystemStateService }
-      ]
+        { provide: SystemStateService, useValue: mockSystemStateService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DashboardComponent);
@@ -47,15 +49,15 @@ describe('DashboardComponent', () => {
   it('should display correct health badges', () => {
     const badges = fixture.debugElement.queryAll(By.css('app-badge'));
     expect(badges.length).toBe(3);
-    
+
     // REST (UP)
     expect(badges[0].nativeElement.textContent.trim()).toBe('UP');
     expect(badges[0].componentInstance.variant()).toBe('success');
-    
+
     // RPC (DOWN)
     expect(badges[1].nativeElement.textContent.trim()).toBe('DOWN');
     expect(badges[1].componentInstance.variant()).toBe('danger');
-    
+
     // Agent (UP)
     expect(badges[2].nativeElement.textContent.trim()).toBe('UP');
     expect(badges[2].componentInstance.variant()).toBe('success');

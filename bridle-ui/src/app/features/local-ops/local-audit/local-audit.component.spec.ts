@@ -9,7 +9,7 @@ describe('LocalAuditComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [LocalAuditComponent, ReactiveFormsModule]
+      imports: [LocalAuditComponent, ReactiveFormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LocalAuditComponent);
@@ -31,7 +31,7 @@ describe('LocalAuditComponent', () => {
     component.form.setValue({
       pattern: 'TODO',
       tools: 'grep, eslint',
-      args: '{"grep": {"flags": "-i"}}'
+      args: '{"grep": {"flags": "-i"}}',
     });
 
     component.onSubmit();
@@ -39,7 +39,7 @@ describe('LocalAuditComponent', () => {
     expect(component.audit.emit).toHaveBeenCalledWith({
       pattern: 'TODO',
       tools: ['grep', 'eslint'],
-      args: { grep: { flags: '-i' } }
+      args: { grep: { flags: '-i' } },
     });
   });
 
@@ -49,7 +49,7 @@ describe('LocalAuditComponent', () => {
     component.form.setValue({
       pattern: 'FIXME',
       tools: '',
-      args: '{invalid json}'
+      args: '{invalid json}',
     });
 
     component.onSubmit();
@@ -57,7 +57,7 @@ describe('LocalAuditComponent', () => {
     expect(component.audit.emit).toHaveBeenCalledWith({
       pattern: 'FIXME',
       tools: [],
-      args: {}
+      args: {},
     });
   });
 
@@ -70,7 +70,7 @@ describe('LocalAuditComponent', () => {
   it('should display result panel when result is set', () => {
     component.setResult({ output: 'Found 1 match' });
     fixture.detectChanges();
-    
+
     const pre = fixture.debugElement.query(By.css('pre')).nativeElement;
     expect(pre.textContent).toContain('Found 1 match');
   });
@@ -78,7 +78,7 @@ describe('LocalAuditComponent', () => {
   it('should not display result panel when result is null', () => {
     component.setResult(null);
     fixture.detectChanges();
-    
+
     const panel = fixture.debugElement.query(By.css('.result-panel'));
     expect(panel).toBeNull();
   });

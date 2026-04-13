@@ -1,4 +1,9 @@
-import { Component, ChangeDetectionStrategy, output, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  output,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AppButtonComponent } from '../../../shared/ui/app-button/app-button.component';
@@ -9,7 +14,12 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
  */
 @Component({
   selector: 'app-ingest-org-form',
-  imports: [CommonModule, ReactiveFormsModule, AppButtonComponent, AppInputComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    AppButtonComponent,
+    AppInputComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="Box p-3">
@@ -42,12 +52,18 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
             placeholder="postgres://user:pass@localhost:5432/db"
           ></app-input>
           @if (form.get('dbUrl')?.invalid && form.get('dbUrl')?.touched) {
-            <div class="text-danger mt-1 text-small">Database URL is required</div>
+            <div class="text-danger mt-1 text-small">
+              Database URL is required
+            </div>
           }
         </div>
 
         <div class="d-flex justify-content-end">
-          <app-button type="submit" variant="primary" [disabled]="form.invalid || isSubmitting">
+          <app-button
+            type="submit"
+            variant="primary"
+            [disabled]="form.invalid || isSubmitting"
+          >
             {{ isSubmitting ? 'Ingesting...' : 'Ingest Org' }}
           </app-button>
         </div>
@@ -60,13 +76,27 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
       border: 1px solid var(--color-border-default);
       border-radius: var(--border-radius-2);
     }
-    .p-3 { padding: 16px; }
-    .mb-3 { margin-bottom: 16px; }
-    .mt-1 { margin-top: 4px; }
-    .h4 { font-size: 16px; font-weight: 600; margin-top: 0; }
-    .text-danger { color: var(--color-danger-fg); }
-    .text-small { font-size: 12px; }
-  `
+    .p-3 {
+      padding: 16px;
+    }
+    .mb-3 {
+      margin-bottom: 16px;
+    }
+    .mt-1 {
+      margin-top: 4px;
+    }
+    .h4 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 0;
+    }
+    .text-danger {
+      color: var(--color-danger-fg);
+    }
+    .text-small {
+      font-size: 12px;
+    }
+  `,
 })
 export class IngestOrgFormComponent {
   /** FormBuilder instance */
@@ -79,14 +109,14 @@ export class IngestOrgFormComponent {
   form = this.fb.group({
     name: ['', Validators.required],
     provider: ['github', Validators.required],
-    dbUrl: ['', Validators.required]
+    dbUrl: ['', Validators.required],
   });
 
   /** Provider options for the select input */
   providerOptions = [
     { label: 'GitHub', value: 'github' },
     { label: 'GitLab', value: 'gitlab' },
-    { label: 'Bitbucket', value: 'bitbucket' }
+    { label: 'Bitbucket', value: 'bitbucket' },
   ];
 
   /** Whether the form is currently submitting */
@@ -98,7 +128,7 @@ export class IngestOrgFormComponent {
       this.ingest.emit({
         name: this.form.value.name!,
         provider: this.form.value.provider!,
-        dbUrl: this.form.value.dbUrl!
+        dbUrl: this.form.value.dbUrl!,
       });
       this.form.reset({ provider: 'github' });
     }

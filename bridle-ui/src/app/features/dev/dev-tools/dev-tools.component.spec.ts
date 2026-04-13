@@ -14,20 +14,20 @@ describe('DevToolsComponent', () => {
 
   beforeEach(async () => {
     mockApiService = {
-      post: jasmine.createSpy('post').and.returnValue(of({ result: 42 }))
+      post: jasmine.createSpy('post').and.returnValue(of({ result: 42 })),
     };
 
     mockNotificationService = {
       success: jasmine.createSpy('success'),
-      error: jasmine.createSpy('error')
+      error: jasmine.createSpy('error'),
     };
 
     await TestBed.configureTestingModule({
       imports: [DevToolsComponent, ReactiveFormsModule],
       providers: [
         { provide: ApiService, useValue: mockApiService },
-        { provide: NotificationService, useValue: mockNotificationService }
-      ]
+        { provide: NotificationService, useValue: mockNotificationService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DevToolsComponent);
@@ -42,8 +42,11 @@ describe('DevToolsComponent', () => {
   it('should perform math addition', () => {
     component.addForm.setValue({ left: 10, right: 32 });
     component.onAdd();
-    
-    expect(mockApiService.post).toHaveBeenCalledWith('/dev/add', { left: 10, right: 32 });
+
+    expect(mockApiService.post).toHaveBeenCalledWith('/dev/add', {
+      left: 10,
+      right: 32,
+    });
     expect(component.addResult()).toBe(42);
   });
 
@@ -51,8 +54,10 @@ describe('DevToolsComponent', () => {
     mockApiService.post.and.returnValue(throwError(() => new Error('err')));
     component.addForm.setValue({ left: 10, right: 32 });
     component.onAdd();
-    
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Math operation failed');
+
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Math operation failed',
+    );
   });
 
   it('should not add if form is invalid', () => {
@@ -63,50 +68,56 @@ describe('DevToolsComponent', () => {
 
   it('should execute db command', () => {
     mockApiService.post.and.returnValue(of({ success: true }));
-    
+
     component.dbForm.setValue({
       action: 'test_action',
       id: '123',
-      payload: '{"key":"value"}'
+      payload: '{"key":"value"}',
     });
-    
+
     component.onDbExec();
-    
+
     expect(mockApiService.post).toHaveBeenCalledWith('/dev/db', {
       action: 'test_action',
       id: '123',
-      payload: { key: 'value' }
+      payload: { key: 'value' },
     });
     expect(component.dbResult()).toEqual({ success: true });
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Command executed successfully');
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Command executed successfully',
+    );
   });
 
   it('should handle invalid JSON payload', () => {
     component.dbForm.setValue({
       action: 'test_action',
       id: '',
-      payload: '{invalid'
+      payload: '{invalid',
     });
-    
+
     component.onDbExec();
-    
+
     expect(mockApiService.post).not.toHaveBeenCalled();
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Invalid JSON payload');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Invalid JSON payload',
+    );
   });
 
   it('should handle db command error', () => {
     mockApiService.post.and.returnValue(throwError(() => new Error('Db err')));
-    
+
     component.dbForm.setValue({
       action: 'test_action',
       id: '',
-      payload: ''
+      payload: '',
     });
-    
+
     component.onDbExec();
-    
+
     expect(component.dbResult()).toEqual({ error: 'Db err' });
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Command failed');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Command failed',
+    );
   });
 
   it('should not execute db command if form is invalid', () => {

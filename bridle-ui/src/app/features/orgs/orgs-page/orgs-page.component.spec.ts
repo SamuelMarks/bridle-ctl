@@ -19,20 +19,20 @@ describe('OrgsPageComponent', () => {
       isLoading: signal(false),
       loadOrgs: jasmine.createSpy('loadOrgs').and.returnValue(of([])),
       ingestOrg: jasmine.createSpy('ingestOrg').and.returnValue(of({})),
-      loadRepos: jasmine.createSpy('loadRepos').and.returnValue(of([]))
+      loadRepos: jasmine.createSpy('loadRepos').and.returnValue(of([])),
     };
 
     mockNotificationService = {
       success: jasmine.createSpy('success'),
-      error: jasmine.createSpy('error')
+      error: jasmine.createSpy('error'),
     };
 
     await TestBed.configureTestingModule({
       imports: [OrgsPageComponent],
       providers: [
         { provide: OrgService, useValue: mockOrgService },
-        { provide: NotificationService, useValue: mockNotificationService }
-      ]
+        { provide: NotificationService, useValue: mockNotificationService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(OrgsPageComponent);
@@ -49,21 +49,35 @@ describe('OrgsPageComponent', () => {
   });
 
   it('should handle load orgs error', () => {
-    mockOrgService.loadOrgs.and.returnValue(throwError(() => new Error('error')));
+    mockOrgService.loadOrgs.and.returnValue(
+      throwError(() => new Error('error')),
+    );
     component.ngOnInit();
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to load organizations');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to load organizations',
+    );
   });
 
   it('should ingest org and show success notification', () => {
     component.onIngest({ name: 'test', provider: 'github', dbUrl: 'url' });
-    expect(mockOrgService.ingestOrg).toHaveBeenCalledWith('test', 'github', 'url');
-    expect(mockNotificationService.success).toHaveBeenCalledWith('Organization test ingested successfully');
+    expect(mockOrgService.ingestOrg).toHaveBeenCalledWith(
+      'test',
+      'github',
+      'url',
+    );
+    expect(mockNotificationService.success).toHaveBeenCalledWith(
+      'Organization test ingested successfully',
+    );
   });
 
   it('should handle ingest org error', () => {
-    mockOrgService.ingestOrg.and.returnValue(throwError(() => new Error('error')));
+    mockOrgService.ingestOrg.and.returnValue(
+      throwError(() => new Error('error')),
+    );
     component.onIngest({ name: 'test', provider: 'github', dbUrl: 'url' });
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to ingest organization test');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to ingest organization test',
+    );
   });
 
   it('should load repos when org is selected', () => {
@@ -73,18 +87,22 @@ describe('OrgsPageComponent', () => {
   });
 
   it('should handle load repos error', () => {
-    mockOrgService.loadRepos.and.returnValue(throwError(() => new Error('error')));
+    mockOrgService.loadRepos.and.returnValue(
+      throwError(() => new Error('error')),
+    );
     component.onSelectOrg('1');
-    expect(mockNotificationService.error).toHaveBeenCalledWith('Failed to load repositories');
+    expect(mockNotificationService.error).toHaveBeenCalledWith(
+      'Failed to load repositories',
+    );
     expect(component.isLoadingRepos()).toBeFalse();
   });
 
   it('should return correct org name', () => {
     expect(component.selectedOrgName()).toBe('');
-    
+
     component.selectedOrgId.set('1');
     expect(component.selectedOrgName()).toBe('Test Org');
-    
+
     component.selectedOrgId.set('99');
     expect(component.selectedOrgName()).toBe('');
   });
@@ -97,7 +115,7 @@ describe('OrgsPageComponent', () => {
   it('should render repo list when org is selected', () => {
     component.selectedOrgId.set('1');
     fixture.detectChanges();
-    
+
     const repoList = fixture.debugElement.query(By.css('app-repo-list'));
     expect(repoList).toBeTruthy();
   });

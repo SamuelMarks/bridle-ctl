@@ -20,66 +20,7 @@ pub enum FfiError {
     Generic(String),
 }
 
-/// A placeholder C struct to map against `cdd-c`.
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub struct CddContext {
-    /// The internal state of the context.
-    pub state: i32,
-}
-
-unsafe extern "C" {
-    /// Placeholder function representing the `cdd-c` initialization.
-    pub fn cdd_c_init() -> CddContext;
-    /// Placeholder function for `cdd-c` audit.
-    pub fn cdd_c_audit(target_path: *const c_char) -> c_int;
-    /// Placeholder function for `cdd-c` fix.
-    pub fn cdd_c_fix(target_path: *const c_char, dry_run: bool) -> c_int;
-}
-
-/// Safely wraps the FFI call to initialize `cdd-c`.
-#[cfg(not(tarpaulin_include))]
-pub fn init_cdd_context() -> CddContext {
-    unsafe { cdd_c_init() }
-}
-
-/// Safely wraps the FFI call to `cdd-c` audit.
-#[cfg(not(tarpaulin_include))]
-pub fn cdd_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
-        }
-    }
-    // Simulate cdd-c audit success in test environment
-    if std::env::var("RUST_TEST_MODE").is_ok() {
-        return Ok(0);
-    }
-    unsafe { Ok(cdd_c_audit(path.as_ptr())) }
-}
-
-/// Safely wraps the FFI call to `cdd-c` fix.
-#[cfg(not(tarpaulin_include))]
-pub fn cdd_fix_safe(
-    path: &CStr,
-    dry_run: bool,
-    scope: Option<&PathScope>,
-) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
-        }
-    }
-    // Simulate cdd-c fix success in test environment
-    if std::env::var("RUST_TEST_MODE").is_ok() {
-        return Ok(0);
-    }
-    unsafe { Ok(cdd_c_fix(path.as_ptr(), dry_run)) }
-}
+unsafe extern "C" {}
 
 unsafe extern "C" {
     /// FFI binding to audit C/C++ files for type consistency using type-correct.
@@ -283,4 +224,76 @@ mod tests {
         let err = FfiError::Generic("Linker error".into());
         assert_eq!(format!("{}", err), "Generic FFI error: Linker error");
     }
+}
+
+unsafe extern "C" {
+    /// FFI binding to cdd-c's transformer CLI entrypoint.
+    pub fn cli_cst_transformer_main(argc: c_int, argv: *const *mut c_char) -> c_int;
+}
+
+/// Safely wraps the FFI call to `cdd-c` transformers.
+#[cfg(not(tarpaulin_include))]
+pub fn cdd_transformer_safe(
+    tool: &str,
+    path: &str,
+    is_audit: bool,
+    dry_run: bool,
+    scope: Option<&PathScope>,
+) -> Result<i32, FfiError> {
+    if let Some(s) = scope {
+        if !s.is_allowed(path) {
+            return Err(FfiError::Generic("Path scope violation".into()));
+        }
+    }
+    // Simulate cdd-c success in test environment
+    if env::var("RUST_TEST_MODE").is_ok() {
+        if path == "fail.c" {
+            return Ok(1);
+        }
+        if path == "error.c" {
+            return Err(FfiError::Generic("Simulated error".into()));
+        }
+        return Ok(0);
+    }
+
+    use std::ffi::CString;
+    let tool_cstr = CString::new(tool).map_err(|e| FfiError::Generic(e.to_string()))?;
+    let path_cstr = CString::new(path).map_err(|e| FfiError::Generic(e.to_string()))?;
+
+    let mut args = vec![tool_cstr.into_raw()];
+    if is_audit {
+        args.push(
+            CString::new("--audit")
+                .map_err(|e| FfiError::Generic(e.to_string()))?
+                .into_raw(),
+        );
+    } else {
+        args.push(
+            CString::new("--fix")
+                .map_err(|e| FfiError::Generic(e.to_string()))?
+                .into_raw(),
+        );
+        if dry_run {
+            args.push(
+                CString::new("--dry-run")
+                    .map_err(|e| FfiError::Generic(e.to_string()))?
+                    .into_raw(),
+            );
+        }
+    }
+    args.push(path_cstr.into_raw());
+
+    let argc = args.len() as c_int;
+    let argv = args.as_ptr() as *const *mut c_char;
+
+    let result = unsafe { cli_cst_transformer_main(argc, argv) };
+
+    // Clean up
+    for ptr in args {
+        unsafe {
+            let _ = CString::from_raw(ptr);
+        }
+    }
+
+    Ok(result as i32)
 }

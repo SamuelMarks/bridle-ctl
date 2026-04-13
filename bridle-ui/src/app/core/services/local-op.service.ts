@@ -17,12 +17,12 @@ export interface OpResult {
  * Service for local audit and fix operations.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LocalOpService {
   /** API Service instance */
   private api = inject(ApiService);
-  
+
   /** Signal for operating state */
   private isOperatingSignal = signal<boolean>(false);
   /** Signal for last result */
@@ -39,17 +39,23 @@ export class LocalOpService {
    * @param tools Selected tools
    * @param args Tool arguments
    */
-  audit(pattern: string, tools: string[], args: Record<string, unknown>): Observable<OpResult> {
+  audit(
+    pattern: string,
+    tools: string[],
+    args: Record<string, unknown>,
+  ): Observable<OpResult> {
     this.isOperatingSignal.set(true);
-    return this.api.post<OpResult>('/local/audit', { pattern, tools, args }).pipe(
-      tap({
-        next: (res) => {
-          this.lastResultSignal.set(res);
-          this.isOperatingSignal.set(false);
-        },
-        error: () => this.isOperatingSignal.set(false)
-      })
-    );
+    return this.api
+      .post<OpResult>('/local/audit', { pattern, tools, args })
+      .pipe(
+        tap({
+          next: (res) => {
+            this.lastResultSignal.set(res);
+            this.isOperatingSignal.set(false);
+          },
+          error: () => this.isOperatingSignal.set(false),
+        }),
+      );
   }
 
   /**
@@ -59,17 +65,24 @@ export class LocalOpService {
    * @param args Tool arguments
    * @param dryRun Whether to perform a dry run
    */
-  fix(pattern: string, tools: string[], args: Record<string, unknown>, dryRun: boolean): Observable<OpResult> {
+  fix(
+    pattern: string,
+    tools: string[],
+    args: Record<string, unknown>,
+    dryRun: boolean,
+  ): Observable<OpResult> {
     this.isOperatingSignal.set(true);
-    return this.api.post<OpResult>('/local/fix', { pattern, tools, args, dryRun }).pipe(
-      tap({
-        next: (res) => {
-          this.lastResultSignal.set(res);
-          this.isOperatingSignal.set(false);
-        },
-        error: () => this.isOperatingSignal.set(false)
-      })
-    );
+    return this.api
+      .post<OpResult>('/local/fix', { pattern, tools, args, dryRun })
+      .pipe(
+        tap({
+          next: (res) => {
+            this.lastResultSignal.set(res);
+            this.isOperatingSignal.set(false);
+          },
+          error: () => this.isOperatingSignal.set(false),
+        }),
+      );
   }
 
   /**

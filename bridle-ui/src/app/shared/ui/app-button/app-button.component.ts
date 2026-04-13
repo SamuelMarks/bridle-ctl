@@ -32,7 +32,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       border-radius: var(--border-radius-1);
       appearance: none;
     }
-    
+
     .btn:disabled {
       cursor: not-allowed;
       opacity: 0.6;
@@ -43,7 +43,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       background-color: var(--color-btn-bg);
       border-color: var(--color-btn-border);
     }
-    
+
     .btn-secondary:hover:not(:disabled) {
       background-color: var(--color-btn-hover-bg);
       border-color: var(--color-btn-hover-border);
@@ -54,7 +54,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       background-color: var(--color-btn-primary-bg);
       border-color: var(--color-btn-primary-border);
     }
-    
+
     .btn-primary:hover:not(:disabled) {
       background-color: var(--color-btn-primary-hover-bg);
     }
@@ -64,7 +64,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       background-color: var(--color-btn-danger-bg);
       border-color: var(--color-btn-border);
     }
-    
+
     .btn-danger:hover:not(:disabled) {
       color: var(--color-btn-danger-hover-text);
       background-color: var(--color-btn-danger-hover-bg);
@@ -76,17 +76,19 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       background-color: transparent;
       border-color: transparent;
     }
-    
+
     .btn-invisible:hover:not(:disabled) {
       color: var(--color-accent-emphasis);
     }
-  `
+  `,
 })
 export class AppButtonComponent {
   /**
    * Visual variant of the button.
    */
-  variant = input<'primary' | 'secondary' | 'danger' | 'invisible'>('secondary');
+  variant = input<'primary' | 'secondary' | 'danger' | 'invisible'>(
+    'secondary',
+  );
 
   /**
    * HTML button type.

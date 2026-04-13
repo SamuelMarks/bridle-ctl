@@ -4,9 +4,7 @@ import { appConfig } from './app.config';
 
 /** Server specific configuration */
 const serverConfig: ApplicationConfig = {
-  providers: [
-    provideServerRendering()
-  ]
+  providers: [provideServerRendering()],
 };
 
 /** Merged application configuration */

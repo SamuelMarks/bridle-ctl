@@ -5,7 +5,7 @@ import { By } from '@angular/platform-browser';
 
 @Component({
   template: `<app-badge [variant]="variant">Test Badge</app-badge>`,
-  imports: [AppBadgeComponent]
+  imports: [AppBadgeComponent],
 })
 class TestHostComponent {
   variant: 'default' | 'success' | 'danger' | 'accent' = 'default';
@@ -17,7 +17,7 @@ describe('AppBadgeComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, AppBadgeComponent]
+      imports: [TestHostComponent, AppBadgeComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -37,7 +37,7 @@ describe('AppBadgeComponent', () => {
   it('should set the correct variant class', () => {
     const span = fixture.debugElement.query(By.css('span')).nativeElement;
     expect(span.classList.contains('badge-default')).toBeTrue();
-    
+
     component.variant = 'success';
     fixture.detectChanges();
     expect(span.classList.contains('badge-success')).toBeTrue();

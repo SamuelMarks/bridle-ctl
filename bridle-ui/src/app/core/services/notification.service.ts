@@ -14,12 +14,12 @@ export interface Notification {
  * Service for managing toast notifications.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NotificationService {
   /** Signal for notifications */
   private notificationsSignal = signal<Notification[]>([]);
-  
+
   /** Current notifications */
   readonly notifications = this.notificationsSignal.asReadonly();
 
@@ -52,8 +52,8 @@ export class NotificationService {
    * @param id The notification ID
    */
   remove(id: string): void {
-    this.notificationsSignal.update(notifications => 
-      notifications.filter(n => n.id !== id)
+    this.notificationsSignal.update((notifications) =>
+      notifications.filter((n) => n.id !== id),
     );
   }
 
@@ -62,11 +62,14 @@ export class NotificationService {
    * @param type Notification type
    * @param message Notification message
    */
-  private addNotification(type: 'success' | 'error' | 'info', message: string): void {
+  private addNotification(
+    type: 'success' | 'error' | 'info',
+    message: string,
+  ): void {
     const id = Math.random().toString(36).substring(2, 9);
-    this.notificationsSignal.update(notifications => [
+    this.notificationsSignal.update((notifications) => [
       ...notifications,
-      { id, type, message }
+      { id, type, message },
     ]);
 
     // Auto-remove after 5 seconds

@@ -14,7 +14,7 @@ import { AppLayoutComponent } from './shared/ui/app-layout/app-layout.component'
       <router-outlet></router-outlet>
     </app-layout>
   `,
-  styles: []
+  styles: [],
 })
 export class AppComponent {
   /** The title of the application */

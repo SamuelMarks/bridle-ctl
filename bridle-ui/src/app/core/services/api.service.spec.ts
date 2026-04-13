@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ApiService } from './api.service';
 
@@ -9,11 +12,7 @@ describe('ApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        ApiService,
-        provideHttpClient(),
-        provideHttpClientTesting()
-      ]
+      providers: [ApiService, provideHttpClient(), provideHttpClientTesting()],
     });
     service = TestBed.inject(ApiService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -28,7 +27,7 @@ describe('ApiService', () => {
   });
 
   it('should perform GET request with retries', () => {
-    service.get('/test').subscribe(data => {
+    service.get('/test').subscribe((data) => {
       expect(data).toEqual({ msg: 'success' });
     });
 
@@ -51,11 +50,13 @@ describe('ApiService', () => {
       next: () => fail('should have failed with the client error'),
       error: (error: Error) => {
         expect(error.message).toContain('Error: Network Error');
-      }
+      },
     });
 
     const req1 = httpMock.expectOne('/api/test-client-err');
-    const errorEvent = new ErrorEvent('Network error', { message: 'Network Error' });
+    const errorEvent = new ErrorEvent('Network error', {
+      message: 'Network Error',
+    });
     req1.error(errorEvent);
 
     const req2 = httpMock.expectOne('/api/test-client-err');
@@ -71,7 +72,7 @@ describe('ApiService', () => {
       error: (error: Error) => {
         expect(error.message).toContain('Error Code: 500');
         expect(error.message).toContain('Server Error');
-      }
+      },
     });
 
     const req = httpMock.expectOne('/api/test-server-err');
@@ -80,8 +81,8 @@ describe('ApiService', () => {
   });
 
   it('should perform POST request', () => {
-    service.post('/test-post', { data: 1 }).subscribe(data => {
-      expect((data as {success: boolean}).success).toBeTrue();
+    service.post('/test-post', { data: 1 }).subscribe((data) => {
+      expect((data as { success: boolean }).success).toBeTrue();
     });
 
     const req = httpMock.expectOne('/api/test-post');
@@ -99,8 +100,8 @@ describe('ApiService', () => {
   });
 
   it('should perform PUT request', () => {
-    service.put('/test-put', { data: 2 }).subscribe(data => {
-      expect((data as {success: boolean}).success).toBeTrue();
+    service.put('/test-put', { data: 2 }).subscribe((data) => {
+      expect((data as { success: boolean }).success).toBeTrue();
     });
 
     const req = httpMock.expectOne('/api/test-put');
@@ -118,8 +119,8 @@ describe('ApiService', () => {
   });
 
   it('should perform DELETE request', () => {
-    service.delete('/test-delete').subscribe(data => {
-      expect((data as {success: boolean}).success).toBeTrue();
+    service.delete('/test-delete').subscribe((data) => {
+      expect((data as { success: boolean }).success).toBeTrue();
     });
 
     const req = httpMock.expectOne('/api/test-delete');

@@ -4,8 +4,10 @@ import { AppButtonComponent } from './app-button.component';
 import { By } from '@angular/platform-browser';
 
 @Component({
-  template: `<app-button [variant]="variant" [type]="type" [disabled]="disabled">Click Me</app-button>`,
-  imports: [AppButtonComponent]
+  template: `<app-button [variant]="variant" [type]="type" [disabled]="disabled"
+    >Click Me</app-button
+  >`,
+  imports: [AppButtonComponent],
 })
 class TestHostComponent {
   variant: 'primary' | 'secondary' | 'danger' | 'invisible' = 'secondary';
@@ -19,7 +21,7 @@ describe('AppButtonComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, AppButtonComponent]
+      imports: [TestHostComponent, AppButtonComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -39,7 +41,7 @@ describe('AppButtonComponent', () => {
   it('should set the correct variant class', () => {
     const button = fixture.debugElement.query(By.css('button')).nativeElement;
     expect(button.classList.contains('btn-secondary')).toBeTrue();
-    
+
     component.variant = 'primary';
     fixture.detectChanges();
     expect(button.classList.contains('btn-primary')).toBeTrue();

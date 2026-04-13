@@ -15,13 +15,16 @@ import { By } from '@angular/platform-browser';
       [disabled]="disabled"
     ></app-input>
   `,
-  imports: [AppInputComponent, FormsModule]
+  imports: [AppInputComponent, FormsModule],
 })
 class TestHostComponent {
   type = 'text';
   label = 'Test Label';
   placeholder = 'Enter text';
-  options = [{label: 'Opt 1', value: '1'}, {label: 'Opt 2', value: '2'}];
+  options = [
+    { label: 'Opt 1', value: '1' },
+    { label: 'Opt 2', value: '2' },
+  ];
   val = 'initial';
   disabled = false;
 }
@@ -32,7 +35,7 @@ describe('AppInputComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, AppInputComponent, FormsModule]
+      imports: [TestHostComponent, AppInputComponent, FormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -73,11 +76,13 @@ describe('AppInputComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    
-    const textarea = fixture.debugElement.query(By.css('textarea')).nativeElement;
+
+    const textarea = fixture.debugElement.query(
+      By.css('textarea'),
+    ).nativeElement;
     expect(textarea).toBeTruthy();
     expect(textarea.value).toBe('initial');
-    
+
     textarea.value = 'new text';
     textarea.dispatchEvent(new Event('input'));
     expect(component.val).toBe('new text');
@@ -88,12 +93,12 @@ describe('AppInputComponent', () => {
     component.val = '1';
     fixture.detectChanges();
     await fixture.whenStable();
-    
+
     const select = fixture.debugElement.query(By.css('select')).nativeElement;
     expect(select).toBeTruthy();
     expect(select.value).toBe('1');
     expect(select.options.length).toBe(2);
-    
+
     select.value = '2';
     select.dispatchEvent(new Event('change'));
     expect(component.val).toBe('2');
@@ -104,19 +109,30 @@ describe('AppInputComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    
+
     const input = fixture.debugElement.query(By.css('input')).nativeElement;
     expect(input.disabled).toBeTrue();
   });
 
   it('should trigger onTouched when blurred', () => {
-    const compInstance = fixture.debugElement.query(By.directive(AppInputComponent)).componentInstance;
+    const compInstance = fixture.debugElement.query(
+      By.directive(AppInputComponent),
+    ).componentInstance;
     let touched = false;
-    compInstance.registerOnTouched(() => touched = true);
-    
+    compInstance.registerOnTouched(() => (touched = true));
+
     const input = fixture.debugElement.query(By.css('input')).nativeElement;
     input.dispatchEvent(new Event('blur'));
-    
+
     expect(touched).toBeTrue();
+  });
+
+  it('should have default no-op functions for onChange and onTouched', () => {
+    const appInputFixture = TestBed.createComponent(AppInputComponent);
+    const appInput = appInputFixture.componentInstance;
+    expect(() => {
+      appInput.onChange('test');
+      appInput.onTouched();
+    }).not.toThrow();
   });
 });

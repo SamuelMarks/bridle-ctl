@@ -1,4 +1,9 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  input,
+  output,
+} from '@angular/core';
 
 /** Interface representing a single tab item */
 export interface TabItem {
@@ -45,7 +50,7 @@ export interface TabItem {
       justify-content: space-between;
       border-bottom: 1px solid var(--color-border-default);
     }
-    
+
     .UnderlineNav-body {
       display: flex;
       list-style: none;
@@ -53,7 +58,7 @@ export interface TabItem {
       margin: 0;
       gap: 8px;
     }
-    
+
     .UnderlineNav-item {
       padding: 8px 16px;
       font-size: 14px;
@@ -65,13 +70,13 @@ export interface TabItem {
       border-bottom: 2px solid transparent;
       cursor: pointer;
     }
-    
+
     .UnderlineNav-item:hover {
       border-bottom-color: var(--color-border-muted);
       color: var(--color-fg-default);
       transition: border-bottom-color 0.12s ease-out;
     }
-    
+
     .UnderlineNav-item.selected {
       font-weight: 600;
       color: var(--color-fg-default);
@@ -91,15 +96,15 @@ export interface TabItem {
       border-radius: 2em;
       margin-left: 8px;
     }
-  `
+  `,
 })
 export class AppTabsComponent {
   /** Array of tabs to display */
   tabs = input<TabItem[]>([]);
-  
+
   /** Currently active tab ID */
   activeTabId = input<string>('');
-  
+
   /** Emitted when a tab is selected */
   tabChange = output<string>();
 

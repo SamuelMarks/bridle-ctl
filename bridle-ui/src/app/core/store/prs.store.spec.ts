@@ -12,17 +12,22 @@ describe('PrsStore', () => {
 
   beforeEach(() => {
     const prSpy = jasmine.createSpyObj('PrService', ['loadPrs', 'syncPrs']);
-    const notifSpy = jasmine.createSpyObj('NotificationService', ['error', 'success']);
+    const notifSpy = jasmine.createSpyObj('NotificationService', [
+      'error',
+      'success',
+    ]);
 
     TestBed.configureTestingModule({
       providers: [
         { provide: PrService, useValue: prSpy },
-        { provide: NotificationService, useValue: notifSpy }
-      ]
+        { provide: NotificationService, useValue: notifSpy },
+      ],
     });
 
     prServiceSpy = TestBed.inject(PrService) as jasmine.SpyObj<PrService>;
-    notificationServiceSpy = TestBed.inject(NotificationService) as jasmine.SpyObj<NotificationService>;
+    notificationServiceSpy = TestBed.inject(
+      NotificationService,
+    ) as jasmine.SpyObj<NotificationService>;
     store = TestBed.inject(PrsStore);
   });
 
@@ -43,10 +48,10 @@ describe('PrsStore', () => {
       { id: '3', status: 'CONFLICT' } as unknown as PullRequest,
       { id: '4', status: 'SYNCED' } as unknown as PullRequest,
     ];
-    
+
     prServiceSpy.loadPrs.and.returnValue(of(prs));
     store.loadPrs('org-1');
-    
+
     expect(store.totalPrs()).toBe(4);
     expect(store.syncedPrs().length).toBe(2);
     expect(store.localPrs().length).toBe(1);
@@ -56,9 +61,9 @@ describe('PrsStore', () => {
   it('should load PRs successfully', () => {
     const prs: PullRequest[] = [{ id: '1' } as unknown as PullRequest];
     prServiceSpy.loadPrs.and.returnValue(of(prs));
-    
+
     store.loadPrs('org-1');
-    
+
     expect(prServiceSpy.loadPrs).toHaveBeenCalledWith('org-1');
     expect(store.prs()).toEqual(prs);
     expect(store.activeOrgId()).toBe('org-1');
@@ -67,10 +72,12 @@ describe('PrsStore', () => {
   });
 
   it('should handle error when loading PRs', () => {
-    prServiceSpy.loadPrs.and.returnValue(throwError(() => new Error('Load failed')));
-    
+    prServiceSpy.loadPrs.and.returnValue(
+      throwError(() => new Error('Load failed')),
+    );
+
     store.loadPrs('org-1');
-    
+
     expect(store.error()).toBe('Load failed');
     expect(store.isLoading()).toBeFalse();
     expect(notificationServiceSpy.error).toHaveBeenCalledWith('Load failed');
@@ -78,12 +85,14 @@ describe('PrsStore', () => {
 
   it('should handle error without message when loading PRs', () => {
     prServiceSpy.loadPrs.and.returnValue(throwError(() => ({})));
-    
+
     store.loadPrs('org-1');
-    
+
     expect(store.error()).toBe('Failed to load PRs');
     expect(store.isLoading()).toBeFalse();
-    expect(notificationServiceSpy.error).toHaveBeenCalledWith('Failed to load PRs');
+    expect(notificationServiceSpy.error).toHaveBeenCalledWith(
+      'Failed to load PRs',
+    );
   });
 
   it('should sync PRs successfully and reload if active org matches', () => {
@@ -92,12 +101,14 @@ describe('PrsStore', () => {
     prServiceSpy.loadPrs.and.returnValue(of([]));
     store.loadPrs('org-1'); // Sets activeOrgId to 'org-1'
     prServiceSpy.loadPrs.calls.reset(); // clear calls
-    
+
     store.syncPrs({ orgId: 'org-1', maxRate: 10 });
-    
+
     expect(prServiceSpy.syncPrs).toHaveBeenCalledWith('org-1', 10);
     expect(store.isSyncing()).toBeFalse();
-    expect(notificationServiceSpy.success).toHaveBeenCalledWith('Successfully synced 5 PRs.');
+    expect(notificationServiceSpy.success).toHaveBeenCalledWith(
+      'Successfully synced 5 PRs.',
+    );
     expect(prServiceSpy.loadPrs).toHaveBeenCalledWith('org-1'); // Reloads
   });
 
@@ -106,30 +117,36 @@ describe('PrsStore', () => {
     prServiceSpy.loadPrs.and.returnValue(of([]));
     store.loadPrs('org-2'); // Sets activeOrgId to 'org-2'
     prServiceSpy.loadPrs.calls.reset(); // clear calls
-    
+
     store.syncPrs({ orgId: 'org-1', maxRate: 10 });
-    
+
     expect(prServiceSpy.syncPrs).toHaveBeenCalledWith('org-1', 10);
     expect(store.isSyncing()).toBeFalse();
-    expect(notificationServiceSpy.success).toHaveBeenCalledWith('Successfully synced 2 PRs.');
+    expect(notificationServiceSpy.success).toHaveBeenCalledWith(
+      'Successfully synced 2 PRs.',
+    );
     expect(prServiceSpy.loadPrs).not.toHaveBeenCalled(); // No reload
   });
 
   it('should handle error when syncing PRs', () => {
-    prServiceSpy.syncPrs.and.returnValue(throwError(() => new Error('Sync failed')));
-    
+    prServiceSpy.syncPrs.and.returnValue(
+      throwError(() => new Error('Sync failed')),
+    );
+
     store.syncPrs({ orgId: 'org-1', maxRate: 10 });
-    
+
     expect(store.isSyncing()).toBeFalse();
     expect(notificationServiceSpy.error).toHaveBeenCalledWith('Sync failed');
   });
 
   it('should handle error without message when syncing PRs', () => {
     prServiceSpy.syncPrs.and.returnValue(throwError(() => ({})));
-    
+
     store.syncPrs({ orgId: 'org-1', maxRate: 10 });
-    
+
     expect(store.isSyncing()).toBeFalse();
-    expect(notificationServiceSpy.error).toHaveBeenCalledWith('Failed to sync PRs');
+    expect(notificationServiceSpy.error).toHaveBeenCalledWith(
+      'Failed to sync PRs',
+    );
   });
 });

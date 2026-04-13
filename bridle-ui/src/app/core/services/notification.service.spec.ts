@@ -47,10 +47,10 @@ describe('NotificationService', () => {
   it('should auto-remove notification after 5 seconds', fakeAsync(() => {
     service.info('Test Info');
     expect(service.notifications().length).toBe(1);
-    
+
     tick(4999);
     expect(service.notifications().length).toBe(1);
-    
+
     tick(1);
     expect(service.notifications().length).toBe(0);
   }));
