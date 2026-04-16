@@ -41,3 +41,5 @@ It further acts as a complete "offline Git Forge," providing agents with local D
 - [USAGE.md](./USAGE.md) - Detailed command line usage, flags, and workflow examples.
 - [ROADMAP.md](./ROADMAP.md) - History of completed features and roadmap.
 - [PLAN.md](./PLAN.md) - Project plan and action item tracking.
+ 
+unstaged
