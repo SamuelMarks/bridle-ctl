@@ -11,7 +11,7 @@
 
 ## 🚀 Why `bridle-ctl`?
 
-When giving AI agents access to codebase refactoring, simple prompt-based string replacements often fail at scale. `bridle-ctl` solves this by forcing agents to run *compiled* tools to mutate code deterministically. 
+When giving AI agents access to codebase refactoring, simple prompt-based string replacements often fail at scale. `bridle-ctl` solves this by forcing agents to run _compiled_ tools to mutate code deterministically.
 
 It further acts as a complete "offline Git Forge," providing agents with local Database access (SQLite and PostgreSQL) to create PRs and track Issues, simulating a full AI Engineering team without needing external network access. When ready, it syncs PRs to upstream providers (e.g. GitHub) while automatically reusing forks and globally rate-limiting outbound PRs.
 
@@ -25,6 +25,7 @@ It further acts as a complete "offline Git Forge," providing agents with local D
 - **`bridle-ui`**: The Angular-based web frontend. Provides a visual dashboard for monitoring system health, managing batch operations, and synchronizing PRs.
 
 ## ✨ Core Features
+
 - **Deterministic AI Mutations**: Compiled FFI tools handle edits.
 - **Dual Database Support**: SQLite and PostgreSQL backends via `DbConnection` wrapper.
 - **Upstream Sync**: Synchronize batch operations and pending PRs to upstream GitHub repositories.
