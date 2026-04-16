@@ -43,3 +43,4 @@ It further acts as a complete "offline Git Forge," providing agents with local D
 - [PLAN.md](./PLAN.md) - Project plan and action item tracking.
  
 unstaged
+more unstaged
