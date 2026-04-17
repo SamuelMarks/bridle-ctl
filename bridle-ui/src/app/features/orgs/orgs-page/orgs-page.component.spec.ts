@@ -1,3 +1,65 @@
+import { WritableSignal } from '@angular/core';
+import {
+  Organization,
+  Repository,
+  PullRequest,
+  BatchJob,
+  SystemHealth,
+} from '../../../core/models/models';
+
+interface MockOrgService {
+  orgs: WritableSignal<Organization[]>;
+  repos: WritableSignal<Repository[]>;
+  isLoading: WritableSignal<boolean>;
+  loadOrgs: jasmine.Spy;
+  ingestOrg: jasmine.Spy;
+  loadRepos: jasmine.Spy;
+}
+
+interface MockPrService {
+  prs: WritableSignal<PullRequest[]>;
+  isSyncing: WritableSignal<boolean>;
+  loadPrs: jasmine.Spy;
+  syncPrs: jasmine.Spy;
+}
+
+interface MockNotificationService {
+  success: jasmine.Spy;
+  error: jasmine.Spy;
+  info: jasmine.Spy;
+}
+
+interface MockSystemStateService {
+  health: WritableSignal<SystemHealth>;
+  isLoading: WritableSignal<boolean>;
+  checkHealth: jasmine.Spy;
+}
+
+interface MockBatchService {
+  createBatchFix: jasmine.Spy;
+  runPipeline: jasmine.Spy;
+  resumeJob: jasmine.Spy;
+}
+
+interface MockApiService {
+  post: jasmine.Spy;
+}
+
+interface MockLocalOpService {
+  audit: jasmine.Spy;
+  fix: jasmine.Spy;
+  clearResult: jasmine.Spy;
+}
+
+interface MockJobsStore {
+  jobs: WritableSignal<BatchJob[]>;
+  activeJob: WritableSignal<BatchJob | null>;
+  isLoading: WritableSignal<boolean>;
+  loadJobs: jasmine.Spy;
+  addJob: jasmine.Spy;
+  setActiveJob: jasmine.Spy;
+}
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { OrgsPageComponent } from './orgs-page.component';
 import { OrgService } from '../../../core/services/org.service';
@@ -9,8 +71,8 @@ import { By } from '@angular/platform-browser';
 describe('OrgsPageComponent', () => {
   let component: OrgsPageComponent;
   let fixture: ComponentFixture<OrgsPageComponent>;
-  let mockOrgService: any;
-  let mockNotificationService: any;
+  let mockOrgService: MockOrgService;
+  let mockNotificationService: MockNotificationService;
 
   beforeEach(async () => {
     mockOrgService = {
@@ -25,7 +87,7 @@ describe('OrgsPageComponent', () => {
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),
-    };
+    } as object as MockNotificationService;
 
     await TestBed.configureTestingModule({
       imports: [OrgsPageComponent],

@@ -1,3 +1,65 @@
+import { WritableSignal } from '@angular/core';
+import {
+  Organization,
+  Repository,
+  PullRequest,
+  BatchJob,
+  SystemHealth,
+} from '../../../core/models/models';
+
+interface MockOrgService {
+  orgs: WritableSignal<Organization[]>;
+  repos: WritableSignal<Repository[]>;
+  isLoading: WritableSignal<boolean>;
+  loadOrgs: jasmine.Spy;
+  ingestOrg: jasmine.Spy;
+  loadRepos: jasmine.Spy;
+}
+
+interface MockPrService {
+  prs: WritableSignal<PullRequest[]>;
+  isSyncing: WritableSignal<boolean>;
+  loadPrs: jasmine.Spy;
+  syncPrs: jasmine.Spy;
+}
+
+interface MockNotificationService {
+  success: jasmine.Spy;
+  error: jasmine.Spy;
+  info: jasmine.Spy;
+}
+
+interface MockSystemStateService {
+  health: WritableSignal<SystemHealth>;
+  isLoading: WritableSignal<boolean>;
+  checkHealth: jasmine.Spy;
+}
+
+interface MockBatchService {
+  createBatchFix: jasmine.Spy;
+  runPipeline: jasmine.Spy;
+  resumeJob: jasmine.Spy;
+}
+
+interface MockApiService {
+  post: jasmine.Spy;
+}
+
+interface MockLocalOpService {
+  audit: jasmine.Spy;
+  fix: jasmine.Spy;
+  clearResult: jasmine.Spy;
+}
+
+interface MockJobsStore {
+  jobs: WritableSignal<BatchJob[]>;
+  activeJob: WritableSignal<BatchJob | null>;
+  isLoading: WritableSignal<boolean>;
+  loadJobs: jasmine.Spy;
+  addJob: jasmine.Spy;
+  setActiveJob: jasmine.Spy;
+}
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PrSyncComponent } from './pr-sync.component';
 import { OrgService } from '../../../core/services/org.service';
@@ -9,14 +71,18 @@ import { signal } from '@angular/core';
 describe('PrSyncComponent', () => {
   let component: PrSyncComponent;
   let fixture: ComponentFixture<PrSyncComponent>;
-  let mockOrgService: any;
-  let mockPrService: any;
-  let mockNotificationService: any;
+  let mockOrgService: MockOrgService;
+  let mockPrService: MockPrService;
+  let mockNotificationService: MockNotificationService;
 
   beforeEach(async () => {
     mockOrgService = {
       orgs: signal([{ id: '1', name: 'Org 1', provider: 'github' }]),
+      repos: signal([]),
+      isLoading: signal(false),
       loadOrgs: jasmine.createSpy('loadOrgs').and.returnValue(of([])),
+      ingestOrg: jasmine.createSpy('ingestOrg'),
+      loadRepos: jasmine.createSpy('loadRepos'),
     };
 
     mockPrService = {
@@ -33,7 +99,7 @@ describe('PrSyncComponent', () => {
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),
-    };
+    } as object as MockNotificationService;
 
     await TestBed.configureTestingModule({
       imports: [PrSyncComponent],

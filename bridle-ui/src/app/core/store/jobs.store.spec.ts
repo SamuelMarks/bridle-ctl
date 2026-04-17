@@ -58,14 +58,20 @@ describe('JobsStore', () => {
       id: 'job-1',
       name: 'Job 1',
       status: 'PENDING',
-    } as unknown as BatchJob;
+    } as object as import('../../core/models/models').BatchJob;
     store.addJob(job);
     expect(store.jobs()).toEqual([job]);
   });
 
   it('should filter jobs correctly', () => {
-    const job1 = { id: '1', status: 'PENDING' } as unknown as BatchJob;
-    const job2 = { id: '2', status: 'RUNNING' } as unknown as BatchJob;
+    const job1 = {
+      id: '1',
+      status: 'PENDING',
+    } as object as import('../../core/models/models').BatchJob;
+    const job2 = {
+      id: '2',
+      status: 'RUNNING',
+    } as object as import('../../core/models/models').BatchJob;
     store.addJob(job1);
     store.addJob(job2);
 
@@ -82,7 +88,10 @@ describe('JobsStore', () => {
   });
 
   it('should compute active job', () => {
-    const job1 = { id: '1', name: 'J1' } as unknown as BatchJob;
+    const job1 = {
+      id: '1',
+      name: 'J1',
+    } as object as import('../../core/models/models').BatchJob;
     store.addJob(job1);
     expect(store.activeJob()).toBeNull();
 
@@ -92,12 +101,14 @@ describe('JobsStore', () => {
 
   it('should compute total jobs', () => {
     expect(store.totalJobs()).toBe(0);
-    store.addJob({} as unknown as BatchJob);
+    store.addJob({} as object as import('../../core/models/models').BatchJob);
     expect(store.totalJobs()).toBe(1);
   });
 
   it('should load jobs successfully', () => {
-    const jobs = [{ id: '1' } as unknown as BatchJob];
+    const jobs = [
+      { id: '1' } as object as import('../../core/models/models').BatchJob,
+    ];
     batchServiceSpy.loadJobs.and.returnValue(of(jobs));
 
     store.loadJobs();

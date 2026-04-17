@@ -113,6 +113,9 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
   `,
 })
 export class AppInputComponent implements ControlValueAccessor {
+  /** Global counter for input ids */
+  static nextId = 0;
+
   /** Input type (text, password, textarea, select, etc) */
   type = input<string>('text');
 

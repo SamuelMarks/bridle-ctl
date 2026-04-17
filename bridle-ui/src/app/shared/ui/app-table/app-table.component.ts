@@ -23,7 +23,7 @@ export class AppTableColumnDirective {
   key = input<string>();
 
   /** The template reference */
-  public template = inject(TemplateRef<unknown>);
+  public template = inject(TemplateRef<object>);
 }
 
 /**
@@ -59,7 +59,7 @@ export class AppTableColumnDirective {
                         col.template;
                         context: {
                           $implicit: row,
-                          value: col.key() ? $any(row)[col.key()!] : null,
+                          value: this.getCellValue(row, col.key()),
                         }
                       "
                     ></ng-container>
@@ -151,7 +151,7 @@ export class AppTableColumnDirective {
     }
   `,
 })
-export class AppTableComponent<T = any> {
+export class AppTableComponent<T extends object = object> {
   /** Optional title for the table box */
   title = input<string>('');
 
@@ -159,12 +159,14 @@ export class AppTableComponent<T = any> {
   data = input<T[]>([]);
 
   /** Function to track rows */
-  trackByFn = input<(item: T) => unknown>((item: T) => {
-    if (item && typeof item === 'object' && 'id' in item) {
-      return (item as any).id;
-    }
-    return item;
-  });
+  trackByFn = input<(item: T) => object | string | number | null | undefined>(
+    (item: T) => {
+      if (item && typeof item === 'object' && 'id' in item) {
+        return (item as Record<string, string | number>)['id'];
+      }
+      return item;
+    },
+  );
 
   /** Message to show when data is empty */
   emptyMessage = input<string>('No items found.');
@@ -172,4 +174,21 @@ export class AppTableComponent<T = any> {
   /** List of column directives */
   @ContentChildren(AppTableColumnDirective)
   columns!: QueryList<AppTableColumnDirective>;
+
+  /**
+   * Helper to safely get a cell value
+   * @param row The row data
+   * @param key The column key
+   * @returns The value or null
+   */
+  getCellValue(
+    row: T,
+    key: string | undefined,
+  ): object | string | number | boolean | null {
+    if (!key || !row) return null;
+    return (
+      (row as Record<string, object | string | number | boolean | null>)[key] ??
+      null
+    );
+  }
 }

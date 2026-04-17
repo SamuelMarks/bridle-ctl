@@ -33,7 +33,13 @@ export class ApiService {
    * @param body The request body payload
    * @returns Observable of the response
    */
-  post<T>(path: string, body: Record<string, unknown> = {}): Observable<T> {
+  post<T>(
+    path: string,
+    body: Record<
+      string,
+      string | number | boolean | object | null | undefined
+    > = {},
+  ): Observable<T> {
     return this.http
       .post<T>(`${this.baseUrl}${path}`, body)
       .pipe(catchError(this.handleError));
@@ -45,7 +51,13 @@ export class ApiService {
    * @param body The request body payload
    * @returns Observable of the response
    */
-  put<T>(path: string, body: Record<string, unknown> = {}): Observable<T> {
+  put<T>(
+    path: string,
+    body: Record<
+      string,
+      string | number | boolean | object | null | undefined
+    > = {},
+  ): Observable<T> {
     return this.http
       .put<T>(`${this.baseUrl}${path}`, body)
       .pipe(catchError(this.handleError));
@@ -67,7 +79,7 @@ export class ApiService {
    * @param error The HTTP error response
    * @returns An observable throwing a user-facing error message
    */
-  private handleError(error: HttpErrorResponse): Observable<never> {
+  private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown error occurred!';
     if (
       typeof ErrorEvent !== 'undefined' &&

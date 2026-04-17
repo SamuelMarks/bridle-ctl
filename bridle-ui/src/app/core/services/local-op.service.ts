@@ -42,7 +42,7 @@ export class LocalOpService {
   audit(
     pattern: string,
     tools: string[],
-    args: Record<string, unknown>,
+    args: Record<string, string | number | boolean | object | null | undefined>,
   ): Observable<OpResult> {
     this.isOperatingSignal.set(true);
     return this.api
@@ -68,7 +68,7 @@ export class LocalOpService {
   fix(
     pattern: string,
     tools: string[],
-    args: Record<string, unknown>,
+    args: Record<string, string | number | boolean | object | null | undefined>,
     dryRun: boolean,
   ): Observable<OpResult> {
     this.isOperatingSignal.set(true);

@@ -6,6 +6,14 @@ use std::process::Command;
 
 /// Sets up the FFI bindings and paths for external dependencies.
 fn main() {
+    // Clear Git environment variables to prevent child processes (like cmake or git clones)
+    // from inheriting the parent repository's git state (e.g., during a pre-commit hook).
+    unsafe {
+        env::remove_var("GIT_DIR");
+        env::remove_var("GIT_WORK_TREE");
+        env::remove_var("GIT_INDEX_FILE");
+    }
+
     println!("cargo:rerun-if-changed=build.rs");
 
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");

@@ -149,7 +149,7 @@ export class LocalAuditComponent {
   audit = output<{
     pattern: string;
     tools: string[];
-    args: Record<string, unknown>;
+    args: Record<string, string | number | boolean | object | null | undefined>;
   }>();
 
   /** Form model */

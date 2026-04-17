@@ -1,3 +1,4 @@
+import { SystemHealth } from '../models/models';
 import { TestBed } from '@angular/core/testing';
 import {
   HttpTestingController,
@@ -27,7 +28,7 @@ describe('SystemStateService', () => {
   });
 
   it('should check health and update state', () => {
-    const mockHealth: any = { rest: 'UP', rpc: 'UP', agent: 'UP' };
+    const mockHealth: object = { rest: 'UP', rpc: 'UP', agent: 'UP' };
 
     service.checkHealth().subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -36,7 +37,7 @@ describe('SystemStateService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockHealth);
 
-    expect(service.health()).toEqual(mockHealth);
+    expect(service.health()).toEqual(mockHealth as object as SystemHealth);
     expect(service.isLoading()).toBeFalse();
   });
 

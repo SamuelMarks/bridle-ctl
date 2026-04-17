@@ -107,7 +107,7 @@ export class LocalOpsPageComponent {
   onAudit(payload: {
     pattern: string;
     tools: string[];
-    args: Record<string, unknown>;
+    args: Record<string, string | number | boolean | object | null | undefined>;
   }): void {
     this.auditComponent.setOperating(true);
     this.localOpService
@@ -130,7 +130,7 @@ export class LocalOpsPageComponent {
   onFix(payload: {
     pattern: string;
     tools: string[];
-    args: Record<string, unknown>;
+    args: Record<string, string | number | boolean | object | null | undefined>;
     dryRun: boolean;
   }): void {
     this.fixComponent.setOperating(true);

@@ -35,12 +35,33 @@ It further acts as a complete "offline Git Forge," providing agents with local D
 
 ---
 
+## 🧰 Embedded Tools
+
+`bridle-ctl` provides deterministic mutations by wrapping the following compiled FFI tools and command-line utilities.
+
+| Name + hyperlink                                                            | Description                                                       | Language(s)      |
+| :-------------------------------------------------------------------------- | :---------------------------------------------------------------- | :--------------- |
+| [go-auto-err-handling](https://github.com/SamuelMarks/go-auto-err-handling) | Automatically add `if err != nil { return err }` error handling   | Go               |
+| [type-correct](https://github.com/SamuelMarks/type-correct)                 | Identifies and resolves C/C++ type inconsistencies                | C/C++            |
+| [lib2notebook2lib](https://github.com/SamuelMarks/lib2notebook2lib)         | Synchronizes logic between Python libraries and Jupyter notebooks | Python / Jupyter |
+| [cdd-extern-c](https://github.com/SamuelMarks/cdd-c)                        | Adds `extern "C"` wrapping                                        | C/C++            |
+| [cdd-msvc-port](https://github.com/SamuelMarks/cdd-c)                       | Ports POSIX to MSVC                                               | C/C++            |
+| [cdd-gnu-standardizer](https://github.com/SamuelMarks/cdd-c)                | Standardizes GNU extensions                                       | C/C++            |
+| [cdd-error-percolator](https://github.com/SamuelMarks/cdd-c)                | Percolates errors                                                 | C/C++            |
+| [cdd-safe-crt](https://github.com/SamuelMarks/cdd-c)                        | Migrates to Safe CRT                                              | C/C++            |
+| `encoding-normalizer`                                                       | Built-in tool: Normalizes file encodings and line endings         | Any              |
+| `rust-unwrap-to-question-mark`                                              | Built-in mock: Replaces `.unwrap()` with `?`                      | Rust             |
+| `go-err-check`                                                              | Built-in mock: Adds `if err != nil { return err }`                | Go               |
+| `gha-improver`                                                              | Built-in mock: Improves GitHub Actions workflows                  | YAML             |
+| `file-lock-tester`                                                          | Built-in mock: Tests exclusive file mutations                     | Text             |
+| `db-migrator-tester`                                                        | Built-in mock: Tests DB connections and migrations                | SQLite           |
+
 ## 📖 Further Documentation
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Deep dive into the FFI architecture and Git Forge DB design.
 - [USAGE.md](./USAGE.md) - Detailed command line usage, flags, and workflow examples.
 - [ROADMAP.md](./ROADMAP.md) - History of completed features and roadmap.
 - [PLAN.md](./PLAN.md) - Project plan and action item tracking.
- 
+
 unstaged
 more unstaged

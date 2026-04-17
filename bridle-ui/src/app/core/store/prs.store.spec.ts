@@ -43,10 +43,22 @@ describe('PrsStore', () => {
     // We cannot mock internal state directly without using patchState, but patchState works on the store.
     // However, since it's a signal store, we could trigger loadPrs to set state.
     const prs: PullRequest[] = [
-      { id: '1', status: 'SYNCED' } as unknown as PullRequest,
-      { id: '2', status: 'LOCAL' } as unknown as PullRequest,
-      { id: '3', status: 'CONFLICT' } as unknown as PullRequest,
-      { id: '4', status: 'SYNCED' } as unknown as PullRequest,
+      {
+        id: '1',
+        status: 'SYNCED',
+      } as object as import('../../core/models/models').PullRequest,
+      {
+        id: '2',
+        status: 'LOCAL',
+      } as object as import('../../core/models/models').PullRequest,
+      {
+        id: '3',
+        status: 'CONFLICT',
+      } as object as import('../../core/models/models').PullRequest,
+      {
+        id: '4',
+        status: 'SYNCED',
+      } as object as import('../../core/models/models').PullRequest,
     ];
 
     prServiceSpy.loadPrs.and.returnValue(of(prs));
@@ -59,7 +71,9 @@ describe('PrsStore', () => {
   });
 
   it('should load PRs successfully', () => {
-    const prs: PullRequest[] = [{ id: '1' } as unknown as PullRequest];
+    const prs: PullRequest[] = [
+      { id: '1' } as object as import('../../core/models/models').PullRequest,
+    ];
     prServiceSpy.loadPrs.and.returnValue(of(prs));
 
     store.loadPrs('org-1');

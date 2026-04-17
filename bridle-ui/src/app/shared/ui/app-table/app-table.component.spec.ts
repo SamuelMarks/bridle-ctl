@@ -21,7 +21,7 @@ import { By } from '@angular/platform-browser';
 })
 class TestHostComponent {
   title = 'Test Table';
-  data: unknown[] = [
+  data: object[] = [
     { id: 1, name: 'Item 1' },
     { id: 2, name: 'Item 2' },
   ];
@@ -86,5 +86,26 @@ describe('AppTableComponent', () => {
     expect(trackBy({ id: 123 })).toBe(123);
     const objWithoutId = { name: 'test' };
     expect(trackBy(objWithoutId)).toBe(objWithoutId);
+  });
+
+  it('should test getCellValue branches', () => {
+    const tableComponent = fixture.debugElement.query(
+      By.directive(AppTableComponent),
+    ).componentInstance;
+    expect(tableComponent.getCellValue(null, 'key')).toBe(null);
+    expect(tableComponent.getCellValue({}, null)).toBe(null);
+    expect(tableComponent.getCellValue({}, undefined)).toBe(null);
+    expect(tableComponent.getCellValue({ key: 'val' }, 'key')).toBe('val');
+    expect(tableComponent.getCellValue({ key: null }, 'key')).toBe(null);
+  });
+
+  it('should fallback to item in trackByFn for null/undefined/primitive', () => {
+    const tableComponent = fixture.debugElement.query(
+      By.directive(AppTableComponent),
+    ).componentInstance;
+    const trackBy = tableComponent.trackByFn();
+    expect(trackBy(null)).toBe(null);
+    expect(trackBy(undefined)).toBe(undefined);
+    expect(trackBy('string')).toBe('string');
   });
 });

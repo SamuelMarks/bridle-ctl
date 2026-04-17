@@ -1,3 +1,65 @@
+import { WritableSignal } from '@angular/core';
+import {
+  Organization,
+  Repository,
+  PullRequest,
+  BatchJob,
+  SystemHealth,
+} from '../../../core/models/models';
+
+interface MockOrgService {
+  orgs: WritableSignal<Organization[]>;
+  repos: WritableSignal<Repository[]>;
+  isLoading: WritableSignal<boolean>;
+  loadOrgs: jasmine.Spy;
+  ingestOrg: jasmine.Spy;
+  loadRepos: jasmine.Spy;
+}
+
+interface MockPrService {
+  prs: WritableSignal<PullRequest[]>;
+  isSyncing: WritableSignal<boolean>;
+  loadPrs: jasmine.Spy;
+  syncPrs: jasmine.Spy;
+}
+
+interface MockNotificationService {
+  success: jasmine.Spy;
+  error: jasmine.Spy;
+  info: jasmine.Spy;
+}
+
+interface MockSystemStateService {
+  health: WritableSignal<SystemHealth>;
+  isLoading: WritableSignal<boolean>;
+  checkHealth: jasmine.Spy;
+}
+
+interface MockBatchService {
+  createBatchFix: jasmine.Spy;
+  runPipeline: jasmine.Spy;
+  resumeJob: jasmine.Spy;
+}
+
+interface MockApiService {
+  post: jasmine.Spy;
+}
+
+interface MockLocalOpService {
+  audit: jasmine.Spy;
+  fix: jasmine.Spy;
+  clearResult: jasmine.Spy;
+}
+
+interface MockJobsStore {
+  jobs: WritableSignal<BatchJob[]>;
+  activeJob: WritableSignal<BatchJob | null>;
+  isLoading: WritableSignal<boolean>;
+  loadJobs: jasmine.Spy;
+  addJob: jasmine.Spy;
+  setActiveJob: jasmine.Spy;
+}
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LocalOpsPageComponent } from './local-ops-page.component';
 import { LocalOpService } from '../../../core/services/local-op.service';
@@ -9,8 +71,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 describe('LocalOpsPageComponent', () => {
   let component: LocalOpsPageComponent;
   let fixture: ComponentFixture<LocalOpsPageComponent>;
-  let mockLocalOpService: any;
-  let mockNotificationService: any;
+  let mockLocalOpService: MockLocalOpService;
+  let mockNotificationService: MockNotificationService;
 
   beforeEach(async () => {
     mockLocalOpService = {
@@ -25,7 +87,7 @@ describe('LocalOpsPageComponent', () => {
       success: jasmine.createSpy('success'),
       info: jasmine.createSpy('info'),
       error: jasmine.createSpy('error'),
-    };
+    } as object as MockNotificationService;
 
     await TestBed.configureTestingModule({
       imports: [LocalOpsPageComponent, NoopAnimationsModule],
@@ -70,15 +132,19 @@ describe('LocalOpsPageComponent', () => {
 
   it('should clear results on tab change when components are undefined', () => {
     // Force undefined
-    component.auditComponent = undefined as any;
-    component.fixComponent = undefined as any;
+    Object.assign(component, { auditComponent: undefined });
+    Object.assign(component, { fixComponent: undefined });
     component.onTabChange('fix');
     expect(mockLocalOpService.clearResult).toHaveBeenCalled();
   });
 
   it('should clear results on tab change when components are defined', () => {
-    component.auditComponent = { setResult: jasmine.createSpy() } as any;
-    component.fixComponent = { setResult: jasmine.createSpy() } as any;
+    component.auditComponent = {
+      setResult: jasmine.createSpy(),
+    } as object as import('../local-audit/local-audit.component').LocalAuditComponent;
+    component.fixComponent = {
+      setResult: jasmine.createSpy(),
+    } as object as import('../local-fix/local-fix.component').LocalFixComponent;
     component.onTabChange('fix');
     expect(mockLocalOpService.clearResult).toHaveBeenCalled();
     expect(component.auditComponent.setResult).toHaveBeenCalledWith(null);

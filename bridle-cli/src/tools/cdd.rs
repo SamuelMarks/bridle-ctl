@@ -4,7 +4,6 @@ use super::CodeTool;
 use crate::error::CliError;
 use bridle_sdk::path_scope::PathScope;
 use derive_more::derive::{Display, Error, From};
-use std::env;
 
 /// Error type for Cdd tools.
 #[derive(Debug, Display, Error, From)]

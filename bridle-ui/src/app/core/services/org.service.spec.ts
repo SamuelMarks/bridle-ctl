@@ -1,3 +1,4 @@
+import { Organization, Repository } from '../models/models';
 import { TestBed } from '@angular/core/testing';
 import {
   HttpTestingController,
@@ -27,7 +28,7 @@ describe('OrgService', () => {
   });
 
   it('should load orgs', () => {
-    const mockOrgs: any[] = [{ id: '1', name: 'org1', provider: 'github' }];
+    const mockOrgs: object[] = [{ id: '1', name: 'org1', provider: 'github' }];
 
     service.loadOrgs().subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -36,7 +37,7 @@ describe('OrgService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockOrgs);
 
-    expect(service.orgs()).toEqual(mockOrgs);
+    expect(service.orgs()).toEqual(mockOrgs as object as Organization[]);
     expect(service.isLoading()).toBeFalse();
   });
 
@@ -59,7 +60,7 @@ describe('OrgService', () => {
   });
 
   it('should ingest org', () => {
-    const mockOrg: any = { id: 'new', name: 'org2', provider: 'gh' };
+    const mockOrg: object = { id: 'new', name: 'org2', provider: 'gh' };
 
     service.ingestOrg('org2', 'gh', 'dburl').subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -73,7 +74,7 @@ describe('OrgService', () => {
     });
     req.flush(mockOrg);
 
-    expect(service.orgs()).toEqual([mockOrg]);
+    expect(service.orgs()).toEqual([mockOrg] as object as Organization[]);
     expect(service.isLoading()).toBeFalse();
   });
 
@@ -87,7 +88,7 @@ describe('OrgService', () => {
   });
 
   it('should load repos', () => {
-    const mockRepos: any[] = [{ id: 'r1', name: 'repo1', orgId: '1' }];
+    const mockRepos: object[] = [{ id: 'r1', name: 'repo1', orgId: '1' }];
 
     service.loadRepos('org1').subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -96,7 +97,7 @@ describe('OrgService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockRepos);
 
-    expect(service.repos()).toEqual(mockRepos);
+    expect(service.repos()).toEqual(mockRepos as object as Repository[]);
     expect(service.isLoading()).toBeFalse();
   });
 

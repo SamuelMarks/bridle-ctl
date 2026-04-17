@@ -1,3 +1,65 @@
+import { WritableSignal } from '@angular/core';
+import {
+  Organization,
+  Repository,
+  PullRequest,
+  BatchJob,
+  SystemHealth,
+} from '../../core/models/models';
+
+interface MockOrgService {
+  orgs: WritableSignal<Organization[]>;
+  repos: WritableSignal<Repository[]>;
+  isLoading: WritableSignal<boolean>;
+  loadOrgs: jasmine.Spy;
+  ingestOrg: jasmine.Spy;
+  loadRepos: jasmine.Spy;
+}
+
+interface MockPrService {
+  prs: WritableSignal<PullRequest[]>;
+  isSyncing: WritableSignal<boolean>;
+  loadPrs: jasmine.Spy;
+  syncPrs: jasmine.Spy;
+}
+
+interface MockNotificationService {
+  success: jasmine.Spy;
+  error: jasmine.Spy;
+  info: jasmine.Spy;
+}
+
+interface MockSystemStateService {
+  health: WritableSignal<SystemHealth>;
+  isLoading: WritableSignal<boolean>;
+  checkHealth: jasmine.Spy;
+}
+
+interface MockBatchService {
+  createBatchFix: jasmine.Spy;
+  runPipeline: jasmine.Spy;
+  resumeJob: jasmine.Spy;
+}
+
+interface MockApiService {
+  post: jasmine.Spy;
+}
+
+interface MockLocalOpService {
+  audit: jasmine.Spy;
+  fix: jasmine.Spy;
+  clearResult: jasmine.Spy;
+}
+
+interface MockJobsStore {
+  jobs: WritableSignal<BatchJob[]>;
+  activeJob: WritableSignal<BatchJob | null>;
+  isLoading: WritableSignal<boolean>;
+  loadJobs: jasmine.Spy;
+  addJob: jasmine.Spy;
+  setActiveJob: jasmine.Spy;
+}
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
 import { SystemStateService } from '../../core/services/system-state.service';
@@ -8,7 +70,7 @@ import { By } from '@angular/platform-browser';
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
-  let mockSystemStateService: any;
+  let mockSystemStateService: MockSystemStateService;
 
   beforeEach(async () => {
     mockSystemStateService = {

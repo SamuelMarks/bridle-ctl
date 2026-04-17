@@ -255,7 +255,10 @@ export class DevToolsComponent {
   /** DB executing state */
   isDbExecuting = signal<boolean>(false);
   /** DB result */
-  dbResult = signal<Record<string, unknown> | null>(null);
+  dbResult = signal<Record<
+    string,
+    string | number | boolean | object | null | undefined
+  > | null>(null);
 
   /** Handles math add */
   onAdd(): void {
@@ -301,18 +304,22 @@ export class DevToolsComponent {
         payload: payloadObj,
       };
 
-      this.api.post<Record<string, unknown>>('/dev/db', reqBody).subscribe({
-        next: (res) => {
-          this.dbResult.set(res);
-          this.isDbExecuting.set(false);
-          this.notificationService.success('Command executed successfully');
-        },
-        error: (err) => {
-          this.dbResult.set({ error: err.message });
-          this.notificationService.error('Command failed');
-          this.isDbExecuting.set(false);
-        },
-      });
+      this.api
+        .post<
+          Record<string, string | number | boolean | object | null | undefined>
+        >('/dev/db', reqBody)
+        .subscribe({
+          next: (res) => {
+            this.dbResult.set(res);
+            this.isDbExecuting.set(false);
+            this.notificationService.success('Command executed successfully');
+          },
+          error: (err) => {
+            this.dbResult.set({ error: err.message });
+            this.notificationService.error('Command failed');
+            this.isDbExecuting.set(false);
+          },
+        });
     }
   }
 }

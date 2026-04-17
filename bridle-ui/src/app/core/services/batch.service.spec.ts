@@ -1,3 +1,4 @@
+import { BatchJob } from '../models/models';
 import { TestBed } from '@angular/core/testing';
 import {
   HttpTestingController,
@@ -27,7 +28,7 @@ describe('BatchService', () => {
   });
 
   it('should load jobs', () => {
-    const mockJobs: any[] = [
+    const mockJobs: object[] = [
       { id: '1', target: '1', status: 'COMPLETED', createdAt: '' },
       { id: '2', target: '1', status: 'COMPLETED', createdAt: '' },
     ];
@@ -38,7 +39,7 @@ describe('BatchService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockJobs);
 
-    expect(service.jobs()).toEqual(mockJobs);
+    expect(service.jobs()).toEqual(mockJobs as object as BatchJob[]);
   });
 
   it('should handle load jobs error', () => {
@@ -54,7 +55,7 @@ describe('BatchService', () => {
   });
 
   it('should load a specific job', () => {
-    const mockJob: any = {
+    const mockJob: object = {
       id: '123',
       target: '1',
       status: 'COMPLETED',
@@ -67,7 +68,7 @@ describe('BatchService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockJob);
 
-    expect(service.activeJob()).toEqual(mockJob);
+    expect(service.activeJob()).toEqual(mockJob as object as BatchJob);
   });
 
   it('should handle load job error', () => {
@@ -83,7 +84,7 @@ describe('BatchService', () => {
   });
 
   it('should create batch fix', () => {
-    const mockJob: any = {
+    const mockJob: object = {
       id: 'new-job',
       target: '1',
       status: 'COMPLETED',
@@ -109,11 +110,11 @@ describe('BatchService', () => {
     });
     req.flush(mockJob);
 
-    expect(service.jobs()[0]).toEqual(mockJob);
+    expect(service.jobs()[0]).toEqual(mockJob as object as BatchJob);
   });
 
   it('should run pipeline', () => {
-    const mockJob: any = {
+    const mockJob: object = {
       id: 'pipe-job',
       target: '1',
       status: 'COMPLETED',
@@ -132,18 +133,18 @@ describe('BatchService', () => {
     });
     req.flush(mockJob);
 
-    expect(service.jobs()[0]).toEqual(mockJob);
+    expect(service.jobs()[0]).toEqual(mockJob as object as BatchJob);
   });
 
   it('should resume job', () => {
     // Set initial jobs
-    const mockJob1: any = {
+    const mockJob1: object = {
       id: '123',
       status: 'PENDING',
       target: '1',
       createdAt: '',
     };
-    const mockJob2: any = {
+    const mockJob2: object = {
       id: '456',
       status: 'PENDING',
       target: '1',
@@ -153,7 +154,7 @@ describe('BatchService', () => {
     const req0 = httpMock.expectOne('/api/batch/jobs');
     req0.flush([mockJob1, mockJob2]);
 
-    const mockResumedJob: any = {
+    const mockResumedJob: object = {
       id: '123',
       status: 'RUNNING',
       target: '1',
@@ -165,7 +166,7 @@ describe('BatchService', () => {
     expect(req.request.method).toBe('POST');
     req.flush(mockResumedJob);
 
-    expect(service.activeJob()).toEqual(mockResumedJob);
+    expect(service.activeJob()).toEqual(mockResumedJob as object as BatchJob);
     expect(service.jobs()[0].status).toBe('RUNNING');
   });
 

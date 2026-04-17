@@ -165,7 +165,7 @@ export class BatchActionsPageComponent implements OnInit {
     description: string;
     pattern: string;
     tools: string[];
-    args: Record<string, unknown>;
+    args: Record<string, string | number | boolean | object | null | undefined>;
     safety_mode: boolean;
     max_repos?: number;
     max_prs_per_hour?: number;

@@ -1,3 +1,65 @@
+import { WritableSignal } from '@angular/core';
+import {
+  Organization,
+  Repository,
+  PullRequest,
+  BatchJob,
+  SystemHealth,
+} from '../../../core/models/models';
+
+interface MockOrgService {
+  orgs: WritableSignal<Organization[]>;
+  repos: WritableSignal<Repository[]>;
+  isLoading: WritableSignal<boolean>;
+  loadOrgs: jasmine.Spy;
+  ingestOrg: jasmine.Spy;
+  loadRepos: jasmine.Spy;
+}
+
+interface MockPrService {
+  prs: WritableSignal<PullRequest[]>;
+  isSyncing: WritableSignal<boolean>;
+  loadPrs: jasmine.Spy;
+  syncPrs: jasmine.Spy;
+}
+
+interface MockNotificationService {
+  success: jasmine.Spy;
+  error: jasmine.Spy;
+  info: jasmine.Spy;
+}
+
+interface MockSystemStateService {
+  health: WritableSignal<SystemHealth>;
+  isLoading: WritableSignal<boolean>;
+  checkHealth: jasmine.Spy;
+}
+
+interface MockBatchService {
+  createBatchFix: jasmine.Spy;
+  runPipeline: jasmine.Spy;
+  resumeJob: jasmine.Spy;
+}
+
+interface MockApiService {
+  post: jasmine.Spy;
+}
+
+interface MockLocalOpService {
+  audit: jasmine.Spy;
+  fix: jasmine.Spy;
+  clearResult: jasmine.Spy;
+}
+
+interface MockJobsStore {
+  jobs: WritableSignal<BatchJob[]>;
+  activeJob: WritableSignal<BatchJob | null>;
+  isLoading: WritableSignal<boolean>;
+  loadJobs: jasmine.Spy;
+  addJob: jasmine.Spy;
+  setActiveJob: jasmine.Spy;
+}
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DevToolsComponent } from './dev-tools.component';
 import { ApiService } from '../../../core/services/api.service';
@@ -9,8 +71,8 @@ import { By } from '@angular/platform-browser';
 describe('DevToolsComponent', () => {
   let component: DevToolsComponent;
   let fixture: ComponentFixture<DevToolsComponent>;
-  let mockApiService: any;
-  let mockNotificationService: any;
+  let mockApiService: MockApiService;
+  let mockNotificationService: MockNotificationService;
 
   beforeEach(async () => {
     mockApiService = {
@@ -20,7 +82,7 @@ describe('DevToolsComponent', () => {
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),
-    };
+    } as object as MockNotificationService;
 
     await TestBed.configureTestingModule({
       imports: [DevToolsComponent, ReactiveFormsModule],
@@ -61,7 +123,10 @@ describe('DevToolsComponent', () => {
   });
 
   it('should not add if form is invalid', () => {
-    component.addForm.setValue({ left: null, right: null } as any);
+    component.addForm.setValue({ left: null, right: null } as object as {
+      left: number | null;
+      right: number | null;
+    });
     component.onAdd();
     expect(mockApiService.post).not.toHaveBeenCalled();
   });

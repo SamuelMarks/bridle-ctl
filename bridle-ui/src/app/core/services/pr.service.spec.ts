@@ -1,3 +1,4 @@
+import { PullRequest } from '../models/models';
 import { TestBed } from '@angular/core/testing';
 import {
   HttpTestingController,
@@ -27,7 +28,7 @@ describe('PrService', () => {
   });
 
   it('should load prs', () => {
-    const mockPrs: any[] = [
+    const mockPrs: object[] = [
       { id: '1', title: 'pr1', repoId: 'r1', status: 'LOCAL' },
     ];
 
@@ -37,7 +38,7 @@ describe('PrService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockPrs);
 
-    expect(service.prs()).toEqual(mockPrs);
+    expect(service.prs()).toEqual(mockPrs as object as PullRequest[]);
   });
 
   it('should handle load prs error', () => {
