@@ -39,7 +39,7 @@ fn setup_repo(db_url: &str) -> Result<(), AgentError> {
 /// Simulates a PM creating an issue.
 fn pm_agent_create_issue(db_url: &str) -> Result<(), AgentError> {
     println!("PM Agent: Creating issue for tech debt...");
-    let issue_payload = r#"{"id": 200, "repo_id": 200, "number": 1, "title": "Refactor C code", "body": "Use cdd-c to clean up old C code", "state": "open", "author_id": 1, "assignee_id": null, "created_at": "2026-04-08T00:00:00", "updated_at": "2026-04-08T00:00:00"}"#;
+    let issue_payload = r#"{"id": 200, "repo_id": 200, "number": 1, "title": "Refactor C code", "body": "Use cdd-gnu-standardizer to clean up old C code", "state": "open", "author_id": 1, "assignee_id": null, "created_at": "2026-04-08T00:00:00", "updated_at": "2026-04-08T00:00:00"}"#;
     execute_db_command(
         db_url,
         "create_issue",
@@ -75,7 +75,7 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
         // Hardcoded tool match for simulation purposes
         let req = ToolRunRequest {
             pattern: Some(".*\\.c$".to_string()),
-            tools: Some(vec!["cdd-c".to_string()]),
+            tools: Some(vec!["cdd-gnu-standardizer".to_string()]),
             tool_args: None,
             dry_run: Some(true), // We use dry_run for simulation so it doesn't change real files if run here
             action: Some("fix".to_string()),

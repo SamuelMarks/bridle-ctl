@@ -491,7 +491,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn test_ffi_tools() -> Result<(), Box<dyn std::error::Error>> {
         let tools = get_tools();
 
