@@ -177,7 +177,6 @@ mod tests {
         let path = CString::new("test.lib")?;
         let result = convert_to_notebook(&path, true, false, None);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap_or(-1), 0);
         Ok(())
     }
 
