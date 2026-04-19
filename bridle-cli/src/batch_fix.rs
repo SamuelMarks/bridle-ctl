@@ -37,12 +37,11 @@ pub fn batch_fix(
     let mut count = 0;
     if let Ok(entries) = fs::read_dir(&workspace) {
         for entry in entries.flatten() {
-            if let Some(limit) = max_repos {
-                if count >= limit {
+            if let Some(limit) = max_repos
+                && count >= limit {
                     break;
                 }
-            }
-            if entry.file_type().map_or(false, |ft| ft.is_dir()) {
+            if entry.file_type().is_ok_and(|ft| ft.is_dir()) {
                 let repo_name = entry.file_name().to_string_lossy().to_string();
                 let repo_path = entry.path();
 

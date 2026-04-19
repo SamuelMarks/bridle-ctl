@@ -47,15 +47,14 @@ pub fn sync_prs(
 
     let mut synced_count = 0;
     for i in 0..pending_prs {
-        if let Some(limit) = max_prs_per_hour {
-            if synced_count >= limit {
+        if let Some(limit) = max_prs_per_hour
+            && synced_count >= limit {
                 println!(
                     "Reached global PR limit of {} PRs per hour. Stopping sync.",
                     limit
                 );
                 break;
             }
-        }
 
         let repo_name = format!("repo-{}", i);
 

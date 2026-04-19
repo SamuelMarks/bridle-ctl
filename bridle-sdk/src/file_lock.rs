@@ -29,13 +29,11 @@ where
 {
     let path = path.as_ref();
 
-    if let Some(s) = scope {
-        if !s.is_allowed(path) {
-            return Err(BridleError::Config(format!(
-                "Path scope violation for path: {}",
-                path.display()
-            )));
-        }
+    if scope.is_some_and(|s| !s.is_allowed(path)) {
+        return Err(BridleError::Config(format!(
+            "Path scope violation for path: {}",
+            path.display()
+        )));
     }
 
     let mut file = OpenOptions::new().read(true).write(true).open(path)?;

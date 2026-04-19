@@ -9,11 +9,13 @@ use jsonrpsee::server::ServerBuilder;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+/// Helper to create an `RpcError` from a generic displayable error.
 #[cfg(not(tarpaulin_include))]
 fn rpc_reg_err<T: std::fmt::Display>(e: T) -> RpcError {
     RpcError::Register(e.to_string())
 }
 
+/// Helper to convert a generic displayable error into an `ErrorObjectOwned`.
 #[cfg(not(tarpaulin_include))]
 fn rpc_err_from<T: std::fmt::Display>(
     e: T,
@@ -25,6 +27,7 @@ fn rpc_err_from<T: std::fmt::Display>(
     ))
 }
 
+/// Helper to convert a generic displayable error into an `ErrorObjectOwned` returning a String.
 #[cfg(not(tarpaulin_include))]
 fn rpc_reg_err_into<T: std::fmt::Display>(
     e: T,
@@ -87,7 +90,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
     module
         .register_method("start_agent", |_, _, _| match bridle_agent::start_agent() {
             Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg.to_string()),
-            Err(e) => return rpc_err_from(e),
+            Err(e) => rpc_err_from(e),
         })
         .map_err(rpc_reg_err)?;
 
@@ -301,7 +304,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 Ok(_) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(
                     "Tools executed successfully".to_string(),
                 ),
-                Err(e) => return rpc_err_from(e),
+                Err(e) => rpc_err_from(e),
             }
         })
         .map_err(rpc_reg_err)?;
@@ -317,7 +320,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 req.max_prs_per_hour,
             ) {
                 Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
-                Err(e) => return rpc_reg_err_into(e),
+                Err(e) => rpc_reg_err_into(e),
             }
         })
         .map_err(rpc_reg_err)?;
@@ -337,7 +340,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 req.max_prs_per_hour,
             ) {
                 Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
-                Err(e) => return rpc_reg_err_into(e),
+                Err(e) => rpc_reg_err_into(e),
             }
         })
         .map_err(rpc_reg_err)?;
@@ -352,7 +355,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 req.fork_org,
             ) {
                 Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
-                Err(e) => return rpc_reg_err_into(e),
+                Err(e) => rpc_reg_err_into(e),
             }
         })
         .map_err(rpc_reg_err)?;

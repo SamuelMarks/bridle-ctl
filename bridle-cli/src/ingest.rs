@@ -65,11 +65,10 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Cli
             if repo.fork || repo.archived {
                 continue;
             }
-            if let Ok(updated_time) = chrono::DateTime::parse_from_rfc3339(&repo.updated_at) {
-                if updated_time.with_timezone(&chrono::Utc) > one_year_ago {
+            if let Ok(updated_time) = chrono::DateTime::parse_from_rfc3339(&repo.updated_at)
+                && updated_time.with_timezone(&chrono::Utc) > one_year_ago {
                     repos.push(repo);
                 }
-            }
         }
 
         page += 1;

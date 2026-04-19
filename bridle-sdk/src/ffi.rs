@@ -69,13 +69,10 @@ pub fn convert_to_notebook(
     dry_run: bool,
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
+    if let (Some(s), Ok(p)) = (scope, path.to_str())
+        && !s.is_allowed(p) {
+            return Err(FfiError::Generic("Path scope violation".into()));
         }
-    }
     let path_str = path.to_str()?.to_string();
     let mut cmd = get_lib2notebook2lib_cmd();
 
@@ -114,13 +111,10 @@ pub fn convert_to_notebook(
 /// Safely wraps the FFI call to `type-correct` audit.
 #[cfg(not(tarpaulin_include))]
 pub fn type_correct_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
+    if let (Some(s), Ok(p)) = (scope, path.to_str())
+        && !s.is_allowed(p) {
+            return Err(FfiError::Generic("Path scope violation".into()));
         }
-    }
     let result = unsafe { type_correct_audit(path.as_ptr()) };
     Ok(result as i32)
 }
@@ -132,13 +126,10 @@ pub fn type_correct_fix_safe(
     dry_run: bool,
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
+    if let (Some(s), Ok(p)) = (scope, path.to_str())
+        && !s.is_allowed(p) {
+            return Err(FfiError::Generic("Path scope violation".into()));
         }
-    }
     let result = unsafe { type_correct_fix(path.as_ptr(), dry_run) };
     Ok(result as i32)
 }
@@ -146,13 +137,10 @@ pub fn type_correct_fix_safe(
 /// Safely wraps the FFI call to `go-auto-err-handling` audit.
 #[cfg(not(tarpaulin_include))]
 pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
+    if let (Some(s), Ok(p)) = (scope, path.to_str())
+        && !s.is_allowed(p) {
+            return Err(FfiError::Generic("Path scope violation".into()));
         }
-    }
     let result = unsafe { GoAutoErrAudit(path.as_ptr()) };
     Ok(result as i32)
 }
@@ -165,13 +153,10 @@ pub fn fix_go_errors(
     dry_run: bool,
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if let Ok(p) = path.to_str() {
-            if !s.is_allowed(p) {
-                return Err(FfiError::Generic("Path scope violation".into()));
-            }
+    if let (Some(s), Ok(p)) = (scope, path.to_str())
+        && !s.is_allowed(p) {
+            return Err(FfiError::Generic("Path scope violation".into()));
         }
-    }
     let result = unsafe { GoAutoErrFix(path.as_ptr(), dry_run) };
     Ok(result as i32)
 }
@@ -240,10 +225,8 @@ pub fn cdd_transformer_safe(
     dry_run: bool,
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
-    if let Some(s) = scope {
-        if !s.is_allowed(path) {
-            return Err(FfiError::Generic("Path scope violation".into()));
-        }
+    if scope.is_some_and(|s| !s.is_allowed(path)) {
+        return Err(FfiError::Generic("Path scope violation".into()));
     }
     // Simulate cdd-c success in test environment
     if env::var("RUST_TEST_MODE").is_ok() {
@@ -284,7 +267,7 @@ pub fn cdd_transformer_safe(
     args.push(path_cstr.into_raw());
 
     let argc = args.len() as c_int;
-    let argv = args.as_ptr() as *const *mut c_char;
+    let argv = args.as_ptr();
 
     let result = unsafe { cli_cst_transformer_main(argc, argv) };
 

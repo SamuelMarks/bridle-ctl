@@ -257,9 +257,9 @@ impl Orchestrator {
 
         for repo in targets {
             // Check global kill switch
-            if let Ok(mut conn) = bridle_sdk::db::establish_connection_and_run_migrations(&db_url) {
-                if let Ok(job) = bridle_sdk::batch_db::get_batch_job(&mut conn, job_id) {
-                    if job.status == "ABORTED" {
+            if let Ok(mut conn) = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)
+                && let Ok(job) = bridle_sdk::batch_db::get_batch_job(&mut conn, job_id)
+                    && job.status == "ABORTED" {
                         let _ = tx
                             .send(TuiMessage::TaskFailed(
                                 repo.id,
@@ -268,8 +268,6 @@ impl Orchestrator {
                             .await;
                         break;
                     }
-                }
-            }
 
             let Ok(cpu_permit) = self.cpu_semaphore.clone().acquire_owned().await else {
                 continue;
@@ -317,12 +315,11 @@ impl Orchestrator {
                                         let mut target_remote = "origin".to_string();
                                         let mut pr_head = branch_name.clone();
 
-                                        if let Ok(token) = std::env::var("FORGE_TOKEN") {
-                                            if let Ok(client) = ForgeClient::new(token.clone()) {
-                                                if let Ok(current_user) =
+                                        if let Ok(token) = std::env::var("FORGE_TOKEN")
+                                            && let Ok(client) = ForgeClient::new(token.clone())
+                                                && let Ok(current_user) =
                                                     client.get_current_user().await
-                                                {
-                                                    if current_user != repo_owner {
+                                                    && current_user != repo_owner {
                                                         // Fork the repo if not the owner
                                                         if let Some(delay) = pr_delay_clone {
                                                             let _guard =
@@ -350,9 +347,6 @@ impl Orchestrator {
                                                             );
                                                         }
                                                     }
-                                                }
-                                            }
-                                        }
 
                                         let _ = GitMutator::commit_and_push(
                                             &workspace.path,
@@ -382,8 +376,8 @@ impl Orchestrator {
                                             &branch_name,
                                             "+0 -0",
                                         ) {
-                                            if let Ok(token) = std::env::var("FORGE_TOKEN") {
-                                                if let Ok(client) = ForgeClient::new(token) {
+                                            if let Ok(token) = std::env::var("FORGE_TOKEN")
+                                                && let Ok(client) = ForgeClient::new(token) {
                                                     if let Some(delay) = pr_delay_clone {
                                                         let _guard = pr_limiter_clone.lock().await;
                                                         tokio::time::sleep(delay).await;
@@ -399,7 +393,6 @@ impl Orchestrator {
                                                         )
                                                         .await;
                                                 }
-                                            }
                                         } else {
                                             final_status = TaskStatus::FailedValidation;
                                         }
@@ -511,7 +504,7 @@ mod tests {
             created_at: chrono::Utc::now().naive_utc(),
             updated_at: chrono::Utc::now().naive_utc(),
         };
-        assert_eq!(orch.check_idempotency(&repo, "sha").await?, false);
+        assert!(!orch.check_idempotency(&repo, "sha").await?);
         let _ = std::fs::remove_file(db_url);
         Ok(())
     }

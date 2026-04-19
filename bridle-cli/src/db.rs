@@ -245,10 +245,11 @@ fn test_execute_db_command_missing_id() {
     } else {
         panic!("Expected error");
     }
+}
 
-    #[test]
-    fn test_all_db_commands() {
-        let commands = vec![
+#[test]
+fn test_all_db_commands() {
+    let commands = vec![
             "create_user",
             "get_user",
             "create_org",
@@ -294,14 +295,8 @@ fn test_execute_db_command_missing_id() {
             "create_blob",
             "get_blob",
         ];
-        for action in commands {
-            if action.starts_with("create_") {
-                let res = execute_db_command("bridle.db", action, None, None);
-                assert!(res.is_err());
-            } else {
-                let res = execute_db_command("bridle.db", action, None, None);
-                assert!(res.is_err());
-            }
-        }
-    }
+for action in commands {
+    let res = execute_db_command("bridle.db", action, None, None);
+    assert!(res.is_err());
+}
 }

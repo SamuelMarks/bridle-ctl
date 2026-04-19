@@ -19,9 +19,7 @@ pub const MIGRATIONS_SQLITE: EmbeddedMigrations = embed_migrations!("migrations"
 /// Embedded database migrations for PostgreSQL.
 pub const MIGRATIONS_PG: EmbeddedMigrations = embed_migrations!("migrations_pg");
 
-/// Establishes a SQLite connection and runs pending migrations.
-
-#[cfg(not(tarpaulin_include))]
+/// Helper function to convert any generic error display into a `BridleError::Database` execution error.
 #[cfg(not(tarpaulin_include))]
 fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
     BridleError::Database(diesel::result::Error::DatabaseError(
@@ -30,7 +28,7 @@ fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
     ))
 }
 
-#[cfg(not(tarpaulin_include))]
+/// Establishes a PostgreSQL database connection and runs pending migrations.
 #[cfg(not(tarpaulin_include))]
 fn establish_pg(database_url: &str) -> Result<DbConnection, BridleError> {
     let mut connection = PgConnection::establish(database_url).map_err(db_exec_err)?;
