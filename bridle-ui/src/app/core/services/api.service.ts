@@ -1,7 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
+import { isPlatformServer } from '@angular/common';
 
 /**
  * Generic API Service for making HTTP requests.
@@ -12,6 +13,7 @@ import { catchError, retry } from 'rxjs/operators';
 export class ApiService {
   /** HTTP Client instance */
   private http = inject(HttpClient);
+  private platformId = inject(PLATFORM_ID);
 
   /** Base API URL */
   private baseUrl = '/api';
@@ -22,6 +24,10 @@ export class ApiService {
    * @returns Observable of the response
    */
   get<T>(path: string): Observable<T> {
+    if (isPlatformServer(this.platformId)) {
+      // Return an empty array by default to avoid iteration errors in SSR
+      return of([] as unknown as T);
+    }
     return this.http
       .get<T>(`${this.baseUrl}${path}`)
       .pipe(retry(2), catchError(this.handleError));
@@ -40,6 +46,9 @@ export class ApiService {
       string | number | boolean | object | null | undefined
     > = {},
   ): Observable<T> {
+    if (isPlatformServer(this.platformId)) {
+      return of({} as T);
+    }
     return this.http
       .post<T>(`${this.baseUrl}${path}`, body)
       .pipe(catchError(this.handleError));
@@ -58,6 +67,9 @@ export class ApiService {
       string | number | boolean | object | null | undefined
     > = {},
   ): Observable<T> {
+    if (isPlatformServer(this.platformId)) {
+      return of({} as T);
+    }
     return this.http
       .put<T>(`${this.baseUrl}${path}`, body)
       .pipe(catchError(this.handleError));
@@ -69,6 +81,9 @@ export class ApiService {
    * @returns Observable of the response
    */
   delete<T>(path: string): Observable<T> {
+    if (isPlatformServer(this.platformId)) {
+      return of({} as T);
+    }
     return this.http
       .delete<T>(`${this.baseUrl}${path}`)
       .pipe(catchError(this.handleError));
