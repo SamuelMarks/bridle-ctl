@@ -38,9 +38,10 @@ pub fn batch_fix(
     if let Ok(entries) = fs::read_dir(&workspace) {
         for entry in entries.flatten() {
             if let Some(limit) = max_repos
-                && count >= limit {
-                    break;
-                }
+                && count >= limit
+            {
+                break;
+            }
             if entry.file_type().is_ok_and(|ft| ft.is_dir()) {
                 let repo_name = entry.file_name().to_string_lossy().to_string();
                 let repo_path = entry.path();

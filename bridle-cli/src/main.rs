@@ -269,7 +269,9 @@ pub fn execute(command: &Commands) -> Result<String, error::CliError> {
             max_repos,
             max_prs_per_hour,
         } => {
-            let parsed_args = tool_args.as_ref().map(|args| parse_tool_args(Some(args.clone())));
+            let parsed_args = tool_args
+                .as_ref()
+                .map(|args| parse_tool_args(Some(args.clone())));
             bridle_cli::batch_fix::batch_fix(
                 org,
                 issue,

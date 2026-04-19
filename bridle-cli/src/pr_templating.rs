@@ -27,9 +27,10 @@ impl PrTemplateEngine {
         for candidate in candidates {
             let path = dir.join(candidate);
             if path.exists()
-                && let Ok(content) = std::fs::read_to_string(path) {
-                    return content;
-                }
+                && let Ok(content) = std::fs::read_to_string(path)
+            {
+                return content;
+            }
         }
 
         fallback.to_string()

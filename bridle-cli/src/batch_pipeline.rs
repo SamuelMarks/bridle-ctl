@@ -259,15 +259,16 @@ impl Orchestrator {
             // Check global kill switch
             if let Ok(mut conn) = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)
                 && let Ok(job) = bridle_sdk::batch_db::get_batch_job(&mut conn, job_id)
-                    && job.status == "ABORTED" {
-                        let _ = tx
-                            .send(TuiMessage::TaskFailed(
-                                repo.id,
-                                "Job aborted by global kill switch".to_string(),
-                            ))
-                            .await;
-                        break;
-                    }
+                && job.status == "ABORTED"
+            {
+                let _ = tx
+                    .send(TuiMessage::TaskFailed(
+                        repo.id,
+                        "Job aborted by global kill switch".to_string(),
+                    ))
+                    .await;
+                break;
+            }
 
             let Ok(cpu_permit) = self.cpu_semaphore.clone().acquire_owned().await else {
                 continue;
@@ -317,36 +318,32 @@ impl Orchestrator {
 
                                         if let Ok(token) = std::env::var("FORGE_TOKEN")
                                             && let Ok(client) = ForgeClient::new(token.clone())
-                                                && let Ok(current_user) =
-                                                    client.get_current_user().await
-                                                    && current_user != repo_owner {
-                                                        // Fork the repo if not the owner
-                                                        if let Some(delay) = pr_delay_clone {
-                                                            let _guard =
-                                                                pr_limiter_clone.lock().await;
-                                                            tokio::time::sleep(delay).await;
-                                                        }
-                                                        if let Ok(fork_owner) = client
-                                                            .create_fork(&repo_owner, &repo_name)
-                                                            .await
-                                                        {
-                                                            let fork_url = format!(
-                                                                "https://{}@github.com/{}/{}.git",
-                                                                token, fork_owner, repo_name
-                                                            );
-                                                            let _ = GitMutator::add_remote(
-                                                                &workspace.path,
-                                                                "fork",
-                                                                &fork_url,
-                                                            )
-                                                            .await;
-                                                            target_remote = "fork".to_string();
-                                                            pr_head = format!(
-                                                                "{}:{}",
-                                                                fork_owner, branch_name
-                                                            );
-                                                        }
-                                                    }
+                                            && let Ok(current_user) =
+                                                client.get_current_user().await
+                                            && current_user != repo_owner
+                                        {
+                                            // Fork the repo if not the owner
+                                            if let Some(delay) = pr_delay_clone {
+                                                let _guard = pr_limiter_clone.lock().await;
+                                                tokio::time::sleep(delay).await;
+                                            }
+                                            if let Ok(fork_owner) =
+                                                client.create_fork(&repo_owner, &repo_name).await
+                                            {
+                                                let fork_url = format!(
+                                                    "https://{}@github.com/{}/{}.git",
+                                                    token, fork_owner, repo_name
+                                                );
+                                                let _ = GitMutator::add_remote(
+                                                    &workspace.path,
+                                                    "fork",
+                                                    &fork_url,
+                                                )
+                                                .await;
+                                                target_remote = "fork".to_string();
+                                                pr_head = format!("{}:{}", fork_owner, branch_name);
+                                            }
+                                        }
 
                                         let _ = GitMutator::commit_and_push(
                                             &workspace.path,
@@ -377,22 +374,23 @@ impl Orchestrator {
                                             "+0 -0",
                                         ) {
                                             if let Ok(token) = std::env::var("FORGE_TOKEN")
-                                                && let Ok(client) = ForgeClient::new(token) {
-                                                    if let Some(delay) = pr_delay_clone {
-                                                        let _guard = pr_limiter_clone.lock().await;
-                                                        tokio::time::sleep(delay).await;
-                                                    }
-                                                    let _ = client
-                                                        .submit_pr(
-                                                            &repo_owner,
-                                                            &repo_name,
-                                                            &commit_message,
-                                                            &body,
-                                                            &pr_head,
-                                                            "main",
-                                                        )
-                                                        .await;
+                                                && let Ok(client) = ForgeClient::new(token)
+                                            {
+                                                if let Some(delay) = pr_delay_clone {
+                                                    let _guard = pr_limiter_clone.lock().await;
+                                                    tokio::time::sleep(delay).await;
                                                 }
+                                                let _ = client
+                                                    .submit_pr(
+                                                        &repo_owner,
+                                                        &repo_name,
+                                                        &commit_message,
+                                                        &body,
+                                                        &pr_head,
+                                                        "main",
+                                                    )
+                                                    .await;
+                                            }
                                         } else {
                                             final_status = TaskStatus::FailedValidation;
                                         }

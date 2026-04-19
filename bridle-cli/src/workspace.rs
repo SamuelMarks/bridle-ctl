@@ -55,15 +55,16 @@ impl EphemeralWorkspace {
             .current_dir(orig_path)
             .args(["config", "--get", "remote.origin.url"])
             .output()
-            && let Ok(url) = String::from_utf8(output.stdout) {
-                let url = url.trim();
-                if !url.is_empty() {
-                    let _ = git_command()
-                        .current_dir(&temp_dir)
-                        .args(["remote", "set-url", "origin", url])
-                        .status();
-                }
+            && let Ok(url) = String::from_utf8(output.stdout)
+        {
+            let url = url.trim();
+            if !url.is_empty() {
+                let _ = git_command()
+                    .current_dir(&temp_dir)
+                    .args(["remote", "set-url", "origin", url])
+                    .status();
             }
+        }
 
         // 3. Checkout the target ephemeral branch
         let branch_name = format!("chore/bridle-auto/{}", pipeline_name);
@@ -106,9 +107,10 @@ impl Drop for EphemeralWorkspace {
 
         // 3. Wipe the shallow clone completely.
         if std::fs::remove_dir_all(&self.path).is_err()
-            && let Some(path_str) = self.path.to_str() {
-                let _ = Command::new("rm").args(["-rf", path_str]).status();
-            }
+            && let Some(path_str) = self.path.to_str()
+        {
+            let _ = Command::new("rm").args(["-rf", path_str]).status();
+        }
     }
 }
 

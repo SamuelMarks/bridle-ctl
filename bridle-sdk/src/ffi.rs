@@ -70,9 +70,10 @@ pub fn convert_to_notebook(
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
-        && !s.is_allowed(p) {
-            return Err(FfiError::Generic("Path scope violation".into()));
-        }
+        && !s.is_allowed(p)
+    {
+        return Err(FfiError::Generic("Path scope violation".into()));
+    }
     let path_str = path.to_str()?.to_string();
     let mut cmd = get_lib2notebook2lib_cmd();
 
@@ -112,9 +113,10 @@ pub fn convert_to_notebook(
 #[cfg(not(tarpaulin_include))]
 pub fn type_correct_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
-        && !s.is_allowed(p) {
-            return Err(FfiError::Generic("Path scope violation".into()));
-        }
+        && !s.is_allowed(p)
+    {
+        return Err(FfiError::Generic("Path scope violation".into()));
+    }
     let result = unsafe { type_correct_audit(path.as_ptr()) };
     Ok(result as i32)
 }
@@ -127,9 +129,10 @@ pub fn type_correct_fix_safe(
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
-        && !s.is_allowed(p) {
-            return Err(FfiError::Generic("Path scope violation".into()));
-        }
+        && !s.is_allowed(p)
+    {
+        return Err(FfiError::Generic("Path scope violation".into()));
+    }
     let result = unsafe { type_correct_fix(path.as_ptr(), dry_run) };
     Ok(result as i32)
 }
@@ -138,9 +141,10 @@ pub fn type_correct_fix_safe(
 #[cfg(not(tarpaulin_include))]
 pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
-        && !s.is_allowed(p) {
-            return Err(FfiError::Generic("Path scope violation".into()));
-        }
+        && !s.is_allowed(p)
+    {
+        return Err(FfiError::Generic("Path scope violation".into()));
+    }
     let result = unsafe { GoAutoErrAudit(path.as_ptr()) };
     Ok(result as i32)
 }
@@ -154,9 +158,10 @@ pub fn fix_go_errors(
     scope: Option<&PathScope>,
 ) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
-        && !s.is_allowed(p) {
-            return Err(FfiError::Generic("Path scope violation".into()));
-        }
+        && !s.is_allowed(p)
+    {
+        return Err(FfiError::Generic("Path scope violation".into()));
+    }
     let result = unsafe { GoAutoErrFix(path.as_ptr(), dry_run) };
     Ok(result as i32)
 }
