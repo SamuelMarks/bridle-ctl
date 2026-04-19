@@ -26,7 +26,7 @@ export class ApiService {
   get<T>(path: string): Observable<T> {
     if (isPlatformServer(this.platformId)) {
       // Return an empty array by default to avoid iteration errors in SSR
-      return of([] as unknown as T);
+      return of([] as T);
     }
     return this.http
       .get<T>(`${this.baseUrl}${path}`)
