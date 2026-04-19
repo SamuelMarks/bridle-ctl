@@ -225,6 +225,14 @@ mod tests {
             .current_dir(dir.path())
             .args(["init"])
             .status();
+        let _ = git_command()
+            .current_dir(dir.path())
+            .args(["config", "user.name", "Test User"])
+            .status();
+        let _ = git_command()
+            .current_dir(dir.path())
+            .args(["config", "user.email", "test@example.com"])
+            .status();
         std::fs::write(dir.path().join("test.txt"), "hello")?;
 
         let res = GitMutator::commit_and_push(dir.path(), "test msg", "main", "origin").await;

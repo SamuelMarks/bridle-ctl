@@ -127,6 +127,14 @@ mod tests {
             .current_dir(dir.path())
             .args(["init"])
             .status()?;
+        git_command()
+            .current_dir(dir.path())
+            .args(["config", "user.name", "Test User"])
+            .status()?;
+        git_command()
+            .current_dir(dir.path())
+            .args(["config", "user.email", "test@example.com"])
+            .status()?;
         std::fs::write(dir.path().join("test.txt"), "hello")?;
         git_command()
             .current_dir(dir.path())
