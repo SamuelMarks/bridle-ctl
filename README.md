@@ -27,7 +27,7 @@ Furthermore, `bridle-ctl` provides a completely offline, local "Git Forge" (via 
 `bridle-ctl` is built around two primary, automated workflows designed to safely scale AI-driven codebase mutations across organizations:
 
 ### Workflow 1: Codebase Mutation Pipeline
-0. **Target**: Specify a target GitHub org (e.g., `google`).
+0. **Target**: Specify a target GitHub org (e.g., `example-org`).
 1. **Clone**: Clone down all non-readonly, updated-in-past-year, non-fork repositories.
 2. **Build**: Build the target code using custom Dockerfiles dynamically generated with [mkconf](https://github.com/SamuelMarks/mkconf).
 3. **Execute**: If the build succeeds, proceed to tool execution (e.g., running [go-auto-err-handling](https://github.com/SamuelMarks/go-auto-err-handling) on a Go project).

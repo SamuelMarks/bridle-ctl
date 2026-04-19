@@ -44,7 +44,7 @@ use std::fs;
 
 #[no_mangle]
 pub extern "C" fn audit(file_path: *const c_char) -> c_int {
-    let path = unsafe { CStr::from_ptr(file_path) }.to_str().unwrap();
+    let path = unsafe { CStr::from_ptr(file_path) }.to_str().unwrap_or("");
     if !path.ends_with(".rs") { return 0; }
     
     if let Ok(content) = fs::read_to_string(path) {
@@ -55,7 +55,7 @@ pub extern "C" fn audit(file_path: *const c_char) -> c_int {
 
 #[no_mangle]
 pub extern "C" fn fix(file_path: *const c_char, _args: *const c_char) -> c_int {
-    let path = unsafe { CStr::from_ptr(file_path) }.to_str().unwrap();
+    let path = unsafe { CStr::from_ptr(file_path) }.to_str().unwrap_or("");
     
     // In a real tool, use the `syn` crate for AST-aware replacement!
     // This is a naive example.

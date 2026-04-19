@@ -78,20 +78,20 @@ patch*.py
 *.tmp
 *.log
 *.sh
-!e2e.sh
-!e2e_manual.sh
+# !e2e.sh
+# !e2e_manual.sh
 *.json
 !package.json
 !package-lock.json
 !tsconfig*.json
 !angular.json
-!mkconf-pipeline.json
-!req*.json
+# !mkconf-pipeline.json
+# !req*.json
 !bridle-ui/compodoc-out/documentation.json
 *.yml
 !docker-compose.yml
 !mkdocs.yml
-!mkconf-pipeline.yml
+# !mkconf-pipeline.yml
 !.github/workflows/*.yml
 
 # ----------------------------------------------------------------------
@@ -318,3 +318,7 @@ wheels/
 .nuxt/
 .vuepress/dist
 
+
+# UI Generated docs
+bridle-ui/documentation/
+bridle-ui/compodoc-out/

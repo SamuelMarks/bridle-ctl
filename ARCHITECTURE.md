@@ -21,7 +21,7 @@ The foundational data and execution layer.
 The operator's command-line interface, orchestrating two core, automated workflows.
 
 #### Workflow 1: Codebase Mutation Pipeline (`batch_pipeline.rs`, `batch_fix.rs`)
-0. **Specify Target**: Set the target GitHub org (e.g., `google`).
+0. **Specify Target**: Set the target GitHub org (e.g., `example-org`).
 1. **Clone**: Clone all non-readonly, non-fork repositories updated in the past year.
 2. **Build Preparation**: Build the code with custom Dockerfiles dynamically generated via [mkconf](https://github.com/SamuelMarks/mkconf).
 3. **Execution**: If the build succeeds, execute the tool (e.g., `go-auto-err-handling` on a Go project).

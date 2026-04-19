@@ -29,7 +29,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
           <app-input
             formControlName="target"
             label="Target Organization/Repository"
-            placeholder="e.g. google/bridle"
+            placeholder="e.g. example-org/repo"
           ></app-input>
           @if (form.get('target')?.invalid && form.get('target')?.touched) {
             <div class="text-danger mt-1 text-small">Target is required</div>

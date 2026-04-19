@@ -86,7 +86,7 @@ bridle sync-prs \
 
 ### Workflow 1: Codebase Mutation Pipeline
 When running a batch operation (e.g., via `bridle batch-fix`), the system executes the following workflow:
-0. **Target Identification**: Specify a target GitHub org (e.g., `google`).
+0. **Target Identification**: Specify a target GitHub org (e.g., `example-org`).
 1. **Clone**: Clone down all non-readonly, non-fork repositories that were updated in the past year.
 2. **Build Validation**: Build the repository using custom Dockerfiles generated dynamically via [mkconf](https://github.com/SamuelMarks/mkconf).
 3. **Tool Execution**: If the build succeeds, proceed to tool execution (e.g., running [go-auto-err-handling](https://github.com/SamuelMarks/go-auto-err-handling) on a Go project).
@@ -101,7 +101,7 @@ As your AI agents operate, they generate Pull Requests *locally* within the `bri
 
 ```bash
 bridle sync-prs \
-  --org "google" \
+  --org "example-org" \
   --fork-org "my-fork-org" \
   --db-url "sqlite://bridle.db" \
   --max-prs-per-hour 10

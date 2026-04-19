@@ -128,4 +128,17 @@ mod tests {
         assert_eq!(res?, "Successfully synced 2 PR(s).");
         Ok(())
     }
+
+    #[test]
+    fn test_sync_prs_with_fork_org() -> Result<(), Box<dyn std::error::Error>> {
+        let res = sync_prs(
+            "testorg",
+            "bridle.db",
+            Some(1),
+            Some("my-fork-org".to_string()),
+        );
+        assert!(res.is_ok());
+        assert_eq!(res?, "Successfully synced 1 PR(s).");
+        Ok(())
+    }
 }

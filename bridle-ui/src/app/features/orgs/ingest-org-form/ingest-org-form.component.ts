@@ -29,7 +29,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
           <app-input
             formControlName="name"
             label="Organization Name"
-            placeholder="e.g. google"
+            placeholder="e.g. example-org"
           ></app-input>
           @if (form.get('name')?.invalid && form.get('name')?.touched) {
             <div class="text-danger mt-1 text-small">Name is required</div>
