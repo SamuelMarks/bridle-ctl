@@ -35,7 +35,7 @@ import { PullRequest } from '../../../core/models/models';
   template: `
     <div class="container-lg">
       <div class="mb-4">
-        <h2 class="mb-2">Pull Requests Synchronization</h2>
+        <h1 class="mb-2">Pull Requests Synchronization</h1>
         <p class="text-muted">
           Review local pull requests and sync them to the upstream source
           control provider.
@@ -99,7 +99,7 @@ import { PullRequest } from '../../../core/models/models';
 
       <div class="list-container">
         <div class="list-header">
-          <h3 class="m-0">Local PRs Pending Sync</h3>
+          <h2 class="m-0">Local PRs Pending Sync</h2>
         </div>
 
         @if (prsStore.isLoading()) {

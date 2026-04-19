@@ -1,15 +1,22 @@
 //! Upstream PR synchronization.
 
 use crate::error::CliError;
+use crate::pr_templating::PrTemplateEngine;
+use std::path::Path;
 
 /// Simulates checking if a fork exists and returning its URL, or creating one.
-fn ensure_fork(org: &str, repo_name: &str) -> String {
+fn ensure_fork(org: &str, repo_name: &str, fork_org: Option<String>) -> String {
     println!(
         "Checking if fork exists for {}/{} in user or org accounts...",
         org, repo_name
     );
     // Simulate finding an existing fork
-    let fork_url = format!("https://github.com/my-username/{}", repo_name);
+    let target_org = if let Some(fo) = fork_org {
+        fo
+    } else {
+        "my-username".to_string()
+    };
+    let fork_url = format!("https://github.com/{}/{}", target_org, repo_name);
     println!("Found or created fork: {}", fork_url);
     fork_url
 }
@@ -20,6 +27,7 @@ pub fn sync_prs(
     org: &str,
     _db_url: &str,
     max_prs_per_hour: Option<usize>,
+    fork_org: Option<String>,
 ) -> Result<String, CliError> {
     println!("Syncing PRs for organization {}...", org);
 
@@ -52,13 +60,42 @@ pub fn sync_prs(
         let repo_name = format!("repo-{}", i);
 
         // 1. Fork repo (first check if I have a fork in any of my orgs or personal account; in which case reuse)
-        let fork_url = ensure_fork(org, &repo_name);
+        let fork_url = ensure_fork(org, &repo_name, fork_org.clone());
 
         // 2. For each pending PR, perform `git push` to the fork
         println!(
             "Pushing local branch to remote fork ({}) for {}...",
             fork_url, repo_name
         );
+
+        // Interpolate PR template
+        println!(
+            "Interpolating PR template for {}/{} or creating one from scratch...",
+            org, repo_name
+        );
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        let repo_path = Path::new(&home)
+            .join(".bridle")
+            .join("workspace")
+            .join(org)
+            .join(&repo_name);
+
+        let template_content = PrTemplateEngine::resolve_template(
+            &repo_path,
+            "Automated PR from Bridle\n\n## Changes\n- Automated patch applied",
+        );
+        if let Ok(mut engine) = PrTemplateEngine::new() {
+            match engine.render_pr_body(
+                &template_content,
+                &repo_name,
+                org,
+                "chore/bridle-patch",
+                "N/A",
+            ) {
+                Ok(body) => println!("Generated PR body:\n{}", body),
+                Err(e) => println!("Failed to render PR template: {}", e),
+            }
+        }
 
         // 3. Send PR (make API call to upstream)
         println!("Sending Pull Request to upstream {}/{}...", org, repo_name);
@@ -78,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_sync_prs() -> Result<(), Box<dyn std::error::Error>> {
-        let res = sync_prs("testorg", "bridle.db", None);
+        let res = sync_prs("testorg", "bridle.db", None, None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 5 PR(s).");
         Ok(())
@@ -86,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_sync_prs_with_limit() -> Result<(), Box<dyn std::error::Error>> {
-        let res = sync_prs("testorg", "bridle.db", Some(2));
+        let res = sync_prs("testorg", "bridle.db", Some(2), None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 2 PR(s).");
         Ok(())

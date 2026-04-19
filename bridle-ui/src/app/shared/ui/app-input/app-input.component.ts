@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
+/** Global counter for generating unique input IDs */
 let nextId = 0;
 
 /** Provider for ControlValueAccessor */

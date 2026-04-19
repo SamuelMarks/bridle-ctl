@@ -22,13 +22,18 @@ pub const MIGRATIONS_PG: EmbeddedMigrations = embed_migrations!("migrations_pg")
 /// Establishes a SQLite connection and runs pending migrations.
 
 #[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
+fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
+    BridleError::Database(diesel::result::Error::DatabaseError(
+        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+        Box::new(e.to_string()),
+    ))
+}
+
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 fn establish_pg(database_url: &str) -> Result<DbConnection, BridleError> {
-    let mut connection = PgConnection::establish(database_url).map_err(|e| {
-        BridleError::Database(diesel::result::Error::DatabaseError(
-            diesel::result::DatabaseErrorKind::UnableToSendCommand,
-            Box::new(e.to_string()),
-        ))
-    })?;
+    let mut connection = PgConnection::establish(database_url).map_err(db_exec_err)?;
     connection
         .run_pending_migrations(MIGRATIONS_PG)
         .map_err(|e| BridleError::Migration(e.to_string()))?;
@@ -45,12 +50,7 @@ pub fn establish_connection_and_run_migrations(
         #[cfg(tarpaulin_include)]
         unreachable!()
     } else {
-        let mut connection = SqliteConnection::establish(database_url).map_err(|e| {
-            BridleError::Database(diesel::result::Error::DatabaseError(
-                diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                Box::new(e.to_string()),
-            ))
-        })?;
+        let mut connection = SqliteConnection::establish(database_url).map_err(db_exec_err)?;
         connection
             .run_pending_migrations(MIGRATIONS_SQLITE)
             .map_err(|e| BridleError::Migration(e.to_string()))?;
@@ -69,12 +69,7 @@ pub fn insert_user(
             diesel::insert_into(users)
                 .values(new_user)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -82,12 +77,7 @@ pub fn insert_user(
             diesel::insert_into(users)
                 .values(new_user)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -101,12 +91,7 @@ pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::
             let fetched = users
                 .filter(id.eq(user_id))
                 .first::<crate::models::User>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -114,12 +99,7 @@ pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::
             let fetched = users
                 .filter(id.eq(user_id))
                 .first::<crate::models::User>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -136,12 +116,7 @@ pub fn insert_organisation(
             diesel::insert_into(organisations)
                 .values(new_org)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -149,12 +124,7 @@ pub fn insert_organisation(
             diesel::insert_into(organisations)
                 .values(new_org)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -171,12 +141,7 @@ pub fn get_organisation(
             let fetched = organisations
                 .filter(id.eq(org_id))
                 .first::<crate::models::Organisation>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -184,12 +149,7 @@ pub fn get_organisation(
             let fetched = organisations
                 .filter(id.eq(org_id))
                 .first::<crate::models::Organisation>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -206,12 +166,7 @@ pub fn insert_repository(
             diesel::insert_into(repositories)
                 .values(new_repo)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -219,12 +174,7 @@ pub fn insert_repository(
             diesel::insert_into(repositories)
                 .values(new_repo)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -241,12 +191,7 @@ pub fn get_repository(
             let fetched = repositories
                 .filter(id.eq(repo_id))
                 .first::<crate::models::Repository>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -254,12 +199,7 @@ pub fn get_repository(
             let fetched = repositories
                 .filter(id.eq(repo_id))
                 .first::<crate::models::Repository>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -276,12 +216,7 @@ pub fn insert_team(
             diesel::insert_into(teams)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -289,12 +224,7 @@ pub fn insert_team(
             diesel::insert_into(teams)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -308,12 +238,7 @@ pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = teams
                 .filter(id.eq(item_id))
                 .first::<crate::models::Team>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -321,12 +246,7 @@ pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = teams
                 .filter(id.eq(item_id))
                 .first::<crate::models::Team>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -343,12 +263,7 @@ pub fn insert_branch(
             diesel::insert_into(branches)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -356,12 +271,7 @@ pub fn insert_branch(
             diesel::insert_into(branches)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -378,12 +288,7 @@ pub fn get_branch(
             let fetched = branches
                 .filter(id.eq(item_id))
                 .first::<crate::models::Branch>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -391,12 +296,7 @@ pub fn get_branch(
             let fetched = branches
                 .filter(id.eq(item_id))
                 .first::<crate::models::Branch>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -413,12 +313,7 @@ pub fn insert_branch_protection_rule(
             diesel::insert_into(branch_protection_rules)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -426,12 +321,7 @@ pub fn insert_branch_protection_rule(
             diesel::insert_into(branch_protection_rules)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -448,12 +338,7 @@ pub fn get_branch_protection_rule(
             let fetched = branch_protection_rules
                 .filter(id.eq(item_id))
                 .first::<crate::models::BranchProtectionRule>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -461,12 +346,7 @@ pub fn get_branch_protection_rule(
             let fetched = branch_protection_rules
                 .filter(id.eq(item_id))
                 .first::<crate::models::BranchProtectionRule>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -483,12 +363,7 @@ pub fn insert_key(
             diesel::insert_into(keys)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -496,12 +371,7 @@ pub fn insert_key(
             diesel::insert_into(keys)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -515,12 +385,7 @@ pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::K
             let fetched = keys
                 .filter(id.eq(item_id))
                 .first::<crate::models::Key>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -528,12 +393,7 @@ pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::K
             let fetched = keys
                 .filter(id.eq(item_id))
                 .first::<crate::models::Key>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -550,12 +410,7 @@ pub fn insert_follow(
             diesel::insert_into(follows)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -563,12 +418,7 @@ pub fn insert_follow(
             diesel::insert_into(follows)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -585,12 +435,7 @@ pub fn get_follow(
             let fetched = follows
                 .filter(id.eq(item_id))
                 .first::<crate::models::Follow>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -598,12 +443,7 @@ pub fn get_follow(
             let fetched = follows
                 .filter(id.eq(item_id))
                 .first::<crate::models::Follow>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -620,12 +460,7 @@ pub fn insert_star(
             diesel::insert_into(stars)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -633,12 +468,7 @@ pub fn insert_star(
             diesel::insert_into(stars)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -652,12 +482,7 @@ pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = stars
                 .filter(id.eq(item_id))
                 .first::<crate::models::Star>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -665,12 +490,7 @@ pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = stars
                 .filter(id.eq(item_id))
                 .first::<crate::models::Star>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -687,12 +507,7 @@ pub fn insert_org_membership(
             diesel::insert_into(org_memberships)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -700,12 +515,7 @@ pub fn insert_org_membership(
             diesel::insert_into(org_memberships)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -722,12 +532,7 @@ pub fn get_org_membership(
             let fetched = org_memberships
                 .filter(id.eq(item_id))
                 .first::<crate::models::OrgMembership>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -735,12 +540,7 @@ pub fn get_org_membership(
             let fetched = org_memberships
                 .filter(id.eq(item_id))
                 .first::<crate::models::OrgMembership>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -757,12 +557,7 @@ pub fn insert_repo_collaborator(
             diesel::insert_into(repo_collaborators)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -770,12 +565,7 @@ pub fn insert_repo_collaborator(
             diesel::insert_into(repo_collaborators)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -792,12 +582,7 @@ pub fn get_repo_collaborator(
             let fetched = repo_collaborators
                 .filter(id.eq(item_id))
                 .first::<crate::models::RepoCollaborator>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -805,12 +590,7 @@ pub fn get_repo_collaborator(
             let fetched = repo_collaborators
                 .filter(id.eq(item_id))
                 .first::<crate::models::RepoCollaborator>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -827,12 +607,7 @@ pub fn insert_milestone(
             diesel::insert_into(milestones)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -840,12 +615,7 @@ pub fn insert_milestone(
             diesel::insert_into(milestones)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -862,12 +632,7 @@ pub fn get_milestone(
             let fetched = milestones
                 .filter(id.eq(item_id))
                 .first::<crate::models::Milestone>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -875,12 +640,7 @@ pub fn get_milestone(
             let fetched = milestones
                 .filter(id.eq(item_id))
                 .first::<crate::models::Milestone>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -897,12 +657,7 @@ pub fn insert_label(
             diesel::insert_into(labels)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -910,12 +665,7 @@ pub fn insert_label(
             diesel::insert_into(labels)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -932,12 +682,7 @@ pub fn get_label(
             let fetched = labels
                 .filter(id.eq(item_id))
                 .first::<crate::models::Label>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -945,12 +690,7 @@ pub fn get_label(
             let fetched = labels
                 .filter(id.eq(item_id))
                 .first::<crate::models::Label>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -967,12 +707,7 @@ pub fn insert_issue(
             diesel::insert_into(issues)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -980,12 +715,7 @@ pub fn insert_issue(
             diesel::insert_into(issues)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1002,12 +732,7 @@ pub fn get_issue(
             let fetched = issues
                 .filter(id.eq(item_id))
                 .first::<crate::models::Issue>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1015,12 +740,7 @@ pub fn get_issue(
             let fetched = issues
                 .filter(id.eq(item_id))
                 .first::<crate::models::Issue>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1037,12 +757,7 @@ pub fn insert_issue_label(
             diesel::insert_into(issue_labels)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1050,12 +765,7 @@ pub fn insert_issue_label(
             diesel::insert_into(issue_labels)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1072,12 +782,7 @@ pub fn get_issue_label(
             let fetched = issue_labels
                 .filter(id.eq(item_id))
                 .first::<crate::models::IssueLabel>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1085,12 +790,7 @@ pub fn get_issue_label(
             let fetched = issue_labels
                 .filter(id.eq(item_id))
                 .first::<crate::models::IssueLabel>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1107,12 +807,7 @@ pub fn insert_pull_request(
             diesel::insert_into(pull_requests)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1120,12 +815,7 @@ pub fn insert_pull_request(
             diesel::insert_into(pull_requests)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1142,12 +832,7 @@ pub fn get_pull_request(
             let fetched = pull_requests
                 .filter(id.eq(item_id))
                 .first::<crate::models::PullRequest>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1155,12 +840,7 @@ pub fn get_pull_request(
             let fetched = pull_requests
                 .filter(id.eq(item_id))
                 .first::<crate::models::PullRequest>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1177,12 +857,7 @@ pub fn insert_pull_request_review(
             diesel::insert_into(pull_request_reviews)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1190,12 +865,7 @@ pub fn insert_pull_request_review(
             diesel::insert_into(pull_request_reviews)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1212,12 +882,7 @@ pub fn get_pull_request_review(
             let fetched = pull_request_reviews
                 .filter(id.eq(item_id))
                 .first::<crate::models::PullRequestReview>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1225,12 +890,7 @@ pub fn get_pull_request_review(
             let fetched = pull_request_reviews
                 .filter(id.eq(item_id))
                 .first::<crate::models::PullRequestReview>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1247,12 +907,7 @@ pub fn insert_release(
             diesel::insert_into(releases)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1260,12 +915,7 @@ pub fn insert_release(
             diesel::insert_into(releases)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1282,12 +932,7 @@ pub fn get_release(
             let fetched = releases
                 .filter(id.eq(item_id))
                 .first::<crate::models::Release>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1295,12 +940,7 @@ pub fn get_release(
             let fetched = releases
                 .filter(id.eq(item_id))
                 .first::<crate::models::Release>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1317,12 +957,7 @@ pub fn insert_webhook(
             diesel::insert_into(webhooks)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1330,12 +965,7 @@ pub fn insert_webhook(
             diesel::insert_into(webhooks)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1352,12 +982,7 @@ pub fn get_webhook(
             let fetched = webhooks
                 .filter(id.eq(item_id))
                 .first::<crate::models::Webhook>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1365,12 +990,7 @@ pub fn get_webhook(
             let fetched = webhooks
                 .filter(id.eq(item_id))
                 .first::<crate::models::Webhook>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1387,12 +1007,7 @@ pub fn insert_commit(
             diesel::insert_into(commits)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1400,12 +1015,7 @@ pub fn insert_commit(
             diesel::insert_into(commits)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1422,12 +1032,7 @@ pub fn get_commit(
             let fetched = commits
                 .filter(id.eq(item_id))
                 .first::<crate::models::Commit>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1435,12 +1040,7 @@ pub fn get_commit(
             let fetched = commits
                 .filter(id.eq(item_id))
                 .first::<crate::models::Commit>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1457,12 +1057,7 @@ pub fn insert_tree(
             diesel::insert_into(trees)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1470,12 +1065,7 @@ pub fn insert_tree(
             diesel::insert_into(trees)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1489,12 +1079,7 @@ pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = trees
                 .filter(id.eq(item_id))
                 .first::<crate::models::Tree>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1502,12 +1087,7 @@ pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = trees
                 .filter(id.eq(item_id))
                 .first::<crate::models::Tree>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1524,12 +1104,7 @@ pub fn insert_blob(
             diesel::insert_into(blobs)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
         #[cfg(not(tarpaulin_include))]
@@ -1537,12 +1112,7 @@ pub fn insert_blob(
             diesel::insert_into(blobs)
                 .values(new_item)
                 .execute(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(())
         }
     }
@@ -1556,12 +1126,7 @@ pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = blobs
                 .filter(id.eq(item_id))
                 .first::<crate::models::Blob>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
         #[cfg(not(tarpaulin_include))]
@@ -1569,12 +1134,7 @@ pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
             let fetched = blobs
                 .filter(id.eq(item_id))
                 .first::<crate::models::Blob>(c)
-                .map_err(|e| {
-                    BridleError::Database(diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string()),
-                    ))
-                })?;
+                .map_err(db_exec_err)?;
             Ok(fetched)
         }
     }
@@ -1615,6 +1175,8 @@ mod tests {
         };
 
         insert_user(&mut conn, &new_user)?;
+        let duplicate = insert_user(&mut conn, &new_user);
+        assert!(duplicate.is_err());
 
         let fetched = get_user(&mut conn, 1)?;
         assert_eq!(fetched.username, "test");
@@ -1641,6 +1203,8 @@ mod tests {
         };
 
         insert_organisation(&mut conn, &new_org)?;
+        let duplicate = insert_organisation(&mut conn, &new_org);
+        assert!(duplicate.is_err());
 
         let fetched = get_organisation(&mut conn, 1)?;
         assert_eq!(fetched.name, "testorg");
@@ -1673,6 +1237,8 @@ mod tests {
         };
 
         insert_repository(&mut conn, &new_repo)?;
+        let duplicate = insert_repository(&mut conn, &new_repo);
+        assert!(duplicate.is_err());
 
         let fetched = get_repository(&mut conn, 1)?;
         assert_eq!(fetched.name, "testrepo");
@@ -1697,8 +1263,12 @@ mod tests {
             updated_at: now,
         };
         insert_team(&mut conn, &new_item)?;
+        let duplicate = insert_team(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_team(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_team(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1716,8 +1286,12 @@ mod tests {
             updated_at: now,
         };
         insert_branch(&mut conn, &new_item)?;
+        let duplicate = insert_branch(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_branch(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_branch(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1737,8 +1311,12 @@ mod tests {
             updated_at: now,
         };
         insert_branch_protection_rule(&mut conn, &new_item)?;
+        let duplicate = insert_branch_protection_rule(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_branch_protection_rule(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_branch_protection_rule(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1758,8 +1336,12 @@ mod tests {
             updated_at: now,
         };
         insert_key(&mut conn, &new_item)?;
+        let duplicate = insert_key(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_key(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_key(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1774,8 +1356,12 @@ mod tests {
             created_at: now,
         };
         insert_follow(&mut conn, &new_item)?;
+        let duplicate = insert_follow(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_follow(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_follow(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1790,8 +1376,12 @@ mod tests {
             created_at: now,
         };
         insert_star(&mut conn, &new_item)?;
+        let duplicate = insert_star(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_star(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_star(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1808,8 +1398,12 @@ mod tests {
             updated_at: now,
         };
         insert_org_membership(&mut conn, &new_item)?;
+        let duplicate = insert_org_membership(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_org_membership(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_org_membership(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1826,8 +1420,12 @@ mod tests {
             updated_at: now,
         };
         insert_repo_collaborator(&mut conn, &new_item)?;
+        let duplicate = insert_repo_collaborator(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_repo_collaborator(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_repo_collaborator(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1846,8 +1444,12 @@ mod tests {
             updated_at: now,
         };
         insert_milestone(&mut conn, &new_item)?;
+        let duplicate = insert_milestone(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_milestone(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_milestone(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1865,8 +1467,12 @@ mod tests {
             updated_at: now,
         };
         insert_label(&mut conn, &new_item)?;
+        let duplicate = insert_label(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_label(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_label(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1888,8 +1494,12 @@ mod tests {
             updated_at: now,
         };
         insert_issue(&mut conn, &new_item)?;
+        let duplicate = insert_issue(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_issue(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_issue(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1903,8 +1513,12 @@ mod tests {
             label_id: 2,
         };
         insert_issue_label(&mut conn, &new_item)?;
+        let duplicate = insert_issue_label(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_issue_label(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_issue_label(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1929,8 +1543,12 @@ mod tests {
             updated_at: now,
         };
         insert_pull_request(&mut conn, &new_item)?;
+        let duplicate = insert_pull_request(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_pull_request(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_pull_request(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1948,8 +1566,12 @@ mod tests {
             updated_at: now,
         };
         insert_pull_request_review(&mut conn, &new_item)?;
+        let duplicate = insert_pull_request_review(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_pull_request_review(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_pull_request_review(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1971,8 +1593,12 @@ mod tests {
             published_at: None,
         };
         insert_release(&mut conn, &new_item)?;
+        let duplicate = insert_release(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_release(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_release(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -1992,8 +1618,12 @@ mod tests {
             updated_at: now,
         };
         insert_webhook(&mut conn, &new_item)?;
+        let duplicate = insert_webhook(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_webhook(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_webhook(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -2017,8 +1647,12 @@ mod tests {
             created_at: now,
         };
         insert_commit(&mut conn, &new_item)?;
+        let duplicate = insert_commit(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_commit(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_commit(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -2034,8 +1668,12 @@ mod tests {
             created_at: now,
         };
         insert_tree(&mut conn, &new_item)?;
+        let duplicate = insert_tree(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_tree(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_tree(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 
@@ -2052,8 +1690,12 @@ mod tests {
             created_at: now,
         };
         insert_blob(&mut conn, &new_item)?;
+        let duplicate = insert_blob(&mut conn, &new_item);
+        assert!(duplicate.is_err());
         let fetched = get_blob(&mut conn, 1)?;
         assert_eq!(fetched.id, 1);
+        let missing = get_blob(&mut conn, 9999);
+        assert!(missing.is_err());
         Ok(())
     }
 }

@@ -1,15 +1,1 @@
-var ROUTES_INDEX = {
-  name: "<root>",
-  kind: "module",
-  children: [
-    { name: "orgs", kind: "route-path", filename: "src/app/app.routes.ts" },
-    {
-      name: "local-ops",
-      kind: "route-path",
-      filename: "src/app/app.routes.ts",
-    },
-    { name: "batch", kind: "route-path", filename: "src/app/app.routes.ts" },
-    { name: "prs", kind: "route-path", filename: "src/app/app.routes.ts" },
-    { name: "dev", kind: "route-path", filename: "src/app/app.routes.ts" },
-  ],
-};
+var ROUTES_INDEX = {"name":"<root>","kind":"module","className":"TemplatePlaygroundModule","children":[{"name":"orgs","kind":"route-path","filename":"src/app/app.routes.ts"},{"name":"local-ops","kind":"route-path","filename":"src/app/app.routes.ts"},{"name":"batch","kind":"route-path","filename":"src/app/app.routes.ts"},{"name":"prs","kind":"route-path","filename":"src/app/app.routes.ts"},{"name":"dev","kind":"route-path","filename":"src/app/app.routes.ts"}]}

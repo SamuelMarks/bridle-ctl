@@ -19,7 +19,7 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
   template: `
     <div class="Box">
       <div class="Box-header d-flex justify-content-between align-items-center">
-        <h3 class="Box-title">Job Details: {{ job()?.id?.substring(0, 8) }}</h3>
+        <h2 class="Box-title">Job Details: {{ job()?.id?.substring(0, 8) }}</h2>
         <app-button variant="invisible" (click)="close.emit()">
           <svg
             aria-hidden="true"
@@ -57,7 +57,7 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
 
           <div class="mt-4 pt-3 border-top">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h4 class="h5 m-0">Execution Log</h4>
+              <h3 class="h5 m-0">Execution Log</h3>
 
               @if (j.status === 'INTERRUPTED') {
                 <app-button variant="primary" (click)="resume.emit(j.id)">

@@ -2,6 +2,7 @@ use crate::error::CliError;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Creates a new `Command` for executing git operations, clearing specific environment variables.
 fn git_command() -> Command {
     let mut cmd = Command::new("git");
     cmd.env_remove("GIT_DIR");

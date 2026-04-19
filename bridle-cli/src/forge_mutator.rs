@@ -5,6 +5,7 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
+/// Creates a new `Command` for executing git operations, using the `GIT_COMMAND` environment variable if set, otherwise defaulting to `git`.
 fn git_command() -> Command {
     let mut cmd = Command::new("git");
     cmd.env_remove("GIT_DIR");

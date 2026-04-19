@@ -23,7 +23,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="Box p-3">
-      <h3 class="h4 mb-3">Ingest Organization</h3>
+      <h2 class="h4 mb-3">Ingest Organization</h2>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="mb-3">
           <app-input

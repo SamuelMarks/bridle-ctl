@@ -34,38 +34,6 @@ impl CodeTool for MockRustTool {
     }
 }
 
-/// A mock tool for testing Go error checks.
-struct MockGoTool;
-
-#[cfg(not(tarpaulin_include))]
-impl CodeTool for MockGoTool {
-    fn name(&self) -> &'static str {
-        "go-err-check"
-    }
-    fn description(&self) -> &'static str {
-        "Adds `if err != nil { return err }` in Go code"
-    }
-    fn match_regex(&self) -> &'static str {
-        r".*\.go$"
-    }
-    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
-        Ok("Found 1 missing error check".to_string())
-    }
-    fn fix(
-        &self,
-        _args: &[String],
-        dry_run: bool,
-        _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
-        if dry_run {
-            Ok("[DRY RUN] Would add 1 error check".to_string())
-        } else {
-            Ok("Added 1 error check".to_string())
-        }
-    }
-}
-
-/// Tool for applying automatic namespaces
 /// A mock tool for testing GitHub Actions workflows.
 struct GithubActionsTool;
 
@@ -422,7 +390,6 @@ impl CodeTool for DBMigratorTool {
 pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
     vec![
         Box::new(MockRustTool),
-        Box::new(MockGoTool),
         Box::new(GithubActionsTool),
         Box::new(TypeCorrectTool),
         Box::new(GoAutoErrHandlingTool),
@@ -466,16 +433,6 @@ mod tests {
         assert_eq!(tool.match_regex(), r".*\.rs$");
         assert!(tool.audit(&[], None)?.contains("3 instances"));
         assert!(tool.fix(&[], false, None)?.contains("Replaced 3 instances"));
-        assert!(tool.fix(&[], true, None)?.contains("[DRY RUN]"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_mock_go_tool() -> Result<(), Box<dyn std::error::Error>> {
-        let tool = MockGoTool;
-        assert_eq!(tool.name(), "go-err-check");
-        assert!(tool.audit(&[], None)?.contains("1 missing"));
-        assert!(tool.fix(&[], false, None)?.contains("Added 1 error check"));
         assert!(tool.fix(&[], true, None)?.contains("[DRY RUN]"));
         Ok(())
     }
@@ -685,7 +642,7 @@ mod tests {
     #[test]
     fn test_get_tools() {
         let tools = get_tools();
-        assert_eq!(tools.len(), 14);
+        assert_eq!(tools.len(), 13);
     }
 
     #[test]
@@ -716,7 +673,7 @@ mod tests {
         assert_eq!(cpp_tools.len(), 0);
 
         let go_tools = get_tools_for_pattern("go");
-        assert_eq!(go_tools.len(), 2);
+        assert_eq!(go_tools.len(), 1);
 
         let gha_tools = get_tools_for_pattern("gha");
         assert_eq!(gha_tools.len(), 1);

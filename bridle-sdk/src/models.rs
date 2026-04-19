@@ -504,6 +504,17 @@ pub struct ToolRunRequest {
     pub action: Option<String>,
 }
 
+/// Payload for sync PRs requests.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SyncPrsRequest {
+    /// Target organization
+    pub org: String,
+    /// Optional global limit of PRs per hour
+    pub max_prs_per_hour: Option<usize>,
+    /// Specific organization to fork to (if not personal account)
+    pub fork_org: Option<String>,
+}
+
 #[cfg(test)]
 mod tool_tests {
     use super::*;

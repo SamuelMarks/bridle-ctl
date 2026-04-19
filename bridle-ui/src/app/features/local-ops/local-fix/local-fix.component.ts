@@ -25,7 +25,7 @@ import { OpResult } from '../../../core/services/local-op.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="Box p-3 mb-4">
-      <h3 class="h4 mb-3">Run Fix</h3>
+      <h2 class="h4 mb-3">Run Fix</h2>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="mb-3">
           <app-input
@@ -75,14 +75,14 @@ import { OpResult } from '../../../core/services/local-op.service';
     @if (result()) {
       <div class="Box result-panel">
         <div class="Box-header">
-          <h3 class="Box-title">Fix Results</h3>
+          <h2 class="Box-title">Fix Results</h2>
         </div>
         <div class="Box-body p-0">
           <pre class="cli-output p-3 m-0">{{ result()?.output }}</pre>
 
           @if (result()?.modifiedFiles && result()!.modifiedFiles!.length > 0) {
             <div class="p-3 border-top">
-              <h4 class="h5 mb-2">Modified Files</h4>
+              <h3 class="h5 mb-2">Modified Files</h3>
               <ul class="file-list">
                 @for (file of result()?.modifiedFiles; track file) {
                   <li>{{ file }}</li>
@@ -93,7 +93,7 @@ import { OpResult } from '../../../core/services/local-op.service';
 
           @if (result()?.diff) {
             <div class="p-3 border-top">
-              <h4 class="h5 mb-2">Diff</h4>
+              <h3 class="h5 mb-2">Diff</h3>
               <pre class="cli-output diff-output">{{ result()?.diff }}</pre>
             </div>
           }

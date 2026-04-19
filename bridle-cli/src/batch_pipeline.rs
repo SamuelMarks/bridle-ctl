@@ -28,35 +28,44 @@ pub fn run_pipeline(
     let config: PipelineConfig =
         serde_json::from_str(&content).map_err(|e| CliError::Execution(e.to_string()))?;
 
-    let rt = tokio::runtime::Runtime::new().map_err(|e| CliError::Execution(e.to_string()))?;
-    rt.block_on(async {
-        let orchestrator = Orchestrator::new(
-            config,
-            db_url.to_string(),
-            safety_mode,
-            max_repos,
-            max_prs_per_hour,
-        );
+    let db_url_owned = db_url.to_string();
 
-        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
-        let job = bridle_sdk::batch_db::create_batch_job(&mut conn, &orchestrator.config.name)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+    let handle = std::thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().map_err(|e| CliError::Execution(e.to_string()))?;
+        rt.block_on(async move {
+            let orchestrator = Orchestrator::new(
+                config,
+                db_url_owned.clone(),
+                safety_mode,
+                max_repos,
+                max_prs_per_hour,
+            );
 
-        let mut rx = orchestrator.execute_run(job.id).await?;
+            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url_owned)
+                .map_err(|e| CliError::Execution(e.to_string()))?;
+            let job = bridle_sdk::batch_db::create_batch_job(&mut conn, &orchestrator.config.name)
+                .map_err(|e| CliError::Execution(e.to_string()))?;
 
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                TuiMessage::TaskStarted(id) => println!("Task started for repo {}", id),
-                TuiMessage::TaskCompleted(id, status) => {
-                    // Update task status in db here ideally
-                    println!("Task completed for repo {}: {:?}", id, status);
+            let mut rx = orchestrator.execute_run(job.id).await?;
+
+            while let Some(msg) = rx.recv().await {
+                match msg {
+                    TuiMessage::TaskStarted(id) => println!("Task started for repo {}", id),
+                    TuiMessage::TaskCompleted(id, status) => {
+                        // Update task status in db here ideally
+                        println!("Task completed for repo {}: {:?}", id, status);
+                    }
+                    TuiMessage::TaskFailed(id, err) => {
+                        println!("Task failed for repo {}: {}", id, err)
+                    }
                 }
-                TuiMessage::TaskFailed(id, err) => println!("Task failed for repo {}: {}", id, err),
             }
-        }
-        Ok::<(), CliError>(())
-    })?;
+            Ok::<(), CliError>(())
+        })
+    });
+    handle
+        .join()
+        .map_err(|_| CliError::Execution("Thread panicked".to_string()))??;
 
     Ok(format!("Batch pipeline run from {}", config_path))
 }

@@ -5,7 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import bootstrap from './src/main.server';
 
-// The Express app is exported so that it can be used by serverless Functions.
+/**
+ * The Express app is exported so that it can be used by serverless Functions.
+ * @returns The express app
+ */
 export function app(): express.Express {
   const server = express();
   const serverDistFolder = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +50,9 @@ export function app(): express.Express {
   return server;
 }
 
+/**
+ * Starts up the Node server
+ */
 function run(): void {
   const port = process.env['PORT'] || 4000;
 

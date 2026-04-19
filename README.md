@@ -5,63 +5,94 @@
   <img src="./banner.svg" alt="bridle-ctl banner" />
 </div>
 
+# bridle-ctl: The AI-Native Codebase Orchestrator
+
 > **Because your LLM needs reins, not a blank check.**
 
-`bridle-ctl` is an AI-native codebase orchestrator and embedded Git Forge backend. It combines unified tooling interfaces with the reliability of compiled FFI (Foreign Function Interface) plugins for codebase mutation, while providing a fully-featured, local and remote Git database accessible via CLI, REST, and JSON-RPC.
+`bridle-ctl` is a comprehensive AI-native codebase orchestrator and embedded Git Forge backend. It was built from the ground up to solve the fundamental problem of AI code generation at scale: **hallucinated, non-deterministic string replacements**. 
 
-## 🚀 Why `bridle-ctl`?
+Instead of letting AI agents blindly manipulate raw text, `bridle-ctl` forces agents to interact with your codebase through **compiled, deterministic FFI (Foreign Function Interface) tools**. 
 
-When giving AI agents access to codebase refactoring, simple prompt-based string replacements often fail at scale. `bridle-ctl` solves this by forcing agents to run _compiled_ tools to mutate code deterministically.
+Furthermore, `bridle-ctl` provides a completely offline, local "Git Forge" (via SQLite or PostgreSQL) complete with Issues, Pull Requests, Commits, and Repositories. This allows an entire simulated AI Engineering team to operate, debate, and generate code concurrently without ever touching the network—until you are ready to synchronize the results upstream.
 
-It further acts as a complete "offline Git Forge," providing agents with local Database access (SQLite and PostgreSQL) to create PRs and track Issues, simulating a full AI Engineering team without needing external network access. When ready, it syncs PRs to upstream providers (e.g. GitHub) while automatically reusing forks and globally rate-limiting outbound PRs.
+## 🚀 What Does This Project Do?
 
-## 📦 Architecture
+1. **Deterministic Refactoring**: Wraps targeted code mutations into compiled C/C++/Go/Rust binaries that the AI invokes via an MCP (Model Context Protocol) agent.
+2. **Embedded Git Forge**: Simulates GitHub/GitLab locally. Agents create Issues, assign themselves, write code, run tests, and open Pull Requests against the local database.
+3. **Upstream Synchronization**: Once local PRs are reviewed (by humans or other AI agents), the system seamlessly synchronizes them to upstream providers (e.g., GitHub), automatically managing forks, branches, and strict global PR rate limits to prevent API spam.
+4. **Unified API Surface**: Provides CLI, REST, JSON-RPC, and an Angular web UI to monitor, control, and execute these AI workflows.
 
-- **`bridle-sdk`**: The core library. Contains SQLite and PostgreSQL Diesel migrations (dynamically chosen via URI), FFI bindings (`libgoautoerr`, `type-correct`, `cdd-c`), encoding normalization, batch PR pipelines, and universal ToolRun schemas. 100% Test and Doc coverage.
-- **`bridle-cli`**: The command-line interface. Features an interactive TUI, batch operations, upstream PR syncing (with fork detection and global rate limits), and the core `Runner` logic for executing regex-targeted tools.
-- **`bridle-agent`**: The Model Context Protocol (MCP) server. Simulates AI Engineering Teams and daemon loops that autonomously monitor the database, pick up issues, run CLI tools, and merge PRs.
-- **`bridle-rest`**: Actix-Web REST API for executing Git Forge CRUD operations.
-- **`bridle-rpc`**: High-performance JSON-RPC server for internal agent tooling.
-- **`bridle-ui`**: The Angular-based web frontend. Provides a visual dashboard for monitoring system health, managing batch operations, and synchronizing PRs.
+## 🏗️ Core Workflows
 
-## ✨ Core Features
+`bridle-ctl` is built around two primary, automated workflows designed to safely scale AI-driven codebase mutations across organizations:
 
-- **Deterministic AI Mutations**: Compiled FFI tools handle edits.
-- **Dual Database Support**: SQLite and PostgreSQL backends via `DbConnection` wrapper.
-- **Upstream Sync**: Synchronize batch operations and pending PRs to upstream GitHub repositories.
-- **Smart Fork Management**: Automatically checks for forks in orgs/personal accounts and reuses them.
-- **Rate-Limited PR Sending**: Global limits on the number of PRs sent upstream (e.g. `max_prs_per_hour`).
-- **Batch Processing**: Config-driven batch pipelines and state tracking.
+### Workflow 1: Codebase Mutation Pipeline
+0. **Target**: Specify a target GitHub org (e.g., `google`).
+1. **Clone**: Clone down all non-readonly, updated-in-past-year, non-fork repositories.
+2. **Build**: Build the target code using custom Dockerfiles dynamically generated with [mkconf](https://github.com/SamuelMarks/mkconf).
+3. **Execute**: If the build succeeds, proceed to tool execution (e.g., running [go-auto-err-handling](https://github.com/SamuelMarks/go-auto-err-handling) on a Go project).
+4. **Validate**: If the build and tool execution succeed (resulting in changed code files, e.g., `*.go`), proceed.
+5. **Mark**: Mark it as a successful patch and a candidate for sending a Pull Request back to the target org.
 
----
+### Workflow 2: PR Synchronization (Rate-Limited)
+0. **Queue**: Pull from the queue of successful candidates ready for PR submission.
+1. **Template**: Interpolate details into the repository's PR template (or create a new one from scratch if none exists).
+2. **Fork**: Fork the repository (if not already done) or reuse the existing fork on your specified `fork_org`.
+3. **Push & PR**: Send the PR back to the upstream org, enforcing strict rate limits (e.g., max 10 PRs per hour) to prevent API bans.
 
-## 🧰 Embedded Tools
+## 🏗️ How It Works (Architecture Overview)
 
-`bridle-ctl` provides deterministic mutations by wrapping the following compiled FFI tools and command-line utilities.
+The workspace is divided into several specialized crates and applications:
 
-| Name + hyperlink                                                            | Description                                                       | Language(s)      |
-| :-------------------------------------------------------------------------- | :---------------------------------------------------------------- | :--------------- |
-| [go-auto-err-handling](https://github.com/SamuelMarks/go-auto-err-handling) | Automatically add `if err != nil { return err }` error handling   | Go               |
-| [type-correct](https://github.com/SamuelMarks/type-correct)                 | Identifies and resolves C/C++ type inconsistencies                | C/C++            |
-| [lib2notebook2lib](https://github.com/SamuelMarks/lib2notebook2lib)         | Synchronizes logic between Python libraries and Jupyter notebooks | Python / Jupyter |
-| [cdd-extern-c](https://github.com/SamuelMarks/cdd-c)                        | Adds `extern "C"` wrapping                                        | C/C++            |
-| [cdd-msvc-port](https://github.com/SamuelMarks/cdd-c)                       | Ports POSIX to MSVC                                               | C/C++            |
-| [cdd-gnu-standardizer](https://github.com/SamuelMarks/cdd-c)                | Standardizes GNU extensions                                       | C/C++            |
-| [cdd-error-percolator](https://github.com/SamuelMarks/cdd-c)                | Percolates errors                                                 | C/C++            |
-| [cdd-safe-crt](https://github.com/SamuelMarks/cdd-c)                        | Migrates to Safe CRT                                              | C/C++            |
-| `encoding-normalizer`                                                       | Built-in tool: Normalizes file encodings and line endings         | Any              |
-| `rust-unwrap-to-question-mark`                                              | Built-in mock: Replaces `.unwrap()` with `?`                      | Rust             |
-| `go-err-check`                                                              | Built-in mock: Adds `if err != nil { return err }`                | Go               |
-| `gha-improver`                                                              | Built-in mock: Improves GitHub Actions workflows                  | YAML             |
-| `file-lock-tester`                                                          | Built-in mock: Tests exclusive file mutations                     | Text             |
-| `db-migrator-tester`                                                        | Built-in mock: Tests DB connections and migrations                | SQLite           |
+- **`bridle-sdk`**: The core data access and execution library. Contains the dynamic Diesel schemas for SQLite and PostgreSQL, file locking mechanisms, encoding normalizers, and the FFI bridging logic that calls compiled tools.
+- **`bridle-cli`**: The primary user interface for administrators. Handles batch task execution, PR syncing, and running individual tools via a Terminal UI (TUI).
+- **`bridle-agent`**: The MCP Server and daemon loop. It acts as the "AI Engineer," constantly polling the local database for new Issues, cloning the local repository, executing FFI tools to fulfill the Issue, and submitting local PRs.
+- **`bridle-ui`**: A modern Angular 18+ application providing a visual dashboard to monitor AI agent activity, review pending PRs, and manually trigger batch operations.
+- **`bridle-rest` & `bridle-rpc`**: API gateways for external tools or scripts to interact with the local Git Forge and tool registry.
 
-## 📖 Further Documentation
+For a deeper dive, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Deep dive into the FFI architecture and Git Forge DB design.
-- [USAGE.md](./USAGE.md) - Detailed command line usage, flags, and workflow examples.
-- [ROADMAP.md](./ROADMAP.md) - History of completed features and roadmap.
-- [PLAN.md](./PLAN.md) - Project plan and action item tracking.
+## 🛠️ How to Use It
 
-unstaged
-more unstaged
+To get started, you can run the agent loop, start the REST APIs, or execute a batch pipeline directly from the CLI.
+
+```bash
+# Start the AI Agent daemon
+bridle agent
+
+# Run a batch fix across multiple repositories
+bridle batch-fix --org "my-org" --issue "Fix deprecated API" --tools "ffi_fixer" --db-url "postgres://user:pass@localhost/bridle"
+
+# Sync approved local PRs to GitHub (creates forks automatically)
+bridle sync-prs --org "my-org" --db-url "sqlite://bridle.db" --max-prs-per-hour 10
+```
+
+For full usage instructions, including environment variables and batch configuration, see [USAGE.md](./USAGE.md).
+
+## 🔌 How to Extend It (Adding Tools)
+
+The true power of `bridle-ctl` lies in its extensible toolchain. Instead of teaching an LLM how to perfectly rewrite a complex regex, you write a deterministic tool (in Rust, Go, C++, etc.), compile it to a shared library, and register it via FFI. The AI agent simply decides *when* and *where* to run the tool.
+
+For a step-by-step guide on creating, wrapping, and registering new tools, see [ADD_NEW_TOOLS.md](./ADD_NEW_TOOLS.md).
+
+## 🧰 Built-in Tool Registry
+
+`bridle-ctl` ships with several built-in FFI wrappers and utilities:
+
+| Tool Name | Description | Target Language |
+| :--- | :--- | :--- |
+| `go-auto-err-handling` | Automatically injects `if err != nil { return err }` blocks. | Go |
+| `type-correct` | Resolves standard C/C++ type inconsistencies via AST parsing. | C/C++ |
+| `lib2notebook2lib` | Bi-directional sync between Python source and Jupyter notebooks. | Python |
+| `cdd-extern-c` | Safely wraps headers in `extern "C"` blocks. | C/C++ |
+| `encoding-normalizer` | Standardizes file encodings (UTF-8) and line endings (LF). | Any |
+| `rust-unwrap-to-question-mark` | Safely refactors `.unwrap()` calls to idiomatic `?` usage. | Rust |
+
+## 📖 Further Reading
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - System design and database schema details.
+- [USAGE.md](./USAGE.md) - CLI commands, server execution, and pipeline config.
+- [ADD_NEW_TOOLS.md](./ADD_NEW_TOOLS.md) - Guide to extending the system with new FFI tools.
+- [AGENT_GUIDELINES.md](./AGENT_GUIDELINES.md) - Operational rules for AI Contexts.
+- [SKILLS.md](./SKILLS.md) - Out-of-the-box capabilities provided by the framework.
+- [ROADMAP.md](./ROADMAP.md) - Project history, completed phases, and future plans.

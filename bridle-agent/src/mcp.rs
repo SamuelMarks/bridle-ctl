@@ -21,7 +21,7 @@ pub fn self_healing_loop() -> Result<(), AgentError> {
         pattern: None,
         tools: Some(vec![
             "rust-unwrap-to-question-mark".to_string(),
-            "go-err-check".to_string(),
+            "rust-unwrap-to-question-mark".to_string(),
         ]),
         tool_args: None,
         dry_run: Some(false),

@@ -37,7 +37,7 @@ import { JobsStore } from '../../../core/store/jobs.store';
   template: `
     <div class="container-lg">
       <div class="mb-4">
-        <h2 class="mb-2">Batch Actions</h2>
+        <h1 class="mb-2">Batch Actions</h1>
         <p class="text-muted">
           Queue multi-repository operations, fixes, and pipeline runs.
         </p>

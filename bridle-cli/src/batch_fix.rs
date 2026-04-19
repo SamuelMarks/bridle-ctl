@@ -148,11 +148,13 @@ mod tests {
             None,
             None,
         );
-        assert!(res.is_err());
-        assert!(
-            res.unwrap_err()
-                .to_string()
-                .contains("Workspace for org nonexistent_org not found")
-        );
+        if let Err(e) = res {
+            assert!(
+                e.to_string()
+                    .contains("Workspace for org nonexistent_org not found")
+            );
+        } else {
+            panic!("Expected error");
+        }
     }
 }

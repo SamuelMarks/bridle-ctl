@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Bridle UI End-to-End Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -106,19 +107,22 @@ test.describe('Bridle UI End-to-End Tests', () => {
     await page.goto('/');
 
     // Check main title
-    await expect(page.locator('h2')).toContainText('System Health Dashboard');
+    await expect(page.locator('h1')).toContainText('System Health Dashboard');
 
     // Check health badges are rendered
     const badges = page.locator('app-badge');
     await expect(badges).toHaveCount(3);
     await expect(badges.nth(0)).toContainText('UP');
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('Organizations page lists orgs and repos', async ({ page }) => {
     await page.goto('/orgs');
 
     // Check tabs/header
-    await expect(page.locator('h2')).toContainText(
+    await expect(page.locator('h1')).toContainText(
       'Organizations & Repositories',
     );
 
@@ -134,6 +138,9 @@ test.describe('Bridle UI End-to-End Tests', () => {
     // Wait for repos to render and verify repo name is visible
     await expect(page.locator('text=frontend')).toBeVisible();
     await expect(page.locator('text=The UI')).toBeVisible();
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('Batch Actions page displays jobs and allows toggling tabs', async ({
@@ -141,7 +148,7 @@ test.describe('Bridle UI End-to-End Tests', () => {
   }) => {
     await page.goto('/batch');
 
-    await expect(page.locator('h2')).toContainText('Batch Actions');
+    await expect(page.locator('h1')).toContainText('Batch Actions');
 
     // Check job list rendered from the mock
     await expect(page.locator('text=job-1234')).toBeVisible();
@@ -156,6 +163,9 @@ test.describe('Bridle UI End-to-End Tests', () => {
     await expect(
       page.locator('text=Pipeline Configuration (YAML)'),
     ).toBeVisible();
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('PR Sync page renders PR list and allows selection', async ({
@@ -163,7 +173,7 @@ test.describe('Bridle UI End-to-End Tests', () => {
   }) => {
     await page.goto('/prs');
 
-    await expect(page.locator('h2')).toContainText(
+    await expect(page.locator('h1')).toContainText(
       'Pull Requests Synchronization',
     );
 
@@ -176,51 +186,57 @@ test.describe('Bridle UI End-to-End Tests', () => {
 
     // Verify Stats
     await expect(page.locator('text=Total PRs: 2')).toBeVisible();
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('Local Ops page handles audit and fix workflows', async ({ page }) => {
     await page.goto('/local-ops');
     await page.waitForTimeout(500); // Wait for Angular hydration
 
-    await expect(page.locator('h2')).toContainText('Local Operations');
+    await expect(page.locator('h1')).toContainText('Local Operations');
 
     // Default tab should be Audit
-    await expect(page.locator('h3', { hasText: 'Run Audit' })).toBeVisible();
+    await expect(page.locator('h2', { hasText: 'Run Audit' })).toBeVisible();
 
     // Fill out and submit Audit form
     await page.getByLabel('Regex Pattern').fill('TODO.*');
     await page.getByRole('button', { name: 'Audit' }).click();
 
     // Check result
-    await expect(page.locator('h3.Box-title')).toContainText('Audit Results');
+    await expect(page.locator('h2.Box-title')).toContainText('Audit Results');
     await expect(page.locator('pre.cli-output').first()).toContainText(
       'Found 2 matches in src/main.ts',
     );
 
     // Switch to Fix tab
     await page.getByRole('tab', { name: 'Fix' }).click();
-    await expect(page.locator('h3', { hasText: 'Run Fix' })).toBeVisible();
+    await expect(page.locator('h2', { hasText: 'Run Fix' })).toBeVisible();
 
     // Fill out and submit Fix form
     await page.getByLabel('Regex Pattern').fill('TODO.*');
     await page.getByRole('button', { name: 'Fix' }).click();
 
     // Check result
-    await expect(page.locator('h3.Box-title')).toContainText('Fix Results');
+    await expect(page.locator('h2.Box-title')).toContainText('Fix Results');
     await expect(page.locator('pre.cli-output').first()).toContainText(
       'Fixed 2 matches',
     );
     await expect(
-      page.locator('h4', { hasText: 'Modified Files' }),
+      page.locator('h3', { hasText: 'Modified Files' }),
     ).toBeVisible();
     await expect(page.locator('.file-list')).toContainText('src/main.ts');
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('Developer Tools handles math and raw db commands', async ({ page }) => {
     await page.goto('/dev');
     await page.waitForTimeout(500); // Wait for Angular hydration
 
-    await expect(page.locator('h2')).toContainText('Developer Tools');
+    await expect(page.locator('h1')).toContainText('Developer Tools');
 
     // Math Add utility
     await page.getByLabel('Left Integer').fill('5');
@@ -235,7 +251,10 @@ test.describe('Bridle UI End-to-End Tests', () => {
     await page.getByRole('button', { name: 'Execute Raw Command' }).click();
 
     // Check DB result
-    await expect(page.locator('h4', { hasText: 'Result' })).toBeVisible();
+    await expect(page.locator('h3', { hasText: 'Result' })).toBeVisible();
     await expect(page.locator('pre.cli-output')).toContainText('success');
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

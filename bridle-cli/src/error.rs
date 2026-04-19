@@ -63,16 +63,20 @@ mod tests {
 
     #[test]
     fn test_from_json_error() {
-        // Safe creation of JSON error without unwrap/panic in test logic directly if possible
-        // but test code logic allows standard assertions.
-        let json_err = serde_json::from_str::<serde_json::Value>("{ invalid").unwrap_err();
+        let json_err = match serde_json::from_str::<serde_json::Value>("{ invalid") {
+            Err(e) => e,
+            Ok(_) => panic!("Expected JSON error"),
+        };
         let err: CliError = json_err.into();
         assert!(err.to_string().starts_with("JSON Error:"));
     }
 
     #[test]
     fn test_from_utf8_error() {
-        let utf8_err = String::from_utf8(vec![0, 159]).unwrap_err();
+        let utf8_err = match String::from_utf8(vec![0, 159]) {
+            Err(e) => e,
+            Ok(_) => panic!("Expected UTF8 error"),
+        };
         let err: CliError = utf8_err.into();
         assert!(err.to_string().starts_with("Execution Error:"));
     }

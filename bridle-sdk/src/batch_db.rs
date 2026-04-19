@@ -266,3 +266,76 @@ mod tests {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
+    use crate::db::establish_connection_and_run_migrations;
+
+    #[test]
+    fn test_insert_and_get() -> Result<(), crate::error::BridleError> {
+        let mut conn = establish_connection_and_run_migrations(":memory:")?;
+
+        // Use create_batch_job just to get a valid inserted job
+        let job = create_batch_job(&mut conn, "test")?;
+
+        let fetched = get_batch_job(&mut conn, job.id)?;
+        assert_eq!(fetched.id, job.id);
+
+        let missing = get_batch_job(&mut conn, 9999);
+        assert!(missing.is_err());
+
+        match &mut conn {
+            DbConnection::Sqlite(c) => {
+                let new_task = (
+                    crate::schema::batch_tasks::job_id.eq(job.id),
+                    crate::schema::batch_tasks::repo_id.eq(1),
+                    crate::schema::batch_tasks::status.eq(TaskStatus::Pending.to_string()),
+                );
+                diesel::insert_into(crate::schema::batch_tasks::table)
+                    .values(&new_task)
+                    .execute(c)
+                    .map_err(crate::error::BridleError::Database)?;
+
+                let inserted_task = crate::schema::batch_tasks::table
+                    .order(crate::schema::batch_tasks::id.desc())
+                    .first::<BatchTask>(c)
+                    .map_err(crate::error::BridleError::Database)?;
+
+                let fetched_t = get_batch_task(&mut conn, inserted_task.id)?;
+                assert_eq!(fetched_t.id, inserted_task.id);
+            }
+            #[cfg(not(tarpaulin_include))]
+            _ => unreachable!(),
+        }
+
+        let missing_task = get_batch_task(&mut conn, 9999);
+        assert!(missing_task.is_err());
+
+        // Also let's test insert_batch_job directly
+        let mut job2 = job.clone();
+        job2.id = 9999;
+        let inserted2 = insert_batch_job(&mut conn, &job2)?;
+        assert_eq!(inserted2.id, 9999);
+        let dup = insert_batch_job(&mut conn, &job2);
+        assert!(dup.is_err());
+
+        // Also test insert_batch_task directly
+        let task = BatchTask {
+            id: 9999,
+            job_id: job.id,
+            repo_id: 2,
+            status: "Pending".to_string(),
+            error_reason: None,
+            pr_url: None,
+            created_at: chrono::Utc::now().naive_utc(),
+            updated_at: chrono::Utc::now().naive_utc(),
+        };
+        let inserted_task = insert_batch_task(&mut conn, &task)?;
+        assert_eq!(inserted_task.id, 9999);
+        let dup_task = insert_batch_task(&mut conn, &task);
+        assert!(dup_task.is_err());
+
+        Ok(())
+    }
+}

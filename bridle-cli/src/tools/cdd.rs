@@ -200,7 +200,8 @@ mod tests {
                 // Scope violation
                 let allowed = vec!["allowed.c".to_string()];
                 let ignored: Vec<String> = vec![];
-                let scope = PathScope::new(&allowed, &ignored).unwrap();
+                let scope = PathScope::new(&allowed, &ignored)
+                    .map_err(|e| CliError::Execution(e.to_string()))?;
                 let scope_args = vec!["disallowed.c".to_string()];
                 assert!(tool.audit(&scope_args, Some(&scope)).is_err());
                 assert!(tool.fix(&scope_args, false, Some(&scope)).is_err());

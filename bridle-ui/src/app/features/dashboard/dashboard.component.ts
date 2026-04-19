@@ -19,7 +19,7 @@ import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component
   template: `
     <div class="container-lg">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>System Health Dashboard</h2>
+        <h1>System Health Dashboard</h1>
         <app-button
           variant="primary"
           [disabled]="isLoading()"
@@ -31,7 +31,7 @@ import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component
 
       <div class="health-cards">
         <div class="Box p-3">
-          <h3 class="h4 mb-2">REST API</h3>
+          <h2 class="h4 mb-2">REST API</h2>
           <p class="text-muted">Status of the HTTP interface.</p>
           <app-badge [variant]="health().rest === 'UP' ? 'success' : 'danger'">
             {{ health().rest }}
@@ -39,7 +39,7 @@ import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component
         </div>
 
         <div class="Box p-3">
-          <h3 class="h4 mb-2">RPC Server</h3>
+          <h2 class="h4 mb-2">RPC Server</h2>
           <p class="text-muted">Status of the internal RPC channel.</p>
           <app-badge [variant]="health().rpc === 'UP' ? 'success' : 'danger'">
             {{ health().rpc }}
@@ -47,7 +47,7 @@ import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component
         </div>
 
         <div class="Box p-3">
-          <h3 class="h4 mb-2">Agent Daemon</h3>
+          <h2 class="h4 mb-2">Agent Daemon</h2>
           <p class="text-muted">Status of the background execution agent.</p>
           <app-badge [variant]="health().agent === 'UP' ? 'success' : 'danger'">
             {{ health().agent }}

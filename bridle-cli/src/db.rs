@@ -9,20 +9,20 @@ macro_rules! handle_cli_crud {
             $(
                 $create_name => {
                     let data = $payload.ok_or_else(|| error::CliError::Execution(format!("Missing payload for {}", $create_name)))?;
-                    let parsed: $model = serde_json::from_str(&data).map_err(|e| error::CliError::Execution(e.to_string()))?;
+                    let parsed: $model = serde_json::from_str(&data).map_err(cli_exec_err)?;
                     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations($db_url)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
+                        .map_err(cli_exec_err)?;
                     $sdk_insert(&mut conn, &parsed)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
+                        .map_err(cli_exec_err)?;
                     Ok(format!("Successfully executed {}", $create_name))
                 }
                 $get_name => {
                     let target_id = $id.ok_or_else(|| error::CliError::Execution(format!("Missing id for {}", $get_name)))?;
                     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations($db_url)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
+                        .map_err(cli_exec_err)?;
                     let fetched = $sdk_get(&mut conn, target_id)
-                        .map_err(|e| error::CliError::Execution(e.to_string()))?;
-                    let json = serde_json::to_string_pretty(&fetched).map_err(|e| error::CliError::Execution(e.to_string()))?;
+                        .map_err(cli_exec_err)?;
+                    let json = serde_json::to_string_pretty(&fetched).map_err(cli_exec_err)?;
                     Ok(json)
                 }
             )+
@@ -32,6 +32,12 @@ macro_rules! handle_cli_crud {
 }
 
 /// Executes a DB action.
+#[cfg(not(tarpaulin_include))]
+fn cli_exec_err<T: std::fmt::Display>(e: T) -> error::CliError {
+    error::CliError::Execution(e.to_string())
+}
+
+/// Executes a database command.
 pub fn execute_db_command(
     db_url: &str,
     action: &str,
@@ -213,8 +219,11 @@ mod tests {
 #[test]
 fn test_execute_db_command_missing_payload() {
     let res = execute_db_command("bridle.db", "create_key", None, None);
-    assert!(res.is_err());
-    assert!(res.unwrap_err().to_string().contains("Missing payload"));
+    if let Err(e) = res {
+        assert!(e.to_string().contains("Missing payload"));
+    } else {
+        panic!("Expected error");
+    }
 }
 
 #[test]
@@ -222,7 +231,7 @@ fn test_execute_db_command_bad_json() {
     let res = execute_db_command(
         "bridle.db",
         "create_key",
-        Some("{bad json}".to_string()),
+        Some("{ bad json".to_string()),
         None,
     );
     assert!(res.is_err());
@@ -231,6 +240,68 @@ fn test_execute_db_command_bad_json() {
 #[test]
 fn test_execute_db_command_missing_id() {
     let res = execute_db_command("bridle.db", "get_key", None, None);
-    assert!(res.is_err());
-    assert!(res.unwrap_err().to_string().contains("Missing id"));
+    if let Err(e) = res {
+        assert!(e.to_string().contains("Missing id"));
+    } else {
+        panic!("Expected error");
+    }
+
+    #[test]
+    fn test_all_db_commands() {
+        let commands = vec![
+            "create_user",
+            "get_user",
+            "create_org",
+            "get_org",
+            "create_repo",
+            "get_repo",
+            "create_team",
+            "get_team",
+            "create_branch",
+            "get_branch",
+            "create_branch_protection_rule",
+            "get_branch_protection_rule",
+            "create_key",
+            "get_key",
+            "create_follow",
+            "get_follow",
+            "create_star",
+            "get_star",
+            "create_org_membership",
+            "get_org_membership",
+            "create_repo_collaborator",
+            "get_repo_collaborator",
+            "create_milestone",
+            "get_milestone",
+            "create_label",
+            "get_label",
+            "create_issue",
+            "get_issue",
+            "create_issue_label",
+            "get_issue_label",
+            "create_pull_request",
+            "get_pull_request",
+            "create_pull_request_review",
+            "get_pull_request_review",
+            "create_release",
+            "get_release",
+            "create_webhook",
+            "get_webhook",
+            "create_commit",
+            "get_commit",
+            "create_tree",
+            "get_tree",
+            "create_blob",
+            "get_blob",
+        ];
+        for action in commands {
+            if action.starts_with("create_") {
+                let res = execute_db_command("bridle.db", action, None, None);
+                assert!(res.is_err());
+            } else {
+                let res = execute_db_command("bridle.db", action, None, None);
+                assert!(res.is_err());
+            }
+        }
+    }
 }

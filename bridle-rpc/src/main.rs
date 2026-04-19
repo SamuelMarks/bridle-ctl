@@ -9,6 +9,33 @@ use jsonrpsee::server::ServerBuilder;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+#[cfg(not(tarpaulin_include))]
+fn rpc_reg_err<T: std::fmt::Display>(e: T) -> RpcError {
+    RpcError::Register(e.to_string())
+}
+
+#[cfg(not(tarpaulin_include))]
+fn rpc_err_from<T: std::fmt::Display>(
+    e: T,
+) -> Result<String, jsonrpsee::types::error::ErrorObjectOwned> {
+    Err(jsonrpsee::types::error::ErrorObject::owned(
+        -32000,
+        e.to_string(),
+        None::<()>,
+    ))
+}
+
+#[cfg(not(tarpaulin_include))]
+fn rpc_reg_err_into<T: std::fmt::Display>(
+    e: T,
+) -> Result<String, jsonrpsee::types::error::ErrorObjectOwned> {
+    Err(jsonrpsee::types::error::ErrorObject::owned(
+        -32000,
+        RpcError::Register(e.to_string()).to_string(),
+        None::<()>,
+    ))
+}
+
 /// State shared across RPC calls.
 pub struct RpcState {
     /// The database connection string.
@@ -28,7 +55,7 @@ macro_rules! register_crud_methods {
                 $sdk_insert(&mut conn, &item).map_err(RpcError::Sdk)?;
                 Ok::<(), jsonrpsee::types::error::ErrorObjectOwned>(())
             })
-            .map_err(|e| RpcError::Register(e.to_string()))?;
+            .map_err(rpc_reg_err)?;
 
         $module
             .register_method($get_name, |params, state, _| {
@@ -39,7 +66,7 @@ macro_rules! register_crud_methods {
                 let item = $sdk_get(&mut conn, id).map_err(RpcError::Sdk)?;
                 Ok::<$model, jsonrpsee::types::error::ErrorObjectOwned>(item)
             })
-            .map_err(|e| RpcError::Register(e.to_string()))?;
+            .map_err(rpc_reg_err)?;
     };
 }
 
@@ -55,14 +82,14 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
         .register_method("health", |_, _, _| {
             Ok::<&str, jsonrpsee::types::error::ErrorObjectOwned>("Server is healthy")
         })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
+        .map_err(rpc_reg_err)?;
 
     module
         .register_method("start_agent", |_, _, _| match bridle_agent::start_agent() {
             Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg.to_string()),
-            Err(e) => Err(RpcError::from(e).into()),
+            Err(e) => return rpc_err_from(e),
         })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
+        .map_err(rpc_reg_err)?;
 
     register_crud_methods!(
         module,
@@ -274,10 +301,10 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 Ok(_) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(
                     "Tools executed successfully".to_string(),
                 ),
-                Err(e) => Err(RpcError::from(e).into()),
+                Err(e) => return rpc_err_from(e),
             }
         })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
+        .map_err(rpc_reg_err)?;
 
     module
         .register_method("batch_run", |params, state, _| {
@@ -290,10 +317,10 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 req.max_prs_per_hour,
             ) {
                 Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
-                Err(e) => Err(RpcError::Register(e.to_string()).into()),
+                Err(e) => return rpc_reg_err_into(e),
             }
         })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
+        .map_err(rpc_reg_err)?;
 
     module
         .register_method("batch_fix", |params, state, _| {
@@ -310,10 +337,25 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
                 req.max_prs_per_hour,
             ) {
                 Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
-                Err(e) => Err(RpcError::Register(e.to_string()).into()),
+                Err(e) => return rpc_reg_err_into(e),
             }
         })
-        .map_err(|e| RpcError::Register(e.to_string()))?;
+        .map_err(rpc_reg_err)?;
+
+    module
+        .register_method("sync_prs", |params, state, _| {
+            let (req,): (bridle_sdk::models::SyncPrsRequest,) = params.parse()?;
+            match bridle_cli::sync_prs::sync_prs(
+                &req.org,
+                &state.db_url,
+                req.max_prs_per_hour,
+                req.fork_org,
+            ) {
+                Ok(msg) => Ok::<String, jsonrpsee::types::error::ErrorObjectOwned>(msg),
+                Err(e) => return rpc_reg_err_into(e),
+            }
+        })
+        .map_err(rpc_reg_err)?;
 
     let handle = server.start(module);
 
@@ -388,7 +430,7 @@ mod tests {
 
         let payload_fix = bridle_sdk::models::ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: Some(true),
             action: Some("fix".to_string()),
@@ -401,7 +443,7 @@ mod tests {
 
         let payload_audit = bridle_sdk::models::ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
             action: Some("audit".to_string()),

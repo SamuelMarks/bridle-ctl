@@ -42,6 +42,8 @@ pub enum StepType {
     Fix,
     /// A step to validate the fix.
     Validate,
+    /// A step to generate dockerfiles using mkconf and build.
+    MkconfBuild,
 }
 
 /// A single step in the pipeline.

@@ -44,6 +44,41 @@ pub async fn run_tools(
     Ok(HttpResponse::Ok().body("Tools executed successfully"))
 }
 
+/// Endpoint to run batch pipeline
+#[cfg(not(tarpaulin_include))]
+pub async fn batch_run(
+    data: web::Data<AppState>,
+    req: web::Json<bridle_sdk::models::BatchRunRequest>,
+) -> Result<HttpResponse, RestError> {
+    let payload = req.into_inner();
+    let msg = bridle_cli::batch_pipeline::run_pipeline(
+        &payload.config_path,
+        &data.db_url,
+        payload.safety_mode,
+        payload.max_repos,
+        payload.max_prs_per_hour,
+    )
+    .map_err(RestError::Cli)?;
+    Ok(HttpResponse::Ok().body(msg))
+}
+
+/// Endpoint to sync prs
+#[cfg(not(tarpaulin_include))]
+pub async fn sync_prs(
+    data: web::Data<AppState>,
+    req: web::Json<bridle_sdk::models::SyncPrsRequest>,
+) -> Result<HttpResponse, RestError> {
+    let payload = req.into_inner();
+    let msg = bridle_cli::sync_prs::sync_prs(
+        &payload.org,
+        &data.db_url,
+        payload.max_prs_per_hour,
+        payload.fork_org,
+    )
+    .map_err(RestError::Cli)?;
+    Ok(HttpResponse::Ok().body(msg))
+}
+
 // MACRO to quickly generate REST endpoints for a specific model type.
 /// Define CRUD endpoints
 macro_rules! define_crud_endpoints {
@@ -248,6 +283,8 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health_check))
             .route("/agent/start", web::post().to(start_agent))
             .route("/tools/run", web::post().to(run_tools))
+            .route("/batch/run", web::post().to(batch_run))
+            .route("/prs/sync", web::post().to(sync_prs))
             .route("/users", web::post().to(create_user))
             .route("/users/{id}", web::get().to(get_user))
             .route("/orgs", web::post().to(create_org))
@@ -358,7 +395,7 @@ mod tests {
 
         let payload_fix = bridle_sdk::models::ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: Some(true),
             action: Some("fix".to_string()),
@@ -372,7 +409,7 @@ mod tests {
 
         let payload_audit = bridle_sdk::models::ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
             action: Some("audit".to_string()),

@@ -61,7 +61,7 @@ fn process_issue(db_url: &str, issue: &Issue) -> Result<bool, AgentError> {
         tools_to_run.push("rust-unwrap-to-question-mark".to_string());
     }
     if title_lower.contains("err") || body_lower.contains("err") {
-        tools_to_run.push("go-err-check".to_string());
+        tools_to_run.push("rust-unwrap-to-question-mark".to_string());
     }
 
     if tools_to_run.is_empty() {

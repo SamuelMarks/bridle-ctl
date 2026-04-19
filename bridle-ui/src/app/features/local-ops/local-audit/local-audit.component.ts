@@ -25,7 +25,7 @@ import { OpResult } from '../../../core/services/local-op.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="Box p-3 mb-4">
-      <h3 class="h4 mb-3">Run Audit</h3>
+      <h2 class="h4 mb-3">Run Audit</h2>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="mb-3">
           <app-input
@@ -70,7 +70,7 @@ import { OpResult } from '../../../core/services/local-op.service';
     @if (result()) {
       <div class="Box result-panel">
         <div class="Box-header">
-          <h3 class="Box-title">Audit Results</h3>
+          <h2 class="Box-title">Audit Results</h2>
         </div>
         <div class="Box-body p-0">
           <pre class="cli-output p-3 m-0">{{ result()?.output }}</pre>

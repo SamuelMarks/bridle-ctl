@@ -1,33 +1,32 @@
 //! Schema parity test between SQLite and PostgreSQL migrations.
+use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
 #[test]
-fn test_schema_parity_sqlite_pg() {
+fn test_schema_parity_sqlite_pg() -> Result<(), Box<dyn Error>> {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let sqlite_migrations_dir = manifest_dir.join("migrations");
     let pg_migrations_dir = manifest_dir.join("migrations_pg");
 
-    let mut sqlite_migrations: Vec<String> = fs::read_dir(&sqlite_migrations_dir)
-        .expect("Failed to read migrations directory")
+    let mut sqlite_migrations: Vec<String> = fs::read_dir(&sqlite_migrations_dir)?
         .filter_map(|entry| {
-            let entry = entry.unwrap();
+            let entry = entry.ok()?;
             let path = entry.path();
             if path.is_dir() {
-                Some(entry.file_name().into_string().unwrap())
+                Some(entry.file_name().into_string().ok()?)
             } else {
                 None
             }
         })
         .collect();
 
-    let mut pg_migrations: Vec<String> = fs::read_dir(&pg_migrations_dir)
-        .expect("Failed to read migrations_pg directory")
+    let mut pg_migrations: Vec<String> = fs::read_dir(&pg_migrations_dir)?
         .filter_map(|entry| {
-            let entry = entry.unwrap();
+            let entry = entry.ok()?;
             let path = entry.path();
             if path.is_dir() {
-                Some(entry.file_name().into_string().unwrap())
+                Some(entry.file_name().into_string().ok()?)
             } else {
                 None
             }
@@ -71,4 +70,6 @@ fn test_schema_parity_sqlite_pg() {
             migration
         );
     }
+
+    Ok(())
 }

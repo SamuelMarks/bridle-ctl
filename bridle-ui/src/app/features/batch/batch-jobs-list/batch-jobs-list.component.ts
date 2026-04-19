@@ -19,7 +19,7 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
   template: `
     <div class="jobs-list-container">
       <div class="list-header">
-        <h3 class="m-0">Recent Batch Jobs</h3>
+        <h2 class="m-0">Recent Batch Jobs</h2>
         <span class="text-muted">Total: {{ jobs().length }}</span>
       </div>
 

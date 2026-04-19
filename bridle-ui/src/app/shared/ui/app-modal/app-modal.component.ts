@@ -26,7 +26,7 @@ import {
           (keyup.enter)="(null)"
         >
           <div class="Box-header modal-header">
-            <h3 class="Box-title">{{ title() }}</h3>
+            <h2 class="Box-title">{{ title() }}</h2>
             <button
               type="button"
               class="close-button"

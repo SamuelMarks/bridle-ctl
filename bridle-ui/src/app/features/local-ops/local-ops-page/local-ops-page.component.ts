@@ -33,7 +33,7 @@ import { LocalFixComponent } from '../local-fix/local-fix.component';
   template: `
     <div class="container-lg">
       <div class="mb-4">
-        <h2 class="mb-2">Local Operations</h2>
+        <h1 class="mb-2">Local Operations</h1>
         <p class="text-muted">
           Run audit and fix operations directly on the current workspace.
         </p>

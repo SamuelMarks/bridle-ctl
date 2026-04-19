@@ -311,7 +311,7 @@ mod tests {
         // We provide a known mock tool from registry for go matching r".*\.go$"
         let req = ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
             action: None,
@@ -324,7 +324,7 @@ mod tests {
     fn test_run_non_interactive_with_tools_no_pattern() -> Result<(), CliError> {
         let req = ToolRunRequest {
             pattern: None,
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
             action: None,
@@ -350,7 +350,7 @@ mod tests {
     fn test_run_non_interactive_with_tools_dry_run() -> Result<(), CliError> {
         let req = ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
-            tools: Some(vec!["go-err-check".to_string()]),
+            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
             action: None,

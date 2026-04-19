@@ -50,6 +50,14 @@ pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatu
                 // Clean. No issue detected.
                 return Ok(TaskStatus::Clean);
             }
+        } else if step.step_type == StepType::MkconfBuild {
+            // Generate Dockerfiles and build using mkconf
+            let (code, _stdout, _stderr) = execute_step(dir, step).await?;
+            if code != 0 {
+                // Build failed, abort pipeline for this repo
+                return Ok(TaskStatus::FailedValidation);
+            }
+            // If successful, we proceed to next step
         } else if step.step_type == StepType::Fix {
             let _ = execute_step(dir, step).await?;
             // Detect changes

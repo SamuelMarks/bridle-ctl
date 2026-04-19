@@ -121,6 +121,9 @@ pub enum Commands {
         /// Global limit of number of PRs to send per hour.
         #[arg(long)]
         max_prs_per_hour: Option<usize>,
+        /// Specific organization to fork to (if not personal account).
+        #[arg(long)]
+        fork_org: Option<String>,
     },
     /// Runs a batch pipeline configuration.
     BatchRun {
@@ -287,7 +290,8 @@ pub fn execute(command: &Commands) -> Result<String, error::CliError> {
             org,
             db_url,
             max_prs_per_hour,
-        } => bridle_cli::sync_prs::sync_prs(org, db_url, *max_prs_per_hour),
+            fork_org,
+        } => bridle_cli::sync_prs::sync_prs(org, db_url, *max_prs_per_hour, fork_org.clone()),
         Commands::BatchRun {
             config,
             safety_mode,

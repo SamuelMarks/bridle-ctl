@@ -26,7 +26,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
   template: `
     <div class="container-lg">
       <div class="mb-4">
-        <h2 class="mb-2">Developer Tools</h2>
+        <h1 class="mb-2">Developer Tools</h1>
         <p class="text-muted">
           Direct interface to raw daemon commands and utility functions.
         </p>
@@ -35,7 +35,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
       <div class="layout-grid">
         <!-- Math Add utility -->
         <div class="Box p-3">
-          <h3 class="h4 mb-3">Math Utility (Test RPC)</h3>
+          <h2 class="h4 mb-3">Math Utility (Test RPC)</h2>
           <form [formGroup]="addForm" (ngSubmit)="onAdd()">
             <div class="d-flex gap-3 align-items-end mb-3">
               <div class="flex-1">
@@ -74,7 +74,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
 
         <!-- Raw DB Execution -->
         <div class="Box p-3">
-          <h3 class="h4 mb-3">Raw DB Command</h3>
+          <h2 class="h4 mb-3">Raw DB Command</h2>
           <form [formGroup]="dbForm" (ngSubmit)="onDbExec()">
             <div class="mb-3">
               <app-input
@@ -121,7 +121,7 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
 
           @if (dbResult()) {
             <div class="mt-3 border-top pt-3">
-              <h4 class="h5 mb-2">Result</h4>
+              <h3 class="h5 mb-2">Result</h3>
               <pre class="cli-output p-3">{{ dbResult() | json }}</pre>
             </div>
           }

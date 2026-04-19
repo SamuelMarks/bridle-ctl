@@ -139,8 +139,7 @@ describe('BatchActionsPageComponent', () => {
       isSubmitting:
         {} as object as import('@angular/core').InputSignal<boolean>,
       setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as any;
-
+    } as object as import('../batch-fix-form/batch-fix-form.component').BatchFixFormComponent;
     component.onCreateBatchFix({
       target: 'org',
       title: 't',
@@ -179,8 +178,7 @@ describe('BatchActionsPageComponent', () => {
       isSubmitting:
         {} as object as import('@angular/core').InputSignal<boolean>,
       setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as any;
-    mockBatchService.createBatchFix.and.returnValue(
+    } as object as import('../batch-fix-form/batch-fix-form.component').BatchFixFormComponent;    mockBatchService.createBatchFix.and.returnValue(
       throwError(() => new Error('err')),
     );
 
@@ -208,8 +206,7 @@ describe('BatchActionsPageComponent', () => {
       isSubmitting:
         {} as object as import('@angular/core').InputSignal<boolean>,
       setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as any;
-
+    } as object as import('../batch-run-form/batch-run-form.component').BatchRunFormComponent;
     component.onRunPipeline({
       config: 'yaml',
       safety_mode: true,
@@ -237,8 +234,7 @@ describe('BatchActionsPageComponent', () => {
       isSubmitting:
         {} as object as import('@angular/core').InputSignal<boolean>,
       setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as any;
-    mockBatchService.runPipeline.and.returnValue(
+    } as object as import('../batch-run-form/batch-run-form.component').BatchRunFormComponent;    mockBatchService.runPipeline.and.returnValue(
       throwError(() => new Error('err')),
     );
 

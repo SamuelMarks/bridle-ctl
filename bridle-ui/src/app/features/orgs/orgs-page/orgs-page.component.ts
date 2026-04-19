@@ -28,7 +28,7 @@ import { Organization } from '../../../core/models/models';
   template: `
     <div class="container-lg">
       <div class="mb-4">
-        <h2 class="mb-2">Organizations & Repositories</h2>
+        <h1 class="mb-2">Organizations & Repositories</h1>
         <p class="text-muted">
           Ingest and manage source code repositories for local or batch
           processing.
@@ -73,7 +73,7 @@ import { Organization } from '../../../core/models/models';
                   d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"
                 ></path>
               </svg>
-              <h3 class="mb-1">Select an organization</h3>
+              <h2 class="mb-1">Select an organization</h2>
               <p class="text-muted">
                 Choose an organization from the list to view its ingested
                 repositories.

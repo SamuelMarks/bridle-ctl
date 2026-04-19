@@ -22,6 +22,8 @@ pub struct GithubRepo {
     pub fork: bool,
     /// Archived or not
     pub archived: bool,
+    /// Updated at
+    pub updated_at: String,
 }
 
 /// Ingests all repositories for an organization from GitHub.
@@ -58,7 +60,18 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Cli
             break;
         }
 
-        repos.extend(page_repos);
+        let one_year_ago = chrono::Utc::now() - chrono::Duration::days(365);
+        for repo in page_repos {
+            if repo.fork || repo.archived {
+                continue;
+            }
+            if let Ok(updated_time) = chrono::DateTime::parse_from_rfc3339(&repo.updated_at) {
+                if updated_time.with_timezone(&chrono::Utc) > one_year_ago {
+                    repos.push(repo);
+                }
+            }
+        }
+
         page += 1;
     }
 
@@ -147,10 +160,13 @@ mod tests {
     #[test]
     fn test_ingest_org_unsupported_provider() {
         let res = ingest_org("testorg", "gitlab", "bridle.db");
-        assert!(res.is_err());
-        assert_eq!(
-            res.unwrap_err().to_string(),
-            "Execution Error: Unsupported provider: gitlab"
-        );
+        if let Err(e) = res {
+            assert_eq!(
+                e.to_string(),
+                "Execution Error: Unsupported provider: gitlab"
+            );
+        } else {
+            panic!("Expected error");
+        }
     }
 }

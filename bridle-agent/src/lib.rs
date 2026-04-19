@@ -61,7 +61,7 @@ mod tests {
         // Test run_code_tool (valid)
         let valid_code_tool_req = r#"{
             "pattern": ".*\\.go$",
-            "tools": ["go-err-check"],
+            "tools": ["rust-unwrap-to-question-mark"],
             "action": "audit"
         }"#;
         let res2 = mcp::execute_mcp_tool("run_code_tool", valid_code_tool_req)?;

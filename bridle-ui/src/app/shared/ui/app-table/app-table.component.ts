@@ -37,7 +37,7 @@ export class AppTableColumnDirective {
     <div class="Box">
       @if (title()) {
         <div class="Box-header">
-          <h3 class="Box-title">{{ title() }}</h3>
+          <h2 class="Box-title">{{ title() }}</h2>
         </div>
       }
       <div class="Box-body p-0">
