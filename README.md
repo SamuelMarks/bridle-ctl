@@ -9,9 +9,9 @@
 
 > **Because your LLM needs reins, not a blank check.**
 
-`bridle-ctl` is a comprehensive AI-native codebase orchestrator and embedded Git Forge backend. It was built from the ground up to solve the fundamental problem of AI code generation at scale: **hallucinated, non-deterministic string replacements**. 
+`bridle-ctl` is a comprehensive AI-native codebase orchestrator and embedded Git Forge backend. It was built from the ground up to solve the fundamental problem of AI code generation at scale: **hallucinated, non-deterministic string replacements**.
 
-Instead of letting AI agents blindly manipulate raw text, `bridle-ctl` forces agents to interact with your codebase through **compiled, deterministic FFI (Foreign Function Interface) tools**. 
+Instead of letting AI agents blindly manipulate raw text, `bridle-ctl` forces agents to interact with your codebase through **compiled, deterministic FFI (Foreign Function Interface) tools**.
 
 Furthermore, `bridle-ctl` provides a completely offline, local "Git Forge" (via SQLite or PostgreSQL) complete with Issues, Pull Requests, Commits, and Repositories. This allows an entire simulated AI Engineering team to operate, debate, and generate code concurrently without ever touching the network—until you are ready to synchronize the results upstream.
 
@@ -27,6 +27,7 @@ Furthermore, `bridle-ctl` provides a completely offline, local "Git Forge" (via 
 `bridle-ctl` is built around two primary, automated workflows designed to safely scale AI-driven codebase mutations across organizations:
 
 ### Workflow 1: Codebase Mutation Pipeline
+
 0. **Target**: Specify a target GitHub org (e.g., `example-org`).
 1. **Clone**: Clone down all non-readonly, updated-in-past-year, non-fork repositories.
 2. **Build**: Build the target code using custom Dockerfiles dynamically generated with [mkconf](https://github.com/SamuelMarks/mkconf).
@@ -35,6 +36,7 @@ Furthermore, `bridle-ctl` provides a completely offline, local "Git Forge" (via 
 5. **Mark**: Mark it as a successful patch and a candidate for sending a Pull Request back to the target org.
 
 ### Workflow 2: PR Synchronization (Rate-Limited)
+
 0. **Queue**: Pull from the queue of successful candidates ready for PR submission.
 1. **Template**: Interpolate details into the repository's PR template (or create a new one from scratch if none exists).
 2. **Fork**: Fork the repository (if not already done) or reuse the existing fork on your specified `fork_org`.
@@ -71,7 +73,7 @@ For full usage instructions, including environment variables and batch configura
 
 ## 🔌 How to Extend It (Adding Tools)
 
-The true power of `bridle-ctl` lies in its extensible toolchain. Instead of teaching an LLM how to perfectly rewrite a complex regex, you write a deterministic tool (in Rust, Go, C++, etc.), compile it to a shared library, and register it via FFI. The AI agent simply decides *when* and *where* to run the tool.
+The true power of `bridle-ctl` lies in its extensible toolchain. Instead of teaching an LLM how to perfectly rewrite a complex regex, you write a deterministic tool (in Rust, Go, C++, etc.), compile it to a shared library, and register it via FFI. The AI agent simply decides _when_ and _where_ to run the tool.
 
 For a step-by-step guide on creating, wrapping, and registering new tools, see [ADD_NEW_TOOLS.md](./ADD_NEW_TOOLS.md).
 
@@ -79,14 +81,14 @@ For a step-by-step guide on creating, wrapping, and registering new tools, see [
 
 `bridle-ctl` ships with several built-in FFI wrappers and utilities:
 
-| Tool Name | Description | Target Language |
-| :--- | :--- | :--- |
-| `go-auto-err-handling` | Automatically injects `if err != nil { return err }` blocks. | Go |
-| `type-correct` | Resolves standard C/C++ type inconsistencies via AST parsing. | C/C++ |
-| `lib2notebook2lib` | Bi-directional sync between Python source and Jupyter notebooks. | Python |
-| `cdd-extern-c` | Safely wraps headers in `extern "C"` blocks. | C/C++ |
-| `encoding-normalizer` | Standardizes file encodings (UTF-8) and line endings (LF). | Any |
-| `rust-unwrap-to-question-mark` | Safely refactors `.unwrap()` calls to idiomatic `?` usage. | Rust |
+| Tool Name                      | Description                                                      | Target Language |
+| :----------------------------- | :--------------------------------------------------------------- | :-------------- |
+| `go-auto-err-handling`         | Automatically injects `if err != nil { return err }` blocks.     | Go              |
+| `type-correct`                 | Resolves standard C/C++ type inconsistencies via AST parsing.    | C/C++           |
+| `lib2notebook2lib`             | Bi-directional sync between Python source and Jupyter notebooks. | Python          |
+| `cdd-extern-c`                 | Safely wraps headers in `extern "C"` blocks.                     | C/C++           |
+| `encoding-normalizer`          | Standardizes file encodings (UTF-8) and line endings (LF).       | Any             |
+| `rust-unwrap-to-question-mark` | Safely refactors `.unwrap()` calls to idiomatic `?` usage.       | Rust            |
 
 ## 📖 Further Reading
 

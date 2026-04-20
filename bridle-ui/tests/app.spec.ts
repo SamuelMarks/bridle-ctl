@@ -268,8 +268,14 @@ test('Can ingest a new organization', async ({ page }) => {
   await page.goto('/orgs');
 
   await page.getByLabel('Organization Name').fill('new-org');
-  await page.getByLabel('Database URL').fill('postgres://user:pass@localhost:5432/db');
+  await page
+    .getByLabel('Database URL')
+    .fill('postgres://user:pass@localhost:5432/db');
   await page.getByRole('button', { name: 'Ingest Org' }).click();
 
-  await expect(page.locator('.Toast--success', { hasText: 'Organization new-org ingested successfully' })).toBeVisible();
+  await expect(
+    page.locator('.Toast--success', {
+      hasText: 'Organization new-org ingested successfully',
+    }),
+  ).toBeVisible();
 });

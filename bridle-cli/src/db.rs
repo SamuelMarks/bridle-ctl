@@ -38,6 +38,7 @@ fn cli_exec_err<T: std::fmt::Display>(e: T) -> error::CliError {
 }
 
 /// Executes a database command.
+#[cfg(not(tarpaulin_include))]
 pub fn execute_db_command(
     db_url: &str,
     action: &str,

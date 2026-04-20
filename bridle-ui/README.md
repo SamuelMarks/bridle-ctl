@@ -17,13 +17,15 @@ While the CLI and Agent operate primarily in the terminal and background, the UI
 ### Development Server
 
 Run the following command to start the development server:
+
 ```bash
 npm install
 npm run start
 ```
-Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files. 
 
-*(Note: The UI expects the `bridle-rest` API to be running on port 8080. Start it via `bridle rest --port 8080` in a separate terminal).*
+Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+
+_(Note: The UI expects the `bridle-rest` API to be running on port 8080. Start it via `bridle rest --port 8080` in a separate terminal)._
 
 ### Build for Production
 
@@ -34,13 +36,17 @@ Run `npm run build` to build the project. The optimized build artifacts will be 
 We maintain strict quality standards to ensure the UI is as reliable as the Rust backend.
 
 ### Unit Tests
+
 Run unit tests via Karma:
+
 ```bash
 npm run test
 ```
 
 ### End-to-End Tests
+
 We use Playwright to ensure the entire user journey (from creating a pipeline to approving a PR) functions correctly.
+
 ```bash
 # Run headless tests
 npx playwright test

@@ -139,35 +139,35 @@ describe('ApiService on Server', () => {
         ApiService,
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: PLATFORM_ID, useValue: 'server' }
+        { provide: PLATFORM_ID, useValue: 'server' },
       ],
     });
     service = TestBed.inject(ApiService);
   });
 
   it('should return empty observable on get', (done) => {
-    service.get('/test').subscribe(res => {
+    service.get('/test').subscribe((res) => {
       expect(res).toEqual([]);
       done();
     });
   });
 
   it('should return empty object on post', (done) => {
-    service.post('/test').subscribe(res => {
+    service.post('/test').subscribe((res) => {
       expect(res).toEqual({});
       done();
     });
   });
 
   it('should return empty object on put', (done) => {
-    service.put('/test').subscribe(res => {
+    service.put('/test').subscribe((res) => {
       expect(res).toEqual({});
       done();
     });
   });
 
   it('should return empty object on delete', (done) => {
-    service.delete('/test').subscribe(res => {
+    service.delete('/test').subscribe((res) => {
       expect(res).toEqual({});
       done();
     });

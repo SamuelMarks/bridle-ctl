@@ -67,7 +67,11 @@ describe('PrService', () => {
 
     const req = httpMock.expectOne('/api/prs/sync');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ org: 'org1', max_prs_per_hour: 10, fork_org: undefined });
+    expect(req.request.body).toEqual({
+      org: 'org1',
+      max_prs_per_hour: 10,
+      fork_org: undefined,
+    });
     req.flush(mockRes);
 
     expect(service.isSyncing()).toBeFalse();

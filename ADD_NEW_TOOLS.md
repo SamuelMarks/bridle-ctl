@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The strength of `bridle-ctl` lies in deterministic codebase mutations. Instead of allowing AI agents to generate error-prone string replacements, agents invoke compiled FFI (Foreign Function Interface) tools. 
+The strength of `bridle-ctl` lies in deterministic codebase mutations. Instead of allowing AI agents to generate error-prone string replacements, agents invoke compiled FFI (Foreign Function Interface) tools.
 
 This document explains how to write a new tool, compile it, and integrate it into the `bridle-sdk`.
 
@@ -11,6 +11,7 @@ This document explains how to write a new tool, compile it, and integrate it int
 ## 🔄 The Tool Integration Process
 
 Adding a new tool involves four main steps:
+
 1. Write the logic in your preferred systems language (C, C++, Rust, Go).
 2. Expose the required `extern "C"` functions (`audit` and `fix`).
 3. Compile it as a shared library (`.so`, `.dylib`, `.dll`).
@@ -46,7 +47,7 @@ use std::fs;
 pub extern "C" fn audit(file_path: *const c_char) -> c_int {
     let path = unsafe { CStr::from_ptr(file_path) }.to_str().unwrap_or("");
     if !path.ends_with(".rs") { return 0; }
-    
+
     if let Ok(content) = fs::read_to_string(path) {
         if content.contains(".unwrap()") { return 1; }
     }
@@ -56,7 +57,7 @@ pub extern "C" fn audit(file_path: *const c_char) -> c_int {
 #[no_mangle]
 pub extern "C" fn fix(file_path: *const c_char, _args: *const c_char) -> c_int {
     let path = unsafe { CStr::from_ptr(file_path) }.to_str().unwrap_or("");
-    
+
     // In a real tool, use the `syn` crate for AST-aware replacement!
     // This is a naive example.
     if let Ok(content) = fs::read_to_string(path) {
@@ -84,11 +85,11 @@ pub struct RustUnwrapFixer {
 
 impl CodeTool for RustUnwrapFixer {
     fn name(&self) -> &str { "rust-unwrap-to-question-mark" }
-    
+
     fn audit(&self, path: &Path) -> Result<bool, Error> {
         // ... unsafe call to the loaded audit() symbol ...
     }
-    
+
     fn fix(&self, path: &Path, args: Option<&str>) -> Result<(), Error> {
         // ... unsafe call to the loaded fix() symbol ...
     }
@@ -98,6 +99,7 @@ impl CodeTool for RustUnwrapFixer {
 ### 4. Testing Requirements
 
 `bridle-ctl` enforces **100% Test Coverage**. When you add a new FFI binding:
+
 1. Write unit tests in `bridle-sdk/src/ffi.rs` that load the shared library (or a mock version).
 2. Ensure both success and failure states of the C ABI are handled correctly without panicking.
 3. Verify memory safety (ensure strings passed across the FFI boundary are not leaked or prematurely freed).

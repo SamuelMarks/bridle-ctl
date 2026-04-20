@@ -75,7 +75,7 @@ bridle batch-fix \
 
 ## ☁️ Upstream Synchronization
 
-As your AI agents operate, they generate Pull Requests *locally* within the `bridle-ctl` database. When you are ready to publish these changes to an upstream provider (like GitHub or GitLab), use the `sync-prs` command.
+As your AI agents operate, they generate Pull Requests _locally_ within the `bridle-ctl` database. When you are ready to publish these changes to an upstream provider (like GitHub or GitLab), use the `sync-prs` command.
 
 ```bash
 bridle sync-prs \
@@ -85,8 +85,9 @@ bridle sync-prs \
 ```
 
 ### Workflow 1: Codebase Mutation Pipeline
-When running a batch operation (e.g., via `bridle batch-fix`), the system executes the following workflow:
-0. **Target Identification**: Specify a target GitHub org (e.g., `example-org`).
+
+When running a batch operation (e.g., via `bridle batch-fix`), the system executes the following workflow: 0. **Target Identification**: Specify a target GitHub org (e.g., `example-org`).
+
 1. **Clone**: Clone down all non-readonly, non-fork repositories that were updated in the past year.
 2. **Build Validation**: Build the repository using custom Dockerfiles generated dynamically via [mkconf](https://github.com/SamuelMarks/mkconf).
 3. **Tool Execution**: If the build succeeds, proceed to tool execution (e.g., running [go-auto-err-handling](https://github.com/SamuelMarks/go-auto-err-handling) on a Go project).
@@ -97,7 +98,7 @@ When running a batch operation (e.g., via `bridle batch-fix`), the system execut
 
 ## ☁️ Upstream Synchronization
 
-As your AI agents operate, they generate Pull Requests *locally* within the `bridle-ctl` database. When you are ready to publish these changes to an upstream provider (like GitHub or GitLab), use the `sync-prs` command.
+As your AI agents operate, they generate Pull Requests _locally_ within the `bridle-ctl` database. When you are ready to publish these changes to an upstream provider (like GitHub or GitLab), use the `sync-prs` command.
 
 ```bash
 bridle sync-prs \
@@ -108,8 +109,9 @@ bridle sync-prs \
 ```
 
 ### Workflow 2: Synchronize Pull Requests (with Limits)
-The `sync-prs` process follows this strict pipeline to protect your API standing:
-0. **Queue Pull**: Pull from the queue of successful patch candidates ready to be sent back to the org.
+
+The `sync-prs` process follows this strict pipeline to protect your API standing: 0. **Queue Pull**: Pull from the queue of successful patch candidates ready to be sent back to the org.
+
 1. **PR Templating**: Interpolate the patch details into the target repository's PR template, or create a new one from scratch if no template exists.
 2. **Fork Management**: Fork the repository (if not done already), otherwise reuse your existing fork (specifically on the target `fork_org`).
 3. **Send PR**: Push the branch and send the Pull Request upstream, strictly enforcing rate limits (e.g., max 10 PRs an hour).
@@ -125,6 +127,7 @@ cd bridle-ui
 npm install
 npm run start
 ```
+
 Navigate to `http://localhost:4200` to view the graphical dashboard for your embedded Git Forge and batch operations.
 
 ---

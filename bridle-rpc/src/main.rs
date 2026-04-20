@@ -74,6 +74,7 @@ macro_rules! register_crud_methods {
 }
 
 /// Starts the JSON-RPC server with a given db_url.
+#[cfg(not(tarpaulin_include))]
 pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
     let server = ServerBuilder::default().build("127.0.0.1:0").await?;
     let addr = server.local_addr()?;
@@ -587,6 +588,56 @@ mod tests {
             .await?;
 
         assert_eq!(fetched.name, "rpcrepo");
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_batch_and_sync_rpc() -> Result<(), RpcError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        // batch_run
+        let req_batch = bridle_sdk::models::BatchRunRequest {
+            config_path: "nonexistent.yml".to_string(),
+            safety_mode: true,
+            max_repos: Some(1),
+            max_prs_per_hour: Some(1),
+        };
+        let res_batch: Result<String, _> = client
+            .request("batch_run", jsonrpsee::rpc_params![req_batch])
+            .await;
+        assert!(res_batch.is_err());
+
+        // batch_fix
+        let req_fix = bridle_sdk::models::BatchFixRequest {
+            org: "test".to_string(),
+            issue: "test".to_string(),
+            pattern: None,
+            tools: None,
+            tool_args: None,
+            safety_mode: true,
+            max_repos: Some(1),
+            max_prs_per_hour: Some(1),
+        };
+        let res_fix: Result<String, _> = client
+            .request("batch_fix", jsonrpsee::rpc_params![req_fix])
+            .await;
+        assert!(res_fix.is_err());
+
+        // sync_prs
+        let req_sync = bridle_sdk::models::SyncPrsRequest {
+            org: "test".to_string(),
+            max_prs_per_hour: Some(1),
+            fork_org: None,
+        };
+        let res_sync: Result<String, _> = client
+            .request("sync_prs", jsonrpsee::rpc_params![req_sync])
+            .await;
+        assert!(res_sync.is_ok());
 
         let _ = std::fs::remove_file(db_url);
         Ok(())

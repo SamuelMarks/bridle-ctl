@@ -178,7 +178,8 @@ describe('BatchActionsPageComponent', () => {
       isSubmitting:
         {} as object as import('@angular/core').InputSignal<boolean>,
       setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as import('../batch-fix-form/batch-fix-form.component').BatchFixFormComponent;    mockBatchService.createBatchFix.and.returnValue(
+    } as object as import('../batch-fix-form/batch-fix-form.component').BatchFixFormComponent;
+    mockBatchService.createBatchFix.and.returnValue(
       throwError(() => new Error('err')),
     );
 
@@ -234,7 +235,8 @@ describe('BatchActionsPageComponent', () => {
       isSubmitting:
         {} as object as import('@angular/core').InputSignal<boolean>,
       setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as import('../batch-run-form/batch-run-form.component').BatchRunFormComponent;    mockBatchService.runPipeline.and.returnValue(
+    } as object as import('../batch-run-form/batch-run-form.component').BatchRunFormComponent;
+    mockBatchService.runPipeline.and.returnValue(
       throwError(() => new Error('err')),
     );
 

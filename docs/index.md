@@ -30,15 +30,15 @@ The following references are auto-generated from the source code during the `mak
 
 To build this unified documentation site locally:
 
-1. Install system dependencies (MkDocs, Cargo, Compodoc): 
+1. Install system dependencies (MkDocs, Cargo, Compodoc):
    ```bash
    make install_base
    ```
-2. Install project dependencies: 
+2. Install project dependencies:
    ```bash
    make install_deps
    ```
-3. Build the full unified site: 
+3. Build the full unified site:
    ```bash
    make docs
    ```

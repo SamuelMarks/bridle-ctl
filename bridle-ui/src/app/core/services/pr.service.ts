@@ -40,10 +40,16 @@ export class PrService {
    * @param maxRate Maximum PRs to sync
    * @param forkOrg Optional specific fork org
    */
-  syncPrs(orgId: string, maxRate: number, forkOrg?: string): Observable<{ syncedCount: number }> {
+  syncPrs(
+    orgId: string,
+    maxRate: number,
+    forkOrg?: string,
+  ): Observable<{ syncedCount: number }> {
     this.isSyncingSignal.set(true);
     return this.api
-      .post<{ syncedCount: number }>('/prs/sync', { org: orgId, max_prs_per_hour: maxRate, fork_org: forkOrg })
+      .post<{
+        syncedCount: number;
+      }>('/prs/sync', { org: orgId, max_prs_per_hour: maxRate, fork_org: forkOrg })
       .pipe(
         tap({
           next: () => this.isSyncingSignal.set(false),
