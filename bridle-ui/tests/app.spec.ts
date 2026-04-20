@@ -258,3 +258,18 @@ test.describe('Bridle UI End-to-End Tests', () => {
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 });
+
+test('Can ingest a new organization', async ({ page }) => {
+  await page.route('**/api/orgs/ingest', async (route) => {
+    const json = { id: 'org-new', name: 'new-org', provider: 'github' };
+    await route.fulfill({ json });
+  });
+
+  await page.goto('/orgs');
+
+  await page.getByLabel('Organization Name').fill('new-org');
+  await page.getByLabel('Database URL').fill('postgres://user:pass@localhost:5432/db');
+  await page.getByRole('button', { name: 'Ingest Org' }).click();
+
+  await expect(page.locator('.Toast--success', { hasText: 'Organization new-org ingested successfully' })).toBeVisible();
+});

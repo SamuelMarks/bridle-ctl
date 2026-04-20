@@ -54,8 +54,8 @@ describe('IngestOrgFormComponent', () => {
   });
 
   it('should toggle isSubmitting state', () => {
-    expect(component.isSubmitting).toBeFalse();
+    expect(component.isSubmitting()).toBeFalse();
     component.setSubmitting(true);
-    expect(component.isSubmitting).toBeTrue();
+    expect(component.isSubmitting()).toBeTrue();
   });
 });

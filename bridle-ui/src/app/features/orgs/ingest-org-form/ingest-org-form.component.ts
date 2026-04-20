@@ -1,4 +1,5 @@
 import {
+  signal,
   Component,
   ChangeDetectionStrategy,
   output,
@@ -62,9 +63,9 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
           <app-button
             type="submit"
             variant="primary"
-            [disabled]="form.invalid || isSubmitting"
+            [disabled]="form.invalid || isSubmitting()"
           >
-            {{ isSubmitting ? 'Ingesting...' : 'Ingest Org' }}
+            {{ isSubmitting() ? 'Ingesting...' : 'Ingest Org' }}
           </app-button>
         </div>
       </form>
@@ -120,7 +121,7 @@ export class IngestOrgFormComponent {
   ];
 
   /** Whether the form is currently submitting */
-  isSubmitting = false;
+  isSubmitting = signal<boolean>(false);
 
   /** Handles form submission */
   onSubmit(): void {
@@ -136,6 +137,6 @@ export class IngestOrgFormComponent {
 
   /** Sets the submitting state */
   setSubmitting(isSubmitting: boolean): void {
-    this.isSubmitting = isSubmitting;
+    this.isSubmitting.set(isSubmitting);
   }
 }

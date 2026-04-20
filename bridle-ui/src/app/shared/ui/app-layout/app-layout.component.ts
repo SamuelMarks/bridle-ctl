@@ -1,12 +1,13 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AppToastComponent } from '../app-toast/app-toast.component';
 
 /**
  * Global layout component serving as the app shell.
  */
 @Component({
   selector: 'app-layout',
-  imports: [RouterLink],
+  imports: [RouterLink, AppToastComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout-wrapper">
@@ -48,6 +49,7 @@ import { RouterLink } from '@angular/router';
           <ng-content></ng-content>
         </main>
       </div>
+      <app-toast></app-toast>
     </div>
   `,
   styles: `

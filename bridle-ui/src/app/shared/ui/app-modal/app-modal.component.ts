@@ -21,6 +21,9 @@ import {
       >
         <div
           class="Box modal-dialog"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="title()"
           tabindex="-1"
           (click)="$event.stopPropagation()"
           (keyup.enter)="(null)"

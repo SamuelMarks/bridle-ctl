@@ -13,6 +13,7 @@ import { isPlatformServer } from '@angular/common';
 export class ApiService {
   /** HTTP Client instance */
   private http = inject(HttpClient);
+  /** Platform ID instance */
   private platformId = inject(PLATFORM_ID);
 
   /** Base API URL */

@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { PLATFORM_ID } from '@angular/core';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -126,5 +127,49 @@ describe('ApiService', () => {
     const req = httpMock.expectOne('/api/test-delete');
     expect(req.request.method).toBe('DELETE');
     req.flush({ success: true });
+  });
+});
+
+describe('ApiService on Server', () => {
+  let service: ApiService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        ApiService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: PLATFORM_ID, useValue: 'server' }
+      ],
+    });
+    service = TestBed.inject(ApiService);
+  });
+
+  it('should return empty observable on get', (done) => {
+    service.get('/test').subscribe(res => {
+      expect(res).toEqual([]);
+      done();
+    });
+  });
+
+  it('should return empty object on post', (done) => {
+    service.post('/test').subscribe(res => {
+      expect(res).toEqual({});
+      done();
+    });
+  });
+
+  it('should return empty object on put', (done) => {
+    service.put('/test').subscribe(res => {
+      expect(res).toEqual({});
+      done();
+    });
+  });
+
+  it('should return empty object on delete', (done) => {
+    service.delete('/test').subscribe(res => {
+      expect(res).toEqual({});
+      done();
+    });
   });
 });
