@@ -20,7 +20,6 @@ pub const MIGRATIONS_SQLITE: EmbeddedMigrations = embed_migrations!("migrations"
 pub const MIGRATIONS_PG: EmbeddedMigrations = embed_migrations!("migrations_pg");
 
 /// Helper function to convert any generic error display into a `BridleError::Database` execution error.
-#[cfg(not(tarpaulin_include))]
 fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
     BridleError::Database(diesel::result::Error::DatabaseError(
         diesel::result::DatabaseErrorKind::UnableToSendCommand,
@@ -29,7 +28,6 @@ fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
 }
 
 /// Establishes a PostgreSQL database connection and runs pending migrations.
-#[cfg(not(tarpaulin_include))]
 fn establish_pg(database_url: &str) -> Result<DbConnection, BridleError> {
     let mut connection = PgConnection::establish(database_url).map_err(db_exec_err)?;
     connection
@@ -43,10 +41,7 @@ pub fn establish_connection_and_run_migrations(
     database_url: &str,
 ) -> Result<DbConnection, BridleError> {
     if database_url.starts_with("postgres://") || database_url.starts_with("postgresql://") {
-        #[cfg(not(tarpaulin_include))]
-        return establish_pg(database_url);
-        #[cfg(tarpaulin_include)]
-        unreachable!()
+        establish_pg(database_url)
     } else {
         let mut connection = SqliteConnection::establish(database_url).map_err(db_exec_err)?;
         connection
@@ -70,7 +65,6 @@ pub fn insert_user(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(users)
                 .values(new_user)
@@ -92,7 +86,6 @@ pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = users
                 .filter(id.eq(user_id))
@@ -117,7 +110,6 @@ pub fn insert_organisation(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(organisations)
                 .values(new_org)
@@ -142,7 +134,6 @@ pub fn get_organisation(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = organisations
                 .filter(id.eq(org_id))
@@ -167,7 +158,6 @@ pub fn insert_repository(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(repositories)
                 .values(new_repo)
@@ -192,7 +182,6 @@ pub fn get_repository(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = repositories
                 .filter(id.eq(repo_id))
@@ -217,7 +206,6 @@ pub fn insert_team(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(teams)
                 .values(new_item)
@@ -239,7 +227,6 @@ pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = teams
                 .filter(id.eq(item_id))
@@ -264,7 +251,6 @@ pub fn insert_branch(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(branches)
                 .values(new_item)
@@ -289,7 +275,6 @@ pub fn get_branch(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = branches
                 .filter(id.eq(item_id))
@@ -314,7 +299,6 @@ pub fn insert_branch_protection_rule(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(branch_protection_rules)
                 .values(new_item)
@@ -339,7 +323,6 @@ pub fn get_branch_protection_rule(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = branch_protection_rules
                 .filter(id.eq(item_id))
@@ -364,7 +347,6 @@ pub fn insert_key(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(keys)
                 .values(new_item)
@@ -386,7 +368,6 @@ pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::K
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = keys
                 .filter(id.eq(item_id))
@@ -411,7 +392,6 @@ pub fn insert_follow(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(follows)
                 .values(new_item)
@@ -436,7 +416,6 @@ pub fn get_follow(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = follows
                 .filter(id.eq(item_id))
@@ -461,7 +440,6 @@ pub fn insert_star(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(stars)
                 .values(new_item)
@@ -483,7 +461,6 @@ pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = stars
                 .filter(id.eq(item_id))
@@ -508,7 +485,6 @@ pub fn insert_org_membership(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(org_memberships)
                 .values(new_item)
@@ -533,7 +509,6 @@ pub fn get_org_membership(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = org_memberships
                 .filter(id.eq(item_id))
@@ -558,7 +533,6 @@ pub fn insert_repo_collaborator(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(repo_collaborators)
                 .values(new_item)
@@ -583,7 +557,6 @@ pub fn get_repo_collaborator(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = repo_collaborators
                 .filter(id.eq(item_id))
@@ -608,7 +581,6 @@ pub fn insert_milestone(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(milestones)
                 .values(new_item)
@@ -633,7 +605,6 @@ pub fn get_milestone(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = milestones
                 .filter(id.eq(item_id))
@@ -658,7 +629,6 @@ pub fn insert_label(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(labels)
                 .values(new_item)
@@ -683,7 +653,6 @@ pub fn get_label(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = labels
                 .filter(id.eq(item_id))
@@ -708,7 +677,6 @@ pub fn insert_issue(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(issues)
                 .values(new_item)
@@ -733,7 +701,6 @@ pub fn get_issue(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = issues
                 .filter(id.eq(item_id))
@@ -758,7 +725,6 @@ pub fn insert_issue_label(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(issue_labels)
                 .values(new_item)
@@ -783,7 +749,6 @@ pub fn get_issue_label(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = issue_labels
                 .filter(id.eq(item_id))
@@ -808,7 +773,6 @@ pub fn insert_pull_request(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(pull_requests)
                 .values(new_item)
@@ -833,7 +797,6 @@ pub fn get_pull_request(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = pull_requests
                 .filter(id.eq(item_id))
@@ -858,7 +821,6 @@ pub fn insert_pull_request_review(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(pull_request_reviews)
                 .values(new_item)
@@ -883,7 +845,6 @@ pub fn get_pull_request_review(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = pull_request_reviews
                 .filter(id.eq(item_id))
@@ -908,7 +869,6 @@ pub fn insert_release(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(releases)
                 .values(new_item)
@@ -933,7 +893,6 @@ pub fn get_release(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = releases
                 .filter(id.eq(item_id))
@@ -958,7 +917,6 @@ pub fn insert_webhook(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(webhooks)
                 .values(new_item)
@@ -983,7 +941,6 @@ pub fn get_webhook(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = webhooks
                 .filter(id.eq(item_id))
@@ -1008,7 +965,6 @@ pub fn insert_commit(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(commits)
                 .values(new_item)
@@ -1033,7 +989,6 @@ pub fn get_commit(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = commits
                 .filter(id.eq(item_id))
@@ -1058,7 +1013,6 @@ pub fn insert_tree(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(trees)
                 .values(new_item)
@@ -1080,7 +1034,6 @@ pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = trees
                 .filter(id.eq(item_id))
@@ -1105,7 +1058,6 @@ pub fn insert_blob(
                 .map_err(db_exec_err)?;
             Ok(())
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(blobs)
                 .values(new_item)
@@ -1127,7 +1079,6 @@ pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
-        #[cfg(not(tarpaulin_include))]
         crate::db::DbConnection::Pg(c) => {
             let fetched = blobs
                 .filter(id.eq(item_id))

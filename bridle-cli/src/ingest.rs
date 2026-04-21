@@ -27,7 +27,6 @@ pub struct GithubRepo {
 }
 
 /// Ingests all repositories for an organization from GitHub.
-#[cfg(not(tarpaulin_include))]
 pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, CliError> {
     if provider != "github" {
         return Err(CliError::Execution(format!(

@@ -19,7 +19,6 @@ pub struct GitMutator;
 
 impl GitMutator {
     /// Adds a remote repository URL.
-    #[cfg(not(tarpaulin_include))]
     pub async fn add_remote(dir: &Path, remote_name: &str, url: &str) -> Result<(), CliError> {
         let status = git_command()
             .current_dir(dir)
@@ -38,8 +37,6 @@ impl GitMutator {
     }
 
     /// Commits and pushes changes.
-    #[cfg(not(tarpaulin_include))]
-    #[cfg(not(tarpaulin_include))]
     pub async fn commit_and_push(
         dir: &Path,
         commit_message: &str,
@@ -76,7 +73,6 @@ impl GitMutator {
 }
 
 /// HTTP Client with Retry and Rate Limiting
-#[cfg(not(tarpaulin_include))]
 pub struct ForgeClient {
     /// The underlying reqwest client.
     client: Client,
@@ -84,7 +80,6 @@ pub struct ForgeClient {
     token: String,
 }
 
-#[cfg(not(tarpaulin_include))]
 impl ForgeClient {
     /// Create a new client
     pub fn new(token: String) -> Result<Self, CliError> {
@@ -98,7 +93,6 @@ impl ForgeClient {
     }
 
     /// Internal helper to send requests with retries and rate limiting handling.
-    #[cfg(not(tarpaulin_include))]
     async fn send_request(
         &self,
         req: reqwest::RequestBuilder,

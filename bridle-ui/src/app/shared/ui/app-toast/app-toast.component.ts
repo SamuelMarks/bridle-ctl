@@ -162,9 +162,20 @@ import { NotificationService } from '../../../core/services/notification.service
   `,
 })
 export class AppToastComponent {
+  /**
+   * Private reference to the notification service.
+   */
   private notificationService = inject(NotificationService);
+
+  /**
+   * The list of active notifications to display.
+   */
   notifications = this.notificationService.notifications;
 
+  /**
+   * Dismisses a notification by its unique ID.
+   * @param id The unique identifier of the notification to dismiss.
+   */
   dismiss(id: string): void {
     this.notificationService.remove(id);
   }

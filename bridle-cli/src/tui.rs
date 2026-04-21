@@ -20,7 +20,6 @@ use crate::error::CliError;
 use crate::tools::CodeTool;
 
 /// Launches the interactive TUI to select tools.
-#[cfg(not(tarpaulin_include))]
 pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError> {
     enable_raw_mode().map_err(CliError::Io)?;
     let mut stdout = io::stdout();
@@ -51,7 +50,6 @@ pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError>
 }
 
 /// Runs the main event loop for the TUI.
-#[cfg(not(tarpaulin_include))]
 fn run_app(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     tools: &[Box<dyn CodeTool>],

@@ -17,7 +17,6 @@ use crate::path_scope::PathScope;
 ///
 /// This function prevents concurrent mutation race conditions by
 /// utilizing an OS-level exclusive file lock.
-#[cfg(not(tarpaulin_include))]
 pub fn mutate_file_exclusively<P, F>(
     path: P,
     scope: Option<&PathScope>,
@@ -43,7 +42,6 @@ where
     let mut contents = String::new();
     let read_result = file.read_to_string(&mut contents);
 
-    #[cfg(not(tarpaulin_include))]
     {
         if let Err(e) = read_result {
             file.unlock()?;
@@ -58,7 +56,6 @@ where
                 .and_then(|_| file.seek(SeekFrom::Start(0)))
                 .and_then(|_| file.write_all(new_contents.as_bytes()));
 
-            #[cfg(not(tarpaulin_include))]
             {
                 if let Err(e) = write_result {
                     file.unlock()?;

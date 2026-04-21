@@ -155,7 +155,6 @@ pub enum Commands {
 }
 
 /// Parses a list of strings like `tool:arg1` into a mapping of tool to its arguments.
-#[cfg(not(tarpaulin_include))]
 fn parse_tool_args(args: Option<Vec<String>>) -> std::collections::HashMap<String, Vec<String>> {
     let mut map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
     if let Some(list) = args {
@@ -171,7 +170,6 @@ fn parse_tool_args(args: Option<Vec<String>>) -> std::collections::HashMap<Strin
 }
 
 /// Executes the provided command.
-#[cfg(not(tarpaulin_include))]
 pub fn execute(command: &Commands) -> Result<String, error::CliError> {
     match command {
         Commands::Rest => {
@@ -312,7 +310,6 @@ pub fn execute(command: &Commands) -> Result<String, error::CliError> {
 }
 
 /// Main entry point for the CLI.
-#[cfg(not(tarpaulin_include))]
 fn main() {
     let cli = Cli::parse();
     match execute(&cli.command) {

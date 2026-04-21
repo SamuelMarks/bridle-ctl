@@ -69,7 +69,6 @@ fn detect_applicable_tools(tools: &[Box<dyn tools::CodeTool>]) -> Vec<String> {
     result
 }
 
-#[cfg(not(tarpaulin_include))]
 /// Interactive selection
 fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
     let all_tools = registry::get_tools();
@@ -106,7 +105,6 @@ fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
     Ok(selected_tools)
 }
 
-#[cfg(not(tarpaulin_include))]
 /// Append to README
 fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), CliError> {
     if Path::new("README.md").exists() {
@@ -208,7 +206,6 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
 
     let selected_tools = selected_tools_opt.unwrap_or_default();
 
-    #[cfg(not(tarpaulin_include))]
     {
         if selected_tools.is_empty() {
             println!("No tools selected.");
@@ -260,7 +257,6 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
                 pb.finish_with_message(format!("✅ Finished {}: {}", tool.name(), output));
                 report.details.insert(tool.name().to_string(), output);
             }
-            #[cfg(not(tarpaulin_include))]
             Err(e) => {
                 pb.finish_with_message(format!("❌ Error running {}: {}", tool.name(), e));
                 report
@@ -274,7 +270,6 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
     println!("\n📊 JSON Format Report:");
     println!("{}", json_report);
 
-    #[cfg(not(tarpaulin_include))]
     append_to_readme(action_name, &json_report)?;
 
     Ok(())

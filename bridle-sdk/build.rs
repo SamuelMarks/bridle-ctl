@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used, clippy::unwrap_used)]
+
 //! Build script for `bridle-sdk`.
 
 use std::env;

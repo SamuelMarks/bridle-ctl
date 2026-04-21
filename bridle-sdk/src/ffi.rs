@@ -39,7 +39,6 @@ unsafe extern "C" {
 use crate::path_scope::PathScope;
 
 /// Determines the path to the lib2notebook2lib package.
-#[cfg(not(tarpaulin_include))]
 fn get_lib2notebook2lib_cmd() -> Command {
     let mut current_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     if current_dir.pop() {
@@ -62,7 +61,6 @@ fn get_lib2notebook2lib_cmd() -> Command {
 }
 
 /// Safely wraps the FFI call to `lib2notebook2lib`.
-#[cfg(not(tarpaulin_include))]
 pub fn convert_to_notebook(
     path: &CStr,
     fix: bool,
@@ -110,7 +108,6 @@ pub fn convert_to_notebook(
 }
 
 /// Safely wraps the FFI call to `type-correct` audit.
-#[cfg(not(tarpaulin_include))]
 pub fn type_correct_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
@@ -122,7 +119,6 @@ pub fn type_correct_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result
 }
 
 /// Safely wraps the FFI call to `type-correct` fix.
-#[cfg(not(tarpaulin_include))]
 pub fn type_correct_fix_safe(
     path: &CStr,
     dry_run: bool,
@@ -138,7 +134,6 @@ pub fn type_correct_fix_safe(
 }
 
 /// Safely wraps the FFI call to `go-auto-err-handling` audit.
-#[cfg(not(tarpaulin_include))]
 pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
@@ -150,8 +145,6 @@ pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, Ff
 }
 
 /// Safely wraps the FFI call to `go-auto-err-handling` fix.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 pub fn fix_go_errors(
     path: &CStr,
     dry_run: bool,
@@ -172,7 +165,6 @@ mod tests {
     use std::ffi::CString;
 
     #[test]
-    #[cfg(not(tarpaulin_include))]
     fn test_convert_to_notebook() -> Result<(), std::ffi::NulError> {
         let path = CString::new("test.lib")?;
         let result = convert_to_notebook(&path, true, false, None);
@@ -221,7 +213,6 @@ unsafe extern "C" {
 }
 
 /// Safely wraps the FFI call to `cdd-c` transformers.
-#[cfg(not(tarpaulin_include))]
 pub fn cdd_transformer_safe(
     tool: &str,
     path: &str,

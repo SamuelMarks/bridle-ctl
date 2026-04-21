@@ -22,7 +22,6 @@ fn ensure_fork(org: &str, repo_name: &str, fork_org: Option<String>) -> String {
 }
 
 /// Syncs pending pull requests to the upstream provider.
-#[cfg(not(tarpaulin_include))]
 pub fn sync_prs(
     org: &str,
     _db_url: &str,

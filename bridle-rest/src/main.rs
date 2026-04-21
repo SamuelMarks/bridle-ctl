@@ -25,7 +25,6 @@ pub async fn start_agent() -> Result<HttpResponse, RestError> {
 }
 
 /// Endpoint to run tools using ToolRunRequest.
-#[cfg(not(tarpaulin_include))]
 pub async fn run_tools(
     req: web::Json<bridle_sdk::models::ToolRunRequest>,
 ) -> Result<HttpResponse, RestError> {
@@ -45,7 +44,6 @@ pub async fn run_tools(
 }
 
 /// Endpoint to run batch pipeline
-#[cfg(not(tarpaulin_include))]
 pub async fn batch_run(
     data: web::Data<AppState>,
     req: web::Json<bridle_sdk::models::BatchRunRequest>,
@@ -63,7 +61,6 @@ pub async fn batch_run(
 }
 
 /// Endpoint to sync prs
-#[cfg(not(tarpaulin_include))]
 pub async fn sync_prs(
     data: web::Data<AppState>,
     req: web::Json<bridle_sdk::models::SyncPrsRequest>,
@@ -265,7 +262,6 @@ define_crud_endpoints!(
 );
 
 /// Main entry point for the REST API.
-#[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {

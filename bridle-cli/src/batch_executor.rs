@@ -9,7 +9,6 @@ use tokio::time::timeout;
 
 /// Execute a single step with timeout.
 #[tracing::instrument(skip(dir, step), fields(step_name = %step.name, step_type = ?step.step_type))]
-#[cfg(not(tarpaulin_include))]
 pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, String), CliError> {
     let to_secs = step.timeout_seconds.unwrap_or(300); // 5 mins default
 
@@ -41,7 +40,6 @@ pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, Strin
 
 /// Runs the execution engine for a repo workspace.
 #[tracing::instrument(skip(dir, config), fields(pipeline = %config.name))]
-#[cfg(not(tarpaulin_include))]
 pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatus, CliError> {
     for step in &config.steps {
         if step.step_type == StepType::Detect {

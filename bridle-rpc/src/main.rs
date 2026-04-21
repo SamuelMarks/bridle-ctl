@@ -10,13 +10,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 /// Helper to create an `RpcError` from a generic displayable error.
-#[cfg(not(tarpaulin_include))]
 fn rpc_reg_err<T: std::fmt::Display>(e: T) -> RpcError {
     RpcError::Register(e.to_string())
 }
 
 /// Helper to convert a generic displayable error into an `ErrorObjectOwned`.
-#[cfg(not(tarpaulin_include))]
 fn rpc_err_from<T: std::fmt::Display>(
     e: T,
 ) -> Result<String, jsonrpsee::types::error::ErrorObjectOwned> {
@@ -28,7 +26,6 @@ fn rpc_err_from<T: std::fmt::Display>(
 }
 
 /// Helper to convert a generic displayable error into an `ErrorObjectOwned` returning a String.
-#[cfg(not(tarpaulin_include))]
 fn rpc_reg_err_into<T: std::fmt::Display>(
     e: T,
 ) -> Result<String, jsonrpsee::types::error::ErrorObjectOwned> {
@@ -46,7 +43,6 @@ pub struct RpcState {
 }
 
 /// Macro to easily register CRUD operations for SDK models in JSON RPC.
-#[cfg(not(tarpaulin_include))]
 macro_rules! register_crud_methods {
     ($module:expr, $create_name:expr, $get_name:expr, $sdk_get:path, $sdk_insert:path, $model:ty) => {
         $module
@@ -74,7 +70,6 @@ macro_rules! register_crud_methods {
 }
 
 /// Starts the JSON-RPC server with a given db_url.
-#[cfg(not(tarpaulin_include))]
 pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
     let server = ServerBuilder::default().build("127.0.0.1:0").await?;
     let addr = server.local_addr()?;
@@ -369,7 +364,6 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
 }
 
 /// Main entry point for the JSON RPC server.
-#[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() -> Result<(), RpcError> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {

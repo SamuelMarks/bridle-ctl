@@ -33,7 +33,6 @@ macro_rules! cdd_tool {
         #[derive(Debug, Clone)]
         pub struct $tool_name;
 
-        #[cfg(not(tarpaulin_include))]
         impl CodeTool for $tool_name {
             fn name(&self) -> &'static str {
                 $name

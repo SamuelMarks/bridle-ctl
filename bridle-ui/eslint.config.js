@@ -38,7 +38,16 @@ module.exports = defineConfig([
       "jsdoc/require-returns": "off",
       "jsdoc/require-param-type": "off",
       "jsdoc/require-returns-type": "off",
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-restricted-types": [
+        "error",
+        {
+          "types": {
+            "never": "Never use never.",
+            "unknown": "Never use unknown."
+          }
+        }
+      ],
       "@typescript-eslint/no-empty-function": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@angular-eslint/no-output-native": "off",

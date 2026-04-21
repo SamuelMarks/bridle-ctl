@@ -22,7 +22,6 @@ pub struct EphemeralWorkspace {
 
 impl EphemeralWorkspace {
     /// Creates a new ephemeral workspace.
-    #[cfg(not(tarpaulin_include))]
     pub fn new(orig_path: &Path, pipeline_name: &str) -> Result<Self, CliError> {
         let temp_dir =
             std::env::temp_dir().join(format!("bridle_{}_{}", pipeline_name, uuid::Uuid::new_v4()));
@@ -85,7 +84,6 @@ impl EphemeralWorkspace {
     }
 }
 
-#[cfg(not(tarpaulin_include))]
 impl Drop for EphemeralWorkspace {
     fn drop(&mut self) {
         // Run deep cleanups for disk bloat that tools might leave behind

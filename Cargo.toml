@@ -13,4 +13,6 @@ missing_docs = "deny"
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }
 
 [workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
 missing_docs_in_private_items = "deny"

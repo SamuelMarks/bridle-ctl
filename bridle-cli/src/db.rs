@@ -32,13 +32,11 @@ macro_rules! handle_cli_crud {
 }
 
 /// Executes a DB action.
-#[cfg(not(tarpaulin_include))]
 fn cli_exec_err<T: std::fmt::Display>(e: T) -> error::CliError {
     error::CliError::Execution(e.to_string())
 }
 
 /// Executes a database command.
-#[cfg(not(tarpaulin_include))]
 pub fn execute_db_command(
     db_url: &str,
     action: &str,

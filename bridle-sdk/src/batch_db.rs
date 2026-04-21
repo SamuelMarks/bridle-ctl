@@ -26,7 +26,6 @@ pub fn create_batch_job(
                 .first::<BatchJob>(c)
                 .map_err(BridleError::Database)
         }
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(&new_job)
@@ -47,7 +46,6 @@ pub fn get_batch_job(conn: &mut DbConnection, job_id: i32) -> Result<BatchJob, B
             .find(job_id)
             .first::<BatchJob>(c)
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => batch_jobs::table
             .find(job_id)
             .first::<BatchJob>(_c)
@@ -65,7 +63,6 @@ pub fn insert_batch_job(conn: &mut DbConnection, job: &BatchJob) -> Result<Batch
                 .map_err(BridleError::Database)?;
             Ok(job.clone())
         }
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(job)
@@ -91,7 +88,6 @@ pub fn update_batch_job_status(
                 batch_jobs::table.find(job_id).first::<BatchJob>(c)
             })
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => _c
             .transaction(|c| {
                 diesel::update(batch_jobs::table.find(job_id))
@@ -110,7 +106,6 @@ pub fn get_batch_task(conn: &mut DbConnection, task_id: i32) -> Result<BatchTask
             .find(task_id)
             .first::<BatchTask>(c)
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => batch_tasks::table
             .find(task_id)
             .first::<BatchTask>(_c)
@@ -131,7 +126,6 @@ pub fn insert_batch_task(
                 .map_err(BridleError::Database)?;
             Ok(task.clone())
         }
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_tasks::table)
                 .values(task)
@@ -162,7 +156,6 @@ pub fn update_task_status(
                 batch_tasks::table.find(task_id).first::<BatchTask>(c)
             })
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => _c
             .transaction(|c| {
                 diesel::update(batch_tasks::table.find(task_id))
@@ -185,7 +178,6 @@ pub fn get_job_tasks(conn: &mut DbConnection, job_id: i32) -> Result<Vec<BatchTa
             .filter(batch_tasks::job_id.eq(job_id))
             .load::<BatchTask>(c)
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         DbConnection::Pg(_c) => batch_tasks::table
             .filter(batch_tasks::job_id.eq(job_id))
             .load::<BatchTask>(_c)
@@ -246,7 +238,6 @@ mod tests {
                 assert_eq!(updated.status, "Clean");
                 assert_eq!(updated.error_reason.as_deref(), Some("cleaned"));
             }
-            #[cfg(not(tarpaulin_include))]
             _ => unreachable!(),
         }
 
@@ -305,7 +296,6 @@ mod extra_tests {
                 let fetched_t = get_batch_task(&mut conn, inserted_task.id)?;
                 assert_eq!(fetched_t.id, inserted_task.id);
             }
-            #[cfg(not(tarpaulin_include))]
             _ => unreachable!(),
         }
 
