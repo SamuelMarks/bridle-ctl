@@ -62,10 +62,11 @@ npx playwright test --ui
 
 When contributing to `bridle-ui`, please adhere to the following:
 
+- **100% Coverage:** 100% unit test coverage and 100% JSDoc documentation coverage are required and enforced in CI.
 - **Strict TypeScript:** No `any`, `unknown`, or `never` bypasses. Define strict interfaces for all API payloads.
 - **Modern Angular Features:**
   - Use `inject()` exclusively instead of constructor injection.
   - Utilize the new `input()` and `output()` signal APIs.
   - All components MUST enforce `ChangeDetectionStrategy.OnPush`.
-- **Formatting & Linting:** Run `npm run lint` before committing to catch stylistic and logical errors.
+- **Formatting & Linting:** Run `npm run lint` before committing to catch stylistic, documentation, and logical errors.
 - **CSS:** Avoid heavy frameworks. We use Vanilla CSS styled to match the standard Git Forge experience.

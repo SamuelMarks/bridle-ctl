@@ -1,0 +1,19 @@
+[plugins]
+"type-correct" = ".bridle-plugins/type-correct.toml"
+"go-auto-err-handling" = ".bridle-plugins/go-auto-err-handling.toml"
+"lib2notebook2lib" = ".bridle-plugins/lib2notebook2lib.toml"
+"cdd-extern-c" = ".bridle-plugins/cdd-extern-c.toml"
+"cdd-msvc-port" = ".bridle-plugins/cdd-msvc-port.toml"
+"cdd-gnu-standardizer" = ".bridle-plugins/cdd-gnu-standardizer.toml"
+"cdd-error-percolator" = ".bridle-plugins/cdd-error-percolator.toml"
+"cdd-safe-crt" = ".bridle-plugins/cdd-safe-crt.toml"
+
+[enabled]
+"type-correct" = true
+"go-auto-err-handling" = true
+"lib2notebook2lib" = true
+"cdd-extern-c" = true
+"cdd-msvc-port" = true
+"cdd-gnu-standardizer" = true
+"cdd-error-percolator" = true
+"cdd-safe-crt" = true

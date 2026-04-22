@@ -21,7 +21,7 @@ jobs:
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin
       - name: Run tests and collect coverage
-        run: cargo tarpaulin --out Xml --fail-under 100 --rustflags="--cfg tarpaulin_include" --exclude-files "bridle-agent/src/agent_loop.rs" "bridle-agent/src/team_simulation.rs" "bridle-cli/src/batch_executor.rs" "bridle-cli/src/batch_fix.rs" "bridle-cli/src/batch_pipeline.rs" "bridle-cli/src/db.rs" "bridle-cli/src/forge_mutator.rs" "bridle-cli/src/ingest.rs" "bridle-cli/src/sync_prs.rs" "bridle-cli/src/workspace.rs" "bridle-sdk/src/batch_db.rs" "bridle-sdk/src/db.rs" "bridle-sdk/src/lib.rs" "bridle-sdk/src/encoding.rs" "bridle-sdk/src/ffi.rs" "bridle-sdk/src/file_lock.rs" "bridle-sdk/src/error.rs" "bridle-agent/src/mcp.rs" "bridle-cli/src/main.rs" "bridle-rpc/src/main.rs" "bridle-agent/src/main.rs" "bridle-cli/src/runner.rs" "bridle-cli/src/tui.rs" "bridle-cli/src/tools/registry.rs" "bridle-rest/src/main.rs"
+        run: cargo tarpaulin --out Xml --fail-under 100 --rustflags="--cfg tarpaulin_include"
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:

@@ -1,4 +1,7 @@
-pub mod cdd;
+/// Plugin configuration
+pub mod config;
+/// Dynamic plugin tools (dlopen, subprocess, jsonrpc)
+pub mod dynamic;
 /// Contains the registry of all available code tools.
 pub mod registry;
 
@@ -6,13 +9,30 @@ use crate::error::CliError;
 use bridle_sdk::path_scope::PathScope;
 
 /// Defines a standard interface for code processing tools.
-pub trait CodeTool {
+pub trait CodeTool: Send + Sync {
     /// Returns the unique name of the tool, e.g., "tool0"
-    fn name(&self) -> &'static str;
+    fn name(&self) -> &str;
     /// A short description of what the tool does
-    fn description(&self) -> &'static str;
+    fn description(&self) -> &str;
     /// The regex pattern of files this tool targets, e.g., r".*\.rs$"
-    fn match_regex(&self) -> &'static str;
+    fn match_regex(&self) -> &str;
+
+    /// The version of the tool, if specified
+    fn version(&self) -> Option<&str> {
+        None
+    }
+    /// The author of the tool, if specified
+    fn author(&self) -> Option<&str> {
+        None
+    }
+    /// The URL of the tool's homepage or repository, if specified
+    fn url(&self) -> Option<&str> {
+        None
+    }
+    /// The license of the tool, if specified
+    fn license(&self) -> Option<&str> {
+        None
+    }
 
     /// Runs the audit logic (checking for issues)
     fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, CliError>;

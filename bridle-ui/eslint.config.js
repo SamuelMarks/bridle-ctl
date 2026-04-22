@@ -33,7 +33,7 @@ module.exports = defineConfig([
           style: "kebab-case",
         },
       ],
-      "jsdoc/require-jsdoc": "off",
+      "jsdoc/require-jsdoc": "error",
       "jsdoc/require-param": "off",
       "jsdoc/require-returns": "off",
       "jsdoc/require-param-type": "off",

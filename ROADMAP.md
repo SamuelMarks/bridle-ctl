@@ -49,6 +49,12 @@ All roadmap items, past and future, are strictly aligned with these principles:
 - Enforced Global rate-limiting constraints for outbound PRs (e.g., max 10 PRs per hour).
 - Developed the Angular UI Dashboard (`bridle-ui`) with strict types, SignalStore, and E2E coverage.
 
+### Phase 6: Quality Assurance & Extensibility
+
+- **Strict Quality Enforcement**: Banned `.unwrap()`, `anyhow`, and TS `any`/`unknown`/`never` from the entire codebase via robust CI/Lint rules.
+- **100% Coverage**: Mandated 100% unit test coverage and 100% documentation coverage in CI checks.
+- **Dynamic FFI Architecture**: Expanded the `bridle-tools.toml` architecture to configure FFI plugins dynamically (e.g. `.bridle-plugins/*.toml`) without recompiling the orchestrator.
+
 ---
 
 ## 🔮 Future Horizons (v2.0 & Beyond)

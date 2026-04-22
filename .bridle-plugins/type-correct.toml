@@ -1,0 +1,8 @@
+description = "Resolves standard C/C++ type inconsistencies via AST parsing."
+match_regex = ".*\\.(c|cpp|h|hpp)$"
+version = "1.0.0"
+author = "Samuel Marks"
+url = "https://github.com/SamuelMarks/type-correct"
+license = "Apache-2.0 OR MIT"
+type = "ffi"
+wrapper = "type_correct"

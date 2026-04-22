@@ -1,0 +1,8 @@
+description = "Bi-directional sync between Python source and Jupyter notebooks."
+match_regex = ".*\\.(py|ipynb)$"
+version = "1.0.0"
+author = "Samuel Marks"
+url = "https://github.com/SamuelMarks/lib2notebook2lib"
+license = "Apache-2.0 OR MIT"
+type = "ffi"
+wrapper = "lib2notebook"

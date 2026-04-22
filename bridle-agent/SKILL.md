@@ -41,3 +41,10 @@ You have direct read/write access to the local database through the MCP tool `ex
 4. `fix` the files.
 5. Record local commit and local PR.
 6. Await human review or invoke `sync-prs`.
+
+### Quality Standards Enforcement
+
+If you ever generate code or evaluate code modifications, enforce strict zero-defect policies:
+- 100% test coverage and 100% doc coverage required.
+- **Rust:** Ban `.unwrap()`, `.expect()`, `panic!()`, and `anyhow`. Use explicit error enums.
+- **TypeScript:** Ban `any`, `unknown`, and `never`.

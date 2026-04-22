@@ -1,0 +1,13 @@
+disallowed-types = [
+    "anyhow::Error",
+    "anyhow::Result",
+    "eyre::Report",
+    "eyre::Result",
+]
+disallowed-macros = [
+    "anyhow::anyhow",
+    "anyhow::bail",
+    "anyhow::ensure",
+    "thiserror::Error",
+]
+

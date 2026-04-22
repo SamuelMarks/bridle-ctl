@@ -2,6 +2,7 @@ const fs = require("fs");
 const cheerio = require("cheerio");
 const html = fs.readFileSync("coverage/bridle-ui/index.html");
 const $ = cheerio.load(html);
+let failed = false;
 $("table.coverage-summary tbody tr").each((i, el) => {
   const file = $(el).find("td").eq(0).text().trim();
   const stmts = $(el).find("td").eq(2).text().trim();
@@ -17,5 +18,9 @@ $("table.coverage-summary tbody tr").each((i, el) => {
     console.log(
       `${file} | Stmts: ${stmts} | Branches: ${branches} | Funcs: ${funcs} | Lines: ${lines}`,
     );
+    failed = true;
   }
 });
+if (failed) {
+  process.exit(1);
+}

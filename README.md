@@ -75,6 +75,8 @@ For full usage instructions, including environment variables and batch configura
 
 The true power of `bridle-ctl` lies in its extensible toolchain. Instead of teaching an LLM how to perfectly rewrite a complex regex, you write a deterministic tool (in Rust, Go, C++, etc.), compile it to a shared library, and register it via FFI. The AI agent simply decides _when_ and _where_ to run the tool.
 
+With the new dynamic TOML plugin architecture, you can now add compiled FFI tools without recompiling the orchestrator. Simply drop a `.toml` configuration file mapping your tool's ABI functions into the `.bridle-plugins/` directory and enable it in `bridle-tools.toml`.
+
 For a step-by-step guide on creating, wrapping, and registering new tools, see [ADD_NEW_TOOLS.md](./ADD_NEW_TOOLS.md).
 
 ## 🧰 Built-in Tool Registry

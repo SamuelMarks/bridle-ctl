@@ -49,6 +49,20 @@ bridle sync-prs --max-prs-per-hour 10
 
 The framework will safely handle fork reuse, remote pushing, and deployment without getting the IP banned for API abuse.
 
+### 5. Enforce Strict Quality Standards
+
+When writing, generating, or modifying code within the `bridle-ctl` ecosystem, you MUST adhere to the following stringent rules to maintain 100% test and documentation coverage:
+
+- **100% Test Coverage:** All code must be exhaustively unit tested.
+- **100% Doc Coverage:** All structs, functions, and modules must be fully documented.
+- **Rust specific:**
+  - NEVER use `.unwrap()`, `.expect()`, or panics.
+  - NEVER use `anyhow` or similar dynamic error types.
+  - MUST use explicitly typed Error enums equipped with `derive_more`.
+- **TypeScript specific:**
+  - NEVER use the `any`, `unknown`, or `never` types.
+  - MUST use strict, specific interfaces and types.
+
 ---
 
 ## 🔄 Core Automated Workflows

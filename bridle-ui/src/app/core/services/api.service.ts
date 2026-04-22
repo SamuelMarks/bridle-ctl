@@ -96,7 +96,7 @@ export class ApiService {
    * @returns An observable throwing a user-facing error message
    */
   private handleError(error: HttpErrorResponse) {
-    let errorMessage = 'An unknown error occurred!';
+    let errorMessage = 'An unexpected error occurred!';
     if (
       typeof ErrorEvent !== 'undefined' &&
       error.error instanceof ErrorEvent

@@ -1,0 +1,8 @@
+description = "Automatically injects `if err != nil { return err }` blocks."
+match_regex = ".*\\.go$"
+version = "1.0.0"
+author = "Samuel Marks"
+url = "https://github.com/SamuelMarks/go-auto-err-handling"
+license = "Apache-2.0 OR MIT"
+type = "ffi"
+wrapper = "go_auto_err"
