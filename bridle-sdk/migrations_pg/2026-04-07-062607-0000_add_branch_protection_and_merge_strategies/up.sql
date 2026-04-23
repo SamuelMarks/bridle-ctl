@@ -1,7 +1,7 @@
 CREATE TABLE branch_protection_rules (
   id SERIAL PRIMARY KEY,
   branch_id INTEGER NOT NULL REFERENCES branches(id),
-  required_pr_reviews INTEGER NOT NULL DEFAULT FALSE,
+  required_pr_reviews INTEGER NOT NULL DEFAULT 0,
   require_code_owner_reviews BOOLEAN NOT NULL DEFAULT FALSE,
   required_status_checks TEXT, -- comma separated
   require_signed_commits BOOLEAN NOT NULL DEFAULT FALSE,

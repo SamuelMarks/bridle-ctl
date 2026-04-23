@@ -328,4 +328,70 @@ mod extra_tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_pg_stubs() -> Result<(), crate::error::BridleError> {
+        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "".to_string());
+        if url.starts_with("postgres") {
+            let mut conn = establish_connection_and_run_migrations(&url)?;
+            let job = create_batch_job(&mut conn, "test")?;
+            get_batch_job(&mut conn, job.id)?;
+            let mut job2 = job.clone();
+            job2.id = job.id + 1000;
+            insert_batch_job(&mut conn, &job2)?;
+            update_batch_job_status(&mut conn, job.id, "ABORTED")?;
+
+            let unique_suffix = job.id + 1000;
+            crate::db::insert_user(
+                &mut conn,
+                &crate::models::User {
+                    id: unique_suffix,
+                    username: format!("test_user_{}", unique_suffix),
+                    email: format!("test{}@test.com", unique_suffix),
+                    password_hash: "hash".to_string(),
+                    avatar_url: None,
+                    bio: None,
+                    status: None,
+                    created_at: chrono::Utc::now().naive_utc(),
+                    updated_at: chrono::Utc::now().naive_utc(),
+                },
+            )?;
+
+            crate::db::insert_repository(
+                &mut conn,
+                &crate::models::Repository {
+                    id: unique_suffix,
+                    owner_id: unique_suffix,
+                    owner_type: "user".to_string(),
+                    name: format!("testrepo_{}", unique_suffix),
+                    description: None,
+                    is_private: false,
+                    is_fork: false,
+                    archived: false,
+                    allow_merge_commit: true,
+                    allow_squash_merge: true,
+                    allow_rebase_merge: true,
+                    created_at: chrono::Utc::now().naive_utc(),
+                    updated_at: chrono::Utc::now().naive_utc(),
+                },
+            )?;
+
+            let task = BatchTask {
+                id: unique_suffix,
+                job_id: job.id,
+                repo_id: unique_suffix,
+                status: "Pending".to_string(),
+                error_reason: None,
+                pr_url: None,
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: chrono::Utc::now().naive_utc(),
+            };
+
+            let task = insert_batch_task(&mut conn, &task)?;
+            get_batch_task(&mut conn, task.id)?;
+            update_task_status(&mut conn, task.id, TaskStatus::Clean, None)?;
+            get_job_tasks(&mut conn, job.id)?;
+        }
+        Ok(())
+    }
 }

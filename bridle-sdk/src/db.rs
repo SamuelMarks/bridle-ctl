@@ -1273,13 +1273,28 @@ mod tests {
     fn test_insert_and_get_key() -> Result<(), BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
         let now = chrono::Utc::now().naive_utc();
+        let unique_id = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0) % 1000000) as i32;
+
+        let dummy_user = crate::models::User {
+            id: unique_id,
+            username: format!("test_user_key_{}", unique_id),
+            email: format!("key{}@test.com", unique_id),
+            password_hash: "hash".into(),
+            avatar_url: None,
+            bio: None,
+            status: None,
+            created_at: now,
+            updated_at: now,
+        };
+        insert_user(&mut conn, &dummy_user)?;
+
         let new_item = crate::models::Key {
-            id: 1,
-            user_id: 1,
+            id: unique_id,
+            user_id: unique_id,
             key_type: "ssh".into(),
             title: "my key".into(),
             key_data: "ssh-rsa AAAAB3Nza...".into(),
-            fingerprint: "SHA256:abcd...".into(),
+            fingerprint: format!("SHA256:abcd{}", unique_id),
             last_used_at: None,
             created_at: now,
             updated_at: now,
@@ -1287,10 +1302,46 @@ mod tests {
         insert_key(&mut conn, &new_item)?;
         let duplicate = insert_key(&mut conn, &new_item);
         assert!(duplicate.is_err());
-        let fetched = get_key(&mut conn, 1)?;
-        assert_eq!(fetched.id, 1);
-        let missing = get_key(&mut conn, 9999);
+        let fetched = get_key(&mut conn, unique_id)?;
+        assert_eq!(fetched.id, unique_id);
+        let missing = get_key(&mut conn, 99999);
         assert!(missing.is_err());
+
+        // Test Pg branch
+        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "".to_string());
+        if url.starts_with("postgres") {
+            let mut pg_conn = establish_connection_and_run_migrations(&url)?;
+            let pg_id = unique_id + 1000;
+
+            let dummy_user_pg = crate::models::User {
+                id: pg_id,
+                username: format!("test_user_key_pg_{}", pg_id),
+                email: format!("key_pg{}@test.com", pg_id),
+                password_hash: "hash".into(),
+                avatar_url: None,
+                bio: None,
+                status: None,
+                created_at: now,
+                updated_at: now,
+            };
+            insert_user(&mut pg_conn, &dummy_user_pg)?;
+
+            let pg_item = crate::models::Key {
+                id: pg_id,
+                user_id: pg_id,
+                key_type: "ssh".into(),
+                title: "my key pg".into(),
+                key_data: "ssh-rsa PG...".into(),
+                fingerprint: format!("SHA256:pg{}", pg_id),
+                last_used_at: None,
+                created_at: now,
+                updated_at: now,
+            };
+            insert_key(&mut pg_conn, &pg_item)?;
+            let pg_fetched = get_key(&mut pg_conn, pg_id)?;
+            assert_eq!(pg_fetched.id, pg_id);
+        }
+
         Ok(())
     }
 

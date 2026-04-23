@@ -152,8 +152,18 @@ mod tests {
         )
         .map_err(|e| AgentError::Daemon(format!("Failed to create issue: {}", e)))?;
 
+        // 1 issue triggering the "err" case
+        let issue3_payload = r#"{"id": 3, "repo_id": 100, "number": 3, "title": "Fix err handling", "body": "Handle errs", "state": "open", "author_id": 1, "assignee_id": null, "created_at": "2026-04-08T00:00:00", "updated_at": "2026-04-08T00:00:00"}"#;
+        execute_db_command(
+            &db_url,
+            "create_issue",
+            Some(issue3_payload.to_string()),
+            None,
+        )
+        .map_err(|e| AgentError::Daemon(format!("Failed to create issue: {}", e)))?;
+
         let result = start_agent_loop(&db_url)?;
-        assert_eq!(result, "Agent loop finished. Resolved 1 issues.");
+        assert_eq!(result, "Agent loop finished. Resolved 2 issues.");
 
         Ok(())
     }

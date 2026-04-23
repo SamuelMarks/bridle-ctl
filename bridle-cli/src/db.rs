@@ -299,3 +299,122 @@ fn test_all_db_commands() {
         assert!(res.is_err());
     }
 }
+
+#[test]
+fn test_all_db_commands_connection_error() {
+    let bad_db = "invalid_protocol://localhost";
+
+    // To hit the inner connection code for get_*, we just need an ID
+    let gets = vec![
+        "get_user",
+        "get_org",
+        "get_repo",
+        "get_team",
+        "get_branch",
+        "get_branch_protection_rule",
+        "get_key",
+        "get_follow",
+        "get_star",
+        "get_org_membership",
+        "get_repo_collaborator",
+        "get_milestone",
+        "get_label",
+        "get_issue",
+        "get_issue_label",
+        "get_pull_request",
+        "get_pull_request_review",
+        "get_release",
+        "get_webhook",
+        "get_commit",
+        "get_tree",
+        "get_blob",
+    ];
+    for action in gets {
+        let res = execute_db_command(bad_db, action, None, Some(1));
+        assert!(res.is_err());
+    }
+}
+
+#[test]
+fn test_all_db_commands_create_connection_error() {
+    let bad_db = "invalid_protocol://localhost";
+
+    let res = execute_db_command(bad_db, "create_user", Some(r#"{"id": 1, "username": "a", "email": "a", "password_hash": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_org", Some(r#"{"id": 1, "name": "a", "billing_plan": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_repo", Some(r#"{"id": 1, "owner_id": 1, "owner_type": "a", "name": "a", "is_private": false, "is_fork": false, "archived": false, "allow_merge_commit": false, "allow_squash_merge": false, "allow_rebase_merge": false, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_team", Some(r#"{"id": 1, "org_id": 1, "name": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_branch", Some(r#"{"id": 1, "repo_id": 1, "name": "a", "head_sha": "a", "is_protected": false, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_branch_protection_rule", Some(r#"{"id": 1, "branch_id": 1, "required_pr_reviews": 0, "require_code_owner_reviews": false, "require_signed_commits": false, "enforce_admins": false, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_key", Some(r#"{"id": 1, "user_id": 1, "key_type": "a", "title": "a", "key_data": "a", "fingerprint": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_follow", Some(r#"{"id": 1, "follower_id": 1, "following_id": 1, "created_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(
+        bad_db,
+        "create_star",
+        Some(
+            r#"{"id": 1, "user_id": 1, "repo_id": 1, "created_at": "2026-04-01T00:00:00"}"#
+                .to_string(),
+        ),
+        None,
+    );
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_org_membership", Some(r#"{"id": 1, "org_id": 1, "user_id": 1, "role": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_repo_collaborator", Some(r#"{"id": 1, "repo_id": 1, "user_id": 1, "permission_level": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_milestone", Some(r#"{"id": 1, "repo_id": 1, "title": "a", "state": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_label", Some(r#"{"id": 1, "repo_id": 1, "name": "a", "color": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_issue", Some(r#"{"id": 1, "repo_id": 1, "number": 1, "title": "a", "state": "a", "author_id": 1, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(
+        bad_db,
+        "create_issue_label",
+        Some(r#"{"id": 1, "issue_id": 1, "label_id": 1}"#.to_string()),
+        None,
+    );
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_pull_request", Some(r#"{"id": 1, "repo_id": 1, "number": 1, "title": "a", "state": "a", "head_branch": "a", "base_branch": "a", "author_id": 1, "is_draft": false, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_pull_request_review", Some(r#"{"id": 1, "pr_id": 1, "user_id": 1, "state": "a", "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_release", Some(r#"{"id": 1, "repo_id": 1, "tag_name": "a", "target_commitish": "a", "is_draft": false, "is_prerelease": false, "author_id": 1, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_webhook", Some(r#"{"id": 1, "repo_id": 1, "url": "a", "content_type": "a", "events": "a", "is_active": false, "created_at": "2026-04-01T00:00:00", "updated_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_commit", Some(r#"{"id": 1, "repo_id": 1, "sha": "a", "tree_sha": "a", "parent_shas": "a", "message": "a", "author_name": "a", "author_email": "a", "committer_name": "a", "committer_email": "a", "author_date": "2026-04-01T00:00:00", "committer_date": "2026-04-01T00:00:00", "created_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_tree", Some(r#"{"id": 1, "repo_id": 1, "sha": "a", "entries": "a", "created_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+
+    let res = execute_db_command(bad_db, "create_blob", Some(r#"{"id": 1, "repo_id": 1, "sha": "a", "size": 1, "created_at": "2026-04-01T00:00:00"}"#.to_string()), None);
+    assert!(res.is_err());
+}

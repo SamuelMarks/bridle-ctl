@@ -34,11 +34,15 @@ pub fn generate_claude_manifest() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn test_agent_start() -> Result<(), AgentError> {
         assert_eq!(start_agent()?, "Agent started");
         Ok(())
+    }
+
+    #[test]
+    fn test_generate_claude_manifest() {
+        assert_eq!(generate_claude_manifest(), r#"{"tools": ["bridle-cli"]}"#);
     }
     #[test]
     fn test_mcp_stubs() -> Result<(), AgentError> {
@@ -66,6 +70,15 @@ mod tests {
         }"#;
         let res2 = mcp::execute_mcp_tool("run_code_tool", valid_code_tool_req)?;
         assert_eq!(res2, "Tool executed successfully");
+
+        let valid_code_tool_req_fix = r#"{
+            "pattern": ".*\\.go$",
+            "tools": ["rust-unwrap-to-question-mark"],
+            "action": "fix",
+            "dry_run": true
+        }"#;
+        let res3 = mcp::execute_mcp_tool("run_code_tool", valid_code_tool_req_fix)?;
+        assert_eq!(res3, "Tool executed successfully");
 
         // Test run_code_tool (invalid JSON)
         assert!(mcp::execute_mcp_tool("run_code_tool", "{invalid").is_err());

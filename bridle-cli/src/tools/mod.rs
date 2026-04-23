@@ -77,9 +77,10 @@ mod tests {
     #[test]
     fn test_code_tool_defaults() {
         let tool = DummyTool;
-        assert_eq!(tool.version(), None);
-        assert_eq!(tool.author(), None);
-        assert_eq!(tool.url(), None);
-        assert_eq!(tool.license(), None);
+        let dyn_tool: &dyn CodeTool = &tool;
+        assert_eq!(dyn_tool.version(), None);
+        assert_eq!(dyn_tool.author(), None);
+        assert_eq!(dyn_tool.url(), None);
+        assert_eq!(dyn_tool.license(), None);
     }
 }
