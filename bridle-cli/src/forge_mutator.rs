@@ -77,18 +77,23 @@ pub struct ForgeClient {
     /// The underlying reqwest client.
     client: Client,
     /// The authentication token.
-    token: String,
+    pub token: String,
+    /// API Base URL
+    pub api_base: String,
 }
 
 impl ForgeClient {
     /// Create a new client
     pub fn new(token: String) -> Result<Self, CliError> {
+        let api_base = std::env::var("GITHUB_API_URL")
+            .unwrap_or_else(|_| "https://api.github.com".to_string());
         Ok(Self {
             client: Client::builder()
                 .user_agent("bridle-ctl/0.1.0")
                 .build()
                 .map_err(|e| CliError::Execution(e.to_string()))?,
             token,
+            api_base,
         })
     }
 
@@ -133,7 +138,7 @@ impl ForgeClient {
 
     /// Fetches the current authenticated user's login.
     pub async fn get_current_user(&self) -> Result<String, CliError> {
-        let url = "https://api.github.com/user".to_string();
+        let url = format!("{}/user", self.api_base);
         let req = self.client.get(&url).bearer_auth(&self.token);
         let json = self.send_request(req).await?;
         let login = json["login"]
@@ -144,10 +149,7 @@ impl ForgeClient {
 
     /// Creates a fork of the specified repository and returns the fork owner's login.
     pub async fn create_fork(&self, repo_owner: &str, repo_name: &str) -> Result<String, CliError> {
-        let url = format!(
-            "https://api.github.com/repos/{}/{}/forks",
-            repo_owner, repo_name
-        );
+        let url = format!("{}/repos/{}/{}/forks", self.api_base, repo_owner, repo_name);
         let req = self.client.post(&url).bearer_auth(&self.token);
         let json = self.send_request(req).await?;
         let fork_owner = json["owner"]["login"]
@@ -166,10 +168,7 @@ impl ForgeClient {
         head: &str,
         base: &str,
     ) -> Result<String, CliError> {
-        let url = format!(
-            "https://api.github.com/repos/{}/{}/pulls",
-            repo_owner, repo_name
-        );
+        let url = format!("{}/repos/{}/{}/pulls", self.api_base, repo_owner, repo_name);
         let payload = json!({
             "title": title,
             "body": body,
@@ -196,7 +195,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[tokio::test]
-    async fn test_git_mutator_add_remote() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_git_mutator_add_remote() -> Result<(), CliError> {
         let dir = tempdir()?;
         let _ = git_command()
             .current_dir(dir.path())
@@ -210,7 +209,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_git_mutator_commit_and_push() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_git_mutator_commit_and_push() -> Result<(), CliError> {
         // Here we test git commands on a mock repo.
         // It will fail pushing because there is no origin.
         let dir = tempdir()?;
@@ -239,14 +238,14 @@ mod tests {
     }
 
     #[test]
-    fn test_forge_client_new() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_forge_client_new() -> Result<(), CliError> {
         let client = ForgeClient::new("token123".to_string())?;
         assert_eq!(client.token, "token123");
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_forge_client_submit_pr() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_forge_client_submit_pr() -> Result<(), CliError> {
         let client = ForgeClient::new("token123".to_string())?;
         // Without an actual mock server, calling GitHub API with a fake token will fail.
         let res = client
@@ -262,7 +261,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_forge_client_get_current_user() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_forge_client_get_current_user() -> Result<(), CliError> {
         let client = ForgeClient::new("token123".to_string())?;
         let res = client.get_current_user().await;
         assert!(res.is_err());
@@ -270,7 +269,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_forge_client_create_fork() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_forge_client_create_fork() -> Result<(), CliError> {
         let client = ForgeClient::new("token123".to_string())?;
         let res = client.create_fork("dummy", "dummy").await;
         assert!(res.is_err());

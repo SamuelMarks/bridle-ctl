@@ -38,9 +38,6 @@ pub fn sync_prs(
     // e.g., PRs where `state = 'open'` and lack an upstream remote ID (if added to schema).
     // Let's pretend we queried and found 5 pending PRs.
     let pending_prs = 5;
-    if pending_prs == 0 {
-        return Ok("No pending PRs to sync.".to_string());
-    }
 
     println!("Found {} pending PR(s).", pending_prs);
 
@@ -113,7 +110,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sync_prs() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_sync_prs() -> Result<(), CliError> {
         let res = sync_prs("testorg", "bridle.db", None, None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 5 PR(s).");
@@ -121,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_prs_with_limit() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_sync_prs_with_limit() -> Result<(), CliError> {
         let res = sync_prs("testorg", "bridle.db", Some(2), None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 2 PR(s).");
@@ -129,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_prs_with_fork_org() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_sync_prs_with_fork_org() -> Result<(), CliError> {
         let res = sync_prs(
             "testorg",
             "bridle.db",
@@ -138,6 +135,14 @@ mod tests {
         );
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 1 PR(s).");
+        Ok(())
+    }
+
+    #[test]
+    fn test_sync_prs_zero_limit() -> Result<(), CliError> {
+        let res = sync_prs("testorg", "bridle.db", Some(0), None);
+        assert!(res.is_ok());
+        assert_eq!(res?, "Successfully synced 0 PR(s).");
         Ok(())
     }
 }

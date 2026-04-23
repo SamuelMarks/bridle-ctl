@@ -1,7 +1,7 @@
 <div align="center">
   [![CI](https://github.com/SamuelMarks/bridle-ctl/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/bridle-ctl/actions/workflows/ci.yml)
-  ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100.00%25-brightgreen)
-  ![Doc Coverage](https://img.shields.io/badge/Doc%20Coverage-100%25-brightgreen)
+  ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100.00%25-brightgreen.svg)
+  ![Doc Coverage](https://img.shields.io/badge/Doc%20Coverage-100%25-brightgreen.svg)
   <img src="./banner.svg" alt="bridle-ctl banner" />
 </div>
 

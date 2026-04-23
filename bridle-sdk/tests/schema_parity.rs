@@ -1,10 +1,9 @@
 //! Schema parity test between SQLite and PostgreSQL migrations.
-use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
 #[test]
-fn test_schema_parity_sqlite_pg() -> Result<(), Box<dyn Error>> {
+fn test_schema_parity_sqlite_pg() -> Result<(), bridle_sdk::BridleError> {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let sqlite_migrations_dir = manifest_dir.join("migrations");
     let pg_migrations_dir = manifest_dir.join("migrations_pg");

@@ -1648,3 +1648,318 @@ mod tests {
         Ok(())
     }
 }
+
+#[test]
+fn test_schema_parity_sqlite_pg_all() -> Result<(), BridleError> {
+    let pg_url = "postgres://samuel@localhost/bridle_test".to_string();
+    let mut conn = match establish_connection_and_run_migrations(&pg_url) {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to PG: {:?}", e),
+    };
+
+    let now = chrono::Utc::now().naive_utc();
+    let id_offset: i32 = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_else(|e| panic!("must succeed: {:?}", e))
+        .subsec_nanos() as i32;
+
+    let user = crate::models::User {
+        id: id_offset,
+        username: format!("u{}", id_offset),
+        email: format!("u{}@ex.com", id_offset),
+        password_hash: "h".into(),
+        avatar_url: None,
+        bio: None,
+        status: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_user(&mut conn, &user);
+    let _ = get_user(&mut conn, user.id);
+
+    let org = crate::models::Organisation {
+        id: id_offset,
+        name: format!("o{}", id_offset),
+        description: None,
+        verified_domain: None,
+        billing_plan: "free".into(),
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_organisation(&mut conn, &org);
+    let _ = get_organisation(&mut conn, org.id);
+
+    let repo = crate::models::Repository {
+        id: id_offset,
+        owner_id: user.id,
+        owner_type: "user".into(),
+        name: format!("r{}", id_offset),
+        description: None,
+        is_private: false,
+        is_fork: false,
+        archived: false,
+        allow_merge_commit: true,
+        allow_squash_merge: true,
+        allow_rebase_merge: true,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_repository(&mut conn, &repo);
+    let _ = get_repository(&mut conn, repo.id);
+
+    let team = crate::models::Team {
+        id: id_offset,
+        org_id: org.id,
+        parent_id: None,
+        name: "t".into(),
+        description: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_team(&mut conn, &team);
+    let _ = get_team(&mut conn, team.id);
+
+    let branch = crate::models::Branch {
+        id: id_offset,
+        repo_id: repo.id,
+        name: "main".into(),
+        head_sha: "s".into(),
+        is_protected: false,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_branch(&mut conn, &branch);
+    let _ = get_branch(&mut conn, branch.id);
+
+    let bpr = crate::models::BranchProtectionRule {
+        id: id_offset,
+        branch_id: branch.id,
+        required_pr_reviews: 1,
+        require_code_owner_reviews: false,
+        required_status_checks: None,
+        require_signed_commits: false,
+        enforce_admins: false,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_branch_protection_rule(&mut conn, &bpr);
+    let _ = get_branch_protection_rule(&mut conn, bpr.id);
+
+    let key = crate::models::Key {
+        id: id_offset,
+        user_id: user.id,
+        key_type: "ssh".into(),
+        title: "k".into(),
+        key_data: "d".into(),
+        fingerprint: "f".into(),
+        last_used_at: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_key(&mut conn, &key);
+    let _ = get_key(&mut conn, key.id);
+
+    let user2 = crate::models::User {
+        id: id_offset + 1,
+        username: format!("u{}", id_offset + 1),
+        email: format!("u{}@ex.com", id_offset + 1),
+        password_hash: "h".into(),
+        avatar_url: None,
+        bio: None,
+        status: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_user(&mut conn, &user2);
+
+    let follow = crate::models::Follow {
+        id: id_offset,
+        follower_id: user.id,
+        following_id: user2.id,
+        created_at: now,
+    };
+    let _ = insert_follow(&mut conn, &follow);
+    let _ = get_follow(&mut conn, follow.id);
+
+    let star = crate::models::Star {
+        id: id_offset,
+        user_id: user.id,
+        repo_id: repo.id,
+        created_at: now,
+    };
+    let _ = insert_star(&mut conn, &star);
+    let _ = get_star(&mut conn, star.id);
+
+    let org_mem = crate::models::OrgMembership {
+        id: id_offset,
+        org_id: org.id,
+        user_id: user.id,
+        role: "r".into(),
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_org_membership(&mut conn, &org_mem);
+    let _ = get_org_membership(&mut conn, org_mem.id);
+
+    let repo_col = crate::models::RepoCollaborator {
+        id: id_offset,
+        repo_id: repo.id,
+        user_id: user.id,
+        permission_level: "p".into(),
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_repo_collaborator(&mut conn, &repo_col);
+    let _ = get_repo_collaborator(&mut conn, repo_col.id);
+
+    let ms = crate::models::Milestone {
+        id: id_offset,
+        repo_id: repo.id,
+        title: "m".into(),
+        description: None,
+        state: "open".into(),
+        due_on: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_milestone(&mut conn, &ms);
+    let _ = get_milestone(&mut conn, ms.id);
+
+    let lbl = crate::models::Label {
+        id: id_offset,
+        repo_id: repo.id,
+        name: "l".into(),
+        color: "c".into(),
+        description: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_label(&mut conn, &lbl);
+    let _ = get_label(&mut conn, lbl.id);
+
+    let iss = crate::models::Issue {
+        id: id_offset,
+        repo_id: repo.id,
+        number: 1,
+        title: "t".into(),
+        body: None,
+        state: "open".into(),
+        author_id: user.id,
+        assignee_id: None,
+        milestone_id: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_issue(&mut conn, &iss);
+    let _ = get_issue(&mut conn, iss.id);
+
+    let iss_lbl = crate::models::IssueLabel {
+        id: id_offset,
+        issue_id: iss.id,
+        label_id: lbl.id,
+    };
+    let _ = insert_issue_label(&mut conn, &iss_lbl);
+    let _ = get_issue_label(&mut conn, iss_lbl.id);
+
+    let pr = crate::models::PullRequest {
+        id: id_offset,
+        repo_id: repo.id,
+        number: 1,
+        title: "t".into(),
+        body: None,
+        state: "open".into(),
+        head_branch: "h".into(),
+        base_branch: "b".into(),
+        author_id: user.id,
+        assignee_id: None,
+        milestone_id: None,
+        is_draft: false,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_pull_request(&mut conn, &pr);
+    let _ = get_pull_request(&mut conn, pr.id);
+
+    let rev = crate::models::PullRequestReview {
+        id: id_offset,
+        pr_id: pr.id,
+        user_id: user.id,
+        state: "s".into(),
+        body: None,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_pull_request_review(&mut conn, &rev);
+    let _ = get_pull_request_review(&mut conn, rev.id);
+
+    let rel = crate::models::Release {
+        id: id_offset,
+        repo_id: repo.id,
+        tag_name: "t".into(),
+        target_commitish: "t".into(),
+        name: None,
+        body: None,
+        is_draft: false,
+        is_prerelease: false,
+        author_id: user.id,
+        created_at: now,
+        published_at: None,
+    };
+    let _ = insert_release(&mut conn, &rel);
+    let _ = get_release(&mut conn, rel.id);
+
+    let webhook = crate::models::Webhook {
+        id: id_offset,
+        repo_id: repo.id,
+        url: "u".into(),
+        content_type: "c".into(),
+        secret: None,
+        events: "e".into(),
+        is_active: false,
+        created_at: now,
+        updated_at: now,
+    };
+    let _ = insert_webhook(&mut conn, &webhook);
+    let _ = get_webhook(&mut conn, webhook.id);
+
+    let commit = crate::models::Commit {
+        id: id_offset,
+        repo_id: repo.id,
+        sha: "s".into(),
+        tree_sha: "t".into(),
+        parent_shas: "p".into(),
+        message: "m".into(),
+        author_name: "a".into(),
+        author_email: "e".into(),
+        author_date: now,
+        committer_name: "c".into(),
+        committer_email: "e".into(),
+        committer_date: now,
+        created_at: now,
+    };
+    let _ = insert_commit(&mut conn, &commit);
+    let _ = get_commit(&mut conn, commit.id);
+
+    let tree = crate::models::Tree {
+        id: id_offset,
+        repo_id: repo.id,
+        sha: "s".into(),
+        entries: "e".into(),
+        created_at: now,
+    };
+    let _ = insert_tree(&mut conn, &tree);
+    let _ = get_tree(&mut conn, tree.id);
+
+    let blob = crate::models::Blob {
+        id: id_offset,
+        repo_id: repo.id,
+        sha: "s".into(),
+        size: 1,
+        content: None,
+        created_at: now,
+    };
+    let _ = insert_blob(&mut conn, &blob);
+    let _ = get_blob(&mut conn, blob.id);
+
+    Ok(())
+}

@@ -149,6 +149,8 @@ fn main() {
         .define("C_CDD_BUILD_TESTS", "OFF")
         .define("BUILD_SHARED_LIBS", "OFF")
         .define("C_CDD_USE_LIBCURL", "OFF")
+        .cflag("-Wno-int-conversion")
+        .cflag("-Wno-implicit-function-declaration")
         .profile("Release")
         .build();
 

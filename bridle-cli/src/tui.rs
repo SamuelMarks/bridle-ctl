@@ -3,7 +3,7 @@
 use std::io;
 
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
+    event::{Event, KeyCode, KeyEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -108,7 +108,7 @@ fn run_app(
             })
             .map_err(CliError::Io)?;
 
-        let Ok(Event::Key(key)) = event::read().map_err(CliError::Io) else {
+        let Ok(Event::Key(key)) = crossterm::event::read().map_err(CliError::Io) else {
             continue;
         };
 

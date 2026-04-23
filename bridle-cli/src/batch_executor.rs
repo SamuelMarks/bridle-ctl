@@ -97,3 +97,205 @@ pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatu
 
     Ok(TaskStatus::PRSubmitted) // Next step is PR
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_execute_step_success() {
+        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let step = Step {
+            name: "test".to_string(),
+            step_type: StepType::Detect,
+            command: "echo".to_string(),
+            args: Some(vec!["hello".to_string()]),
+            timeout_seconds: Some(10),
+            expected_exit_codes: None,
+        };
+
+        let (code, stdout, _) = execute_step(&dir, &step)
+            .await
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        assert_eq!(code, 0);
+        assert!(stdout.contains("hello"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_step_timeout() {
+        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let step = Step {
+            name: "test_timeout".to_string(),
+            step_type: StepType::Detect,
+            command: "sleep".to_string(),
+            args: Some(vec!["2".to_string()]),
+            timeout_seconds: Some(1),
+            expected_exit_codes: None,
+        };
+
+        let err = execute_step(&dir, &step).await;
+        assert!(err.is_err());
+        if let Err(CliError::Execution(msg)) = err {
+            assert_eq!(msg, "Timeout occurred");
+        } else {
+            panic!("Expected Timeout occurred");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_step_spawn_fail() {
+        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let step = Step {
+            name: "fail".to_string(),
+            step_type: StepType::Detect,
+            command: "nonexistent_command_123".to_string(),
+            args: None,
+            timeout_seconds: None,
+            expected_exit_codes: None,
+        };
+
+        let err = execute_step(&dir, &step).await;
+        assert!(err.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_run_engine_detect_clean() {
+        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let config = PipelineConfig {
+            name: "pipe".to_string(),
+            description: None,
+            author: None,
+            allowed_paths: None,
+            ignored_paths: None,
+            selectors: bridle_sdk::pipeline::Selectors {
+                require_files: None,
+                topics: None,
+                languages: None,
+            },
+            pr_template: None,
+            steps: vec![Step {
+                name: "detect".to_string(),
+                step_type: StepType::Detect,
+                command: "true".to_string(),
+                args: None,
+                timeout_seconds: None,
+                expected_exit_codes: None,
+            }],
+        };
+
+        let status = run_engine(&dir, &config)
+            .await
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        assert_eq!(status, TaskStatus::Clean);
+    }
+
+    #[tokio::test]
+    async fn test_run_engine_mkconf_fail() {
+        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let config = PipelineConfig {
+            name: "pipe".to_string(),
+            description: None,
+            author: None,
+            allowed_paths: None,
+            ignored_paths: None,
+            selectors: bridle_sdk::pipeline::Selectors {
+                require_files: None,
+                topics: None,
+                languages: None,
+            },
+            pr_template: None,
+            steps: vec![Step {
+                name: "mkconf".to_string(),
+                step_type: StepType::MkconfBuild,
+                command: "false".to_string(),
+                args: None,
+                timeout_seconds: None,
+                expected_exit_codes: None,
+            }],
+        };
+
+        let status = run_engine(&dir, &config)
+            .await
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        assert_eq!(status, TaskStatus::FailedValidation);
+    }
+
+    #[tokio::test]
+    async fn test_run_engine_fix_clean() {
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::process::Command::new("git")
+            .arg("init")
+            .current_dir(dir.path())
+            .status()
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::process::Command::new("git")
+            .args(["commit", "--allow-empty", "-m", "init"])
+            .current_dir(dir.path())
+            .status()
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+
+        let config = PipelineConfig {
+            name: "pipe".to_string(),
+            description: None,
+            author: None,
+            allowed_paths: None,
+            ignored_paths: None,
+            selectors: bridle_sdk::pipeline::Selectors {
+                require_files: None,
+                topics: None,
+                languages: None,
+            },
+            pr_template: None,
+            steps: vec![Step {
+                name: "fix".to_string(),
+                step_type: StepType::Fix,
+                command: "true".to_string(), // dummy command, does not change git status
+                args: None,
+                timeout_seconds: None,
+                expected_exit_codes: None,
+            }],
+        };
+
+        let status = run_engine(dir.path(), &config)
+            .await
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        assert_eq!(status, TaskStatus::Clean);
+    }
+
+    #[tokio::test]
+    async fn test_run_engine_validate_fail() {
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::process::Command::new("git")
+            .arg("init")
+            .current_dir(dir.path())
+            .status()
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+
+        let config = PipelineConfig {
+            name: "pipe".to_string(),
+            description: None,
+            author: None,
+            allowed_paths: None,
+            ignored_paths: None,
+            selectors: bridle_sdk::pipeline::Selectors {
+                require_files: None,
+                topics: None,
+                languages: None,
+            },
+            pr_template: None,
+            steps: vec![Step {
+                name: "validate".to_string(),
+                step_type: StepType::Validate,
+                command: "false".to_string(),
+                args: None,
+                timeout_seconds: None,
+                expected_exit_codes: None,
+            }],
+        };
+
+        let status = run_engine(dir.path(), &config)
+            .await
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        assert_eq!(status, TaskStatus::FailedValidation);
+    }
+}

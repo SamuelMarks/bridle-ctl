@@ -168,4 +168,23 @@ mod tests {
             panic!("Expected error");
         }
     }
+
+    #[test]
+    fn test_ingest_org_http_fail() {
+        // Just trigger reqwest. It will fail with 404 or similar, which returns Err
+        let res = ingest_org(
+            "invalid_org_1234567890_does_not_exist_test",
+            "github",
+            "bridle.db",
+        );
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_ingest_github_repo_struct() {
+        let json = r#"{"name": "test", "clone_url": "url", "private": false, "fork": false, "archived": false, "updated_at": "2026-04-08T00:00:00Z"}"#;
+        let parsed: GithubRepo =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        assert_eq!(parsed.name, "test");
+    }
 }

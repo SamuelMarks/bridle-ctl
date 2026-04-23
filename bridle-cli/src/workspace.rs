@@ -118,7 +118,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn test_ephemeral_workspace() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ephemeral_workspace() -> Result<(), CliError> {
         let dir = tempdir()?;
         // Setup a dummy git repo
         git_command()
@@ -170,6 +170,45 @@ mod tests {
         // Should be cleaned up
         // Note: we can't easily assert the path doesn't exist because `temp_dir` might be cleaned by OS anyway,
         // but let's assume it works. We can check if `node_modules` is gone by seeing if the whole dir is gone.
+        Ok(())
+    }
+
+    #[test]
+    fn test_ephemeral_workspace_clone_fail() {
+        // Try to clone a non-git directory
+        let res = EphemeralWorkspace::new(Path::new("/nonexistent/path/123"), "pipe");
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_ephemeral_workspace_checkout_fail() -> Result<(), CliError> {
+        let dir = tempdir()?;
+        git_command()
+            .current_dir(dir.path())
+            .args(["init"])
+            .status()?;
+
+        // This will trigger git clone to work, but branch checkout will fail because of space
+        let res = EphemeralWorkspace::new(dir.path(), "invalid branch name");
+        assert!(res.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_ephemeral_workspace_drop_rm_fallback() -> Result<(), CliError> {
+        let dir = tempdir()?;
+        git_command()
+            .current_dir(dir.path())
+            .args(["init"])
+            .status()?;
+
+        let ws = EphemeralWorkspace::new(dir.path(), "pipe")?;
+
+        // Lock the directory or remove it so std::fs::remove_dir_all fails and falls back to rm -rf
+        // Actually, just removing it will cause remove_dir_all to fail (NotFound), falling back to rm -rf which also gracefully exits
+        std::fs::remove_dir_all(&ws.path)?;
+
+        // When ws drops, it will trigger the fallback
         Ok(())
     }
 }

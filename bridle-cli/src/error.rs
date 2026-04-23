@@ -36,10 +36,24 @@ pub enum CliError {
     #[error(ignore)]
     #[from(ignore)]
     Execution(String),
+
+    /// Bridle Error
+    #[display("Bridle Error: {}", _0)]
+    Bridle(bridle_sdk::BridleError),
+
+    /// CLI parsing error
+    #[display("CLI Error: {}", _0)]
+    Clap(clap::error::Error),
 }
 
 impl From<std::string::FromUtf8Error> for CliError {
     fn from(err: std::string::FromUtf8Error) -> Self {
+        CliError::Execution(err.to_string())
+    }
+}
+
+impl From<&str> for CliError {
+    fn from(err: &str) -> Self {
         CliError::Execution(err.to_string())
     }
 }
@@ -79,6 +93,12 @@ mod tests {
         };
         let err: CliError = utf8_err.into();
         assert!(err.to_string().starts_with("Execution Error:"));
+    }
+
+    #[test]
+    fn test_from_str() {
+        let err: CliError = "some error".into();
+        assert_eq!(err.to_string(), "Execution Error: some error");
     }
 
     #[test]

@@ -45,3 +45,41 @@ pub trait CodeTool: Send + Sync {
         scope: Option<&PathScope>,
     ) -> Result<String, CliError>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct DummyTool;
+    impl CodeTool for DummyTool {
+        fn name(&self) -> &str {
+            "dummy"
+        }
+        fn description(&self) -> &str {
+            "dummy tool"
+        }
+        fn match_regex(&self) -> &str {
+            ".*"
+        }
+        fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+            Ok("ok".into())
+        }
+        fn fix(
+            &self,
+            _args: &[String],
+            _dry_run: bool,
+            _scope: Option<&PathScope>,
+        ) -> Result<String, CliError> {
+            Ok("ok".into())
+        }
+    }
+
+    #[test]
+    fn test_code_tool_defaults() {
+        let tool = DummyTool;
+        assert_eq!(tool.version(), None);
+        assert_eq!(tool.author(), None);
+        assert_eq!(tool.url(), None);
+        assert_eq!(tool.license(), None);
+    }
+}

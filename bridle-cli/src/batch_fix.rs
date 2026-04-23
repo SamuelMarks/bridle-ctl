@@ -157,4 +157,95 @@ mod tests {
             panic!("Expected error");
         }
     }
+
+    #[test]
+    fn test_batch_fix_unsupported_org() {
+        let err = batch_fix(
+            "unsupported_org",
+            "issue",
+            None,
+            None,
+            None,
+            "dummy",
+            false,
+            None,
+            None,
+        );
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_batch_fix_no_tools() {
+        let err = batch_fix(
+            "test_org",
+            "issue",
+            None,
+            Some(vec![]),
+            None,
+            "dummy",
+            false,
+            None,
+            None,
+        );
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_batch_fix_logic() {
+        let org = format!("testorg_{}", uuid::Uuid::new_v4());
+        let home = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        unsafe {
+            std::env::set_var("HOME", home.path());
+        }
+        let workspace = home.path().join(".bridle").join("workspace").join(&org);
+        std::fs::create_dir_all(&workspace).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+
+        let repo_dir = workspace.join("repo1");
+        std::fs::create_dir_all(&repo_dir).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::process::Command::new("git")
+            .arg("init")
+            .current_dir(&repo_dir)
+            .status()
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::process::Command::new("git")
+            .args(["commit", "--allow-empty", "-m", "init"])
+            .current_dir(&repo_dir)
+            .status()
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+
+        let db_url = format!("test_batch_fix_{}.db", uuid::Uuid::new_v4());
+        let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)
+            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+
+        let res = batch_fix(
+            &org,
+            "fix something",
+            Some(".*".to_string()),
+            None,
+            None,
+            &db_url,
+            false,
+            None,
+            None,
+        );
+        assert!(res.is_ok());
+
+        let res2 = batch_fix(
+            &org,
+            "fix something",
+            None,
+            None,
+            None,
+            &db_url,
+            false,
+            None,
+            None,
+        );
+        assert!(res2.is_ok());
+
+        unsafe {
+            std::env::remove_var("HOME");
+        }
+        std::fs::remove_file(db_url).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    }
 }

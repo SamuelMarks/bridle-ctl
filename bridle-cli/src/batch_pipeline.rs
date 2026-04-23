@@ -422,7 +422,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
-    fn test_pipeline_methods() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_pipeline_methods() -> Result<(), CliError> {
         let tf = tempfile::NamedTempFile::new()?;
         let db_url = tf.path().to_str().ok_or("invalid path")?;
 
@@ -464,7 +464,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orchestrator_check_idempotency() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_orchestrator_check_idempotency() -> Result<(), CliError> {
         let db_url = format!("test_idempotency_{}.db", uuid::Uuid::new_v4());
         let _conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
@@ -496,6 +496,78 @@ mod tests {
         };
         assert!(!orch.check_idempotency(&repo, "sha").await?);
         let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_orchestrator_select_targets() -> Result<(), CliError> {
+        let db_url = format!("test_select_targets_{}.db", uuid::Uuid::new_v4());
+        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
+
+        let repo = bridle_sdk::models::Repository {
+            id: 1,
+            owner_id: 1,
+            owner_type: "user".to_string(),
+            name: "testrepo".to_string(),
+            description: None,
+            is_private: false,
+            is_fork: false,
+            archived: false,
+            allow_merge_commit: true,
+            allow_squash_merge: true,
+            allow_rebase_merge: true,
+            created_at: chrono::Utc::now().naive_utc(),
+            updated_at: chrono::Utc::now().naive_utc(),
+        };
+        let _ = bridle_sdk::db::insert_repository(&mut conn, &repo);
+
+        let orchestrator = Orchestrator::new(
+            PipelineConfig {
+                name: "test".to_string(),
+                description: None,
+                author: None,
+                allowed_paths: None,
+                ignored_paths: None,
+                selectors: bridle_sdk::pipeline::Selectors {
+                    require_files: None,
+                    topics: None,
+                    languages: None,
+                },
+                pr_template: None,
+                steps: vec![],
+            },
+            db_url.clone(),
+            false,
+            Some(1),
+            None,
+        );
+        let targets = orchestrator.select_targets()?;
+        assert_eq!(targets.len(), 1);
+
+        std::fs::remove_file(db_url)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_run_pipeline() -> Result<(), CliError> {
+        let db_url = format!("test_run_pipeline_{}.db", uuid::Uuid::new_v4());
+        // Init the db
+        let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
+
+        let config_path = format!("test_pipeline_{}.json", uuid::Uuid::new_v4());
+        let config_json = r#"{
+            "name": "test_pipeline",
+            "description": "A test pipeline",
+            "selectors": {},
+            "steps": []
+        }"#;
+        std::fs::write(&config_path, config_json)?;
+
+        let res = run_pipeline(&config_path, &db_url, false, None, None);
+        assert!(res.is_ok());
+
+        std::fs::remove_file(&config_path)?;
+        std::fs::remove_file(&db_url)?;
         Ok(())
     }
 }

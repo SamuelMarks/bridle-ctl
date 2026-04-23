@@ -213,3 +213,16 @@ mkconf-pipeline.json
 mkconf-pipeline.yml
 e2e.sh
 e2e_manual.sh
+
+# Additional wildcards for careless git add .
+*.patch
+*.diff
+*.orig
+*.rej
+*.bak
+*.py
+*.sh
+bridle-cli/dummy
+bridle-rest/*.yml
+tarpaulin_output.txt
+lcov.info

@@ -74,7 +74,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn test_resolve_template_fallback() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_resolve_template_fallback() -> Result<(), CliError> {
         let dir = tempdir()?;
         let fallback = "Fallback template";
         let resolved = PrTemplateEngine::resolve_template(dir.path(), fallback);
@@ -83,7 +83,7 @@ mod tests {
     }
 
     #[test]
-    fn test_resolve_template_exists() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_resolve_template_exists() -> Result<(), CliError> {
         let dir = tempdir()?;
         let file_path = dir.path().join("PULL_REQUEST_TEMPLATE.md");
         std::fs::write(&file_path, "Real template")?;
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_render_pr_body_success() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_render_pr_body_success() -> Result<(), CliError> {
         let mut engine = PrTemplateEngine::new()?;
         let template = "Repo: {{ repo.name }}, Owner: {{ repo.owner }}, Branch: {{ branch_name }}, Stats: {{ diff_stats }}";
         let body = engine.render_pr_body(template, "my_repo", "my_owner", "my_branch", "+5 -2")?;
@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[test]
-    fn test_render_pr_body_invalid_template() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_render_pr_body_invalid_template() -> Result<(), CliError> {
         let mut engine = PrTemplateEngine::new()?;
         let template = "Repo: {{ repo.name "; // Missing closing braces
         let err = engine.render_pr_body(template, "my_repo", "my_owner", "my_branch", "+5 -2");

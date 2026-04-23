@@ -636,4 +636,19 @@ mod tests {
         let _ = std::fs::remove_file(db_url);
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_rpc_error_conversions() {
+        let err = rpc_reg_err_into("test");
+        assert!(err.is_err());
+
+        let err2 = rpc_reg_err("test");
+        assert!(matches!(err2, RpcError::Register(_)));
+    }
+
+    #[tokio::test]
+    async fn test_rpc_err_from() {
+        let err = rpc_err_from("test");
+        assert!(err.is_err());
+    }
 }

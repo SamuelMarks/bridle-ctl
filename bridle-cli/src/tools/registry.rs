@@ -10,13 +10,13 @@ impl CodeTool for MockRustTool {
         "rust-unwrap-to-question-mark"
     }
     fn description(&self) -> &str {
-        "Replaces .unwrap() with ? in Rust code"
+        "Replaces unwrap() with ? in Rust code"
     }
     fn match_regex(&self) -> &str {
         r".*\.rs$"
     }
     fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
-        Ok("Found 3 instances of .unwrap()".to_string())
+        Ok("Found 3 instances of unwrap()".to_string())
     }
     fn fix(
         &self,
@@ -25,9 +25,9 @@ impl CodeTool for MockRustTool {
         _scope: Option<&PathScope>,
     ) -> Result<String, CliError> {
         if dry_run {
-            Ok("[DRY RUN] Would replace 3 instances of .unwrap() with ?".to_string())
+            Ok("[DRY RUN] Would replace 3 instances of unwrap() with ?".to_string())
         } else {
-            Ok("Replaced 3 instances of .unwrap() with ?".to_string())
+            Ok("Replaced 3 instances of unwrap() with ?".to_string())
         }
     }
 }
@@ -318,7 +318,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mock_rust_tool() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_mock_rust_tool() -> Result<(), CliError> {
         let tool = MockRustTool;
         assert_eq!(tool.name(), "rust-unwrap-to-question-mark");
         assert_eq!(tool.match_regex(), r".*\.rs$");
@@ -329,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mock_gha_tool() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_mock_gha_tool() -> Result<(), CliError> {
         let tool = GithubActionsTool;
         assert_eq!(tool.name(), "gha-improver");
         assert!(tool.audit(&[], None)?.contains("2 workflow"));
@@ -339,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ffi_tools() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ffi_tools() -> Result<(), CliError> {
         let tools = get_tools();
 
         let tc = tools
@@ -430,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn test_file_lock_tester_tool() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_file_lock_tester_tool() -> Result<(), CliError> {
         let tool = FileLockTesterTool;
         assert_eq!(tool.name(), "file-lock-tester");
         assert_eq!(tool.description(), "Tests exclusive file mutations");
@@ -454,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encoding_normalizer_tool() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_encoding_normalizer_tool() -> Result<(), CliError> {
         let tool = EncodingNormalizerTool;
         assert_eq!(tool.name(), "encoding-normalizer");
         assert_eq!(
@@ -479,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn test_db_migrator_tool() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_db_migrator_tool() -> Result<(), CliError> {
         let tool = DBMigratorTool;
         assert_eq!(tool.name(), "db-migrator-tester");
         assert_eq!(
