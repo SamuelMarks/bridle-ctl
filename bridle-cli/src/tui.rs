@@ -9,7 +9,7 @@ use crossterm::{
 };
 use ratatui::{
     Terminal,
-    backend::CrosstermBackend,
+    backend::Backend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -24,14 +24,21 @@ pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError>
     enable_raw_mode().map_err(CliError::Io)?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen).map_err(CliError::Io)?;
-    let backend = CrosstermBackend::new(stdout);
+    let backend = ratatui::backend::CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).map_err(CliError::Io)?;
 
     let mut state = ListState::default();
     state.select(Some(0));
     let mut selected_indices = vec![false; tools.len()];
 
-    let res = run_app(&mut terminal, tools, &mut state, &mut selected_indices);
+    let event_iter = std::iter::from_fn(|| Some(crossterm::event::read().map_err(CliError::Io)));
+    let res = run_app(
+        &mut terminal,
+        tools,
+        &mut state,
+        &mut selected_indices,
+        event_iter,
+    );
 
     disable_raw_mode().map_err(CliError::Io)?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen).map_err(CliError::Io)?;
@@ -50,12 +57,16 @@ pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError>
 }
 
 /// Runs the main event loop for the TUI.
-fn run_app(
-    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+fn run_app<B: Backend, I>(
+    terminal: &mut Terminal<B>,
     tools: &[Box<dyn CodeTool>],
     state: &mut ListState,
     selected_indices: &mut [bool],
-) -> Result<(), CliError> {
+    mut events: I,
+) -> Result<(), CliError>
+where
+    I: Iterator<Item = Result<Event, CliError>>,
+{
     loop {
         terminal
             .draw(|f| {
@@ -106,9 +117,12 @@ fn run_app(
 
                 f.render_widget(help, chunks[1]);
             })
-            .map_err(CliError::Io)?;
+            .map_err(|e| CliError::Io(std::io::Error::other(e.to_string())))?;
 
-        let Ok(Event::Key(key)) = crossterm::event::read().map_err(CliError::Io) else {
+        let Ok(Event::Key(key)) = events
+            .next()
+            .unwrap_or(Err(CliError::Io(std::io::Error::other("no more events"))))
+        else {
             continue;
         };
 
@@ -156,5 +170,83 @@ fn run_app(
                 _ => {}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tools::registry::get_tools;
+    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+    use ratatui::backend::TestBackend;
+
+    fn key_event(code: KeyCode) -> Event {
+        Event::Key(KeyEvent {
+            code,
+            modifiers: KeyModifiers::empty(),
+            kind: KeyEventKind::Press,
+            state: KeyEventState::empty(),
+        })
+    }
+
+    #[test]
+    fn test_tui_run_app() -> Result<(), Box<dyn std::error::Error>> {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend)?;
+        let tools = get_tools();
+        let mut state = ListState::default();
+        state.select(Some(0));
+        let mut selected_indices = vec![false; tools.len()];
+
+        let events = vec![
+            Ok(key_event(KeyCode::Down)),
+            Ok(key_event(KeyCode::Char('j'))),
+            Ok(key_event(KeyCode::Up)),
+            Ok(key_event(KeyCode::Char('k'))),
+            Ok(key_event(KeyCode::Char(' '))), // toggle
+            Ok(key_event(KeyCode::Char(' '))), // toggle off
+            Ok(Event::Resize(80, 24)),         // unhandled event type
+            Ok(key_event(KeyCode::Char('a'))), // unhandled key
+            Ok(key_event(KeyCode::Enter)),
+        ];
+
+        let res = run_app(
+            &mut terminal,
+            &tools,
+            &mut state,
+            &mut selected_indices,
+            events.into_iter(),
+        );
+
+        assert!(res.is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn test_tui_cancel() -> Result<(), Box<dyn std::error::Error>> {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend)?;
+        let tools = get_tools();
+        let mut state = ListState::default();
+        state.select(None); // hit None state
+        let mut selected_indices = vec![false; tools.len()];
+
+        let events = vec![
+            Ok(key_event(KeyCode::Down)), // None -> 0
+            Ok(key_event(KeyCode::Up)),   // 0 -> max
+            Ok(key_event(KeyCode::Char('q'))),
+        ];
+
+        let res = run_app(
+            &mut terminal,
+            &tools,
+            &mut state,
+            &mut selected_indices,
+            events.into_iter(),
+        );
+
+        assert!(res.is_ok());
+        assert!(!selected_indices.contains(&true));
+        Ok(())
     }
 }

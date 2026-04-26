@@ -74,11 +74,12 @@ Each tool specifies its configuration in its own isolated TOML file. Below are e
 description = "Fixes things using python"
 match_regex = ".*\\.py$"
 type = "subprocess"
-command = "/path/to/my-python-script.py"
+command = "py-grade-up"
+# Optional: Set to true to automatically resolve the virtual environment (e.g. .venv, venv, or VIRTUAL_ENV)
+venv_aware = true
 
 [env]
 # Optional: Securely pass environment variables or override the PATH!
-PATH = "/my/custom/virtualenv/bin:/usr/bin"
 MY_ARBITRARY_VAR = "some_value"
 ```
 *The CLI will execute `my-command audit [args...]` and `my-command fix [--dry-run] [args...]`.*

@@ -56,7 +56,7 @@ pub enum Commands {
     /// Execute a database operation via JSON.
     Db {
         /// The path to the SQLite database.
-        #[arg(long, default_value = "bridle.db")]
+        #[arg(long, default_value_t = bridle_sdk::db::database_url())]
         db_url: String,
         /// The action to perform (e.g. "create_user", "get_user", "create_team", "get_team", etc).
         #[arg(long)]
@@ -77,7 +77,7 @@ pub enum Commands {
         #[arg(long, default_value = "github")]
         provider: String,
         /// Optional DB URL to sync the org.
-        #[arg(long, default_value = "bridle.db")]
+        #[arg(long, default_value_t = bridle_sdk::db::database_url())]
         db_url: String,
     },
     /// Executes a batch fix across all repositories in an organization.
@@ -98,7 +98,7 @@ pub enum Commands {
         #[arg(long, value_delimiter = ',')]
         tool_args: Option<Vec<String>>,
         /// Database URL.
-        #[arg(long, default_value = "bridle.db")]
+        #[arg(long, default_value_t = bridle_sdk::db::database_url())]
         db_url: String,
         /// If true, will not fork and submit PRs automatically.
         #[arg(long)]
@@ -116,7 +116,7 @@ pub enum Commands {
         #[arg(long)]
         org: String,
         /// Database URL.
-        #[arg(long, default_value = "bridle.db")]
+        #[arg(long, default_value_t = bridle_sdk::db::database_url())]
         db_url: String,
         /// Global limit of number of PRs to send per hour.
         #[arg(long)]
@@ -295,16 +295,16 @@ pub fn execute(command: &Commands) -> Result<String, error::CliError> {
             max_prs_per_hour,
         } => bridle_cli::batch_pipeline::run_pipeline(
             config,
-            "bridle.db",
+            &bridle_sdk::db::database_url(),
             *safety_mode,
             *max_repos,
             *max_prs_per_hour,
         ),
         Commands::BatchResume { job_id } => {
-            bridle_cli::batch_pipeline::resume_pipeline(*job_id, "bridle.db")
+            bridle_cli::batch_pipeline::resume_pipeline(*job_id, &bridle_sdk::db::database_url())
         }
         Commands::BatchStatus { job_id } => {
-            bridle_cli::batch_pipeline::status_pipeline(*job_id, "bridle.db")
+            bridle_cli::batch_pipeline::status_pipeline(*job_id, &bridle_sdk::db::database_url())
         }
     }
 }

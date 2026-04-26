@@ -28,6 +28,8 @@ pub struct SubprocessTool {
     command: String,
     /// Environment variables
     env: std::collections::HashMap<String, String>,
+    /// Venv aware
+    venv_aware: bool,
 }
 
 impl SubprocessTool {
@@ -44,6 +46,7 @@ impl SubprocessTool {
 
         command: String,
         env: std::collections::HashMap<String, String>,
+        venv_aware: bool,
     ) -> Self {
         Self {
             name,
@@ -55,7 +58,110 @@ impl SubprocessTool {
             license,
             command,
             env,
+            venv_aware,
         }
+    }
+
+    /// Configures the command with arguments and environment variables.
+    fn configure_command(
+        &self,
+        arg_action: &str,
+        args: &[String],
+        dry_run: Option<bool>,
+    ) -> Command {
+        let mut cmd = Command::new(&self.command);
+        let mut envs = self.env.clone();
+
+        if self.venv_aware {
+            if let Ok(venv) = std::env::var("VIRTUAL_ENV") {
+                let venv_path = std::path::PathBuf::from(venv);
+                let bin_dir = if cfg!(windows) {
+                    venv_path.join("Scripts")
+                } else {
+                    venv_path.join("bin")
+                };
+                if let Ok(path) = std::env::var("PATH") {
+                    let new_path = std::env::join_paths(
+                        std::iter::once(bin_dir).chain(std::env::split_paths(&path)),
+                    )
+                    .unwrap_or_default();
+                    envs.insert("PATH".to_string(), new_path.to_string_lossy().to_string());
+                } else {
+                    envs.insert("PATH".to_string(), bin_dir.display().to_string());
+                }
+            } else {
+                let mut local_venvs = vec![".venv".to_string(), "venv".to_string()];
+
+                // Also find versioned venv paths like .venv-3-11, .venv-uv-3-12, etc.
+                if let Ok(entries) = std::fs::read_dir(".") {
+                    let prefixes = [
+                        ".venv-uv-",
+                        ".venv-pyenv-",
+                        "venv-uv-",
+                        "venv-pyenv-",
+                        ".venv-",
+                        "venv-",
+                    ];
+                    for entry in entries.flatten() {
+                        if let Ok(name) = entry.file_name().into_string()
+                            && entry.file_type().is_ok_and(|t| t.is_dir())
+                        {
+                            for prefix in prefixes.iter() {
+                                if let Some(suffix) = name.strip_prefix(prefix) {
+                                    let parts: Vec<&str> = suffix.split(['-', '.']).collect();
+                                    if parts.len() == 2
+                                        && !parts[0].is_empty()
+                                        && !parts[1].is_empty()
+                                        && parts[0].chars().all(|c| c.is_ascii_digit())
+                                        && parts[1].chars().all(|c| c.is_ascii_digit())
+                                    {
+                                        local_venvs.push(name.clone());
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                for v in local_venvs.iter() {
+                    let venv_path = std::path::Path::new(v);
+                    if venv_path.exists() && venv_path.is_dir() {
+                        let bin_dir = if cfg!(windows) {
+                            venv_path.join("Scripts")
+                        } else {
+                            venv_path.join("bin")
+                        };
+                        if let Ok(path) = std::env::var("PATH") {
+                            let new_path = std::env::join_paths(
+                                std::iter::once(bin_dir).chain(std::env::split_paths(&path)),
+                            )
+                            .unwrap_or_default();
+                            envs.insert("PATH".to_string(), new_path.to_string_lossy().to_string());
+                        } else {
+                            envs.insert("PATH".to_string(), bin_dir.display().to_string());
+                        }
+                        envs.insert(
+                            "VIRTUAL_ENV".to_string(),
+                            venv_path
+                                .canonicalize()
+                                .unwrap_or_else(|_| venv_path.to_path_buf())
+                                .display()
+                                .to_string(),
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+
+        cmd.envs(&envs);
+        cmd.arg(arg_action);
+        if let Some(true) = dry_run {
+            cmd.arg("--dry-run");
+        }
+        cmd.args(args);
+        cmd
     }
 }
 
@@ -83,11 +189,8 @@ impl CodeTool for SubprocessTool {
     }
 
     fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
-        let output = Command::new(&self.command)
-            .envs(&self.env)
-            .arg("audit")
-            .args(args)
-            .output()?;
+        let mut cmd = self.configure_command("audit", args, None);
+        let output = cmd.output()?;
 
         if output.status.success() {
             Ok(String::from_utf8(output.stdout)?.trim().to_string())
@@ -104,14 +207,7 @@ impl CodeTool for SubprocessTool {
         dry_run: bool,
         _scope: Option<&PathScope>,
     ) -> Result<String, CliError> {
-        let mut cmd = Command::new(&self.command);
-        cmd.envs(&self.env);
-        cmd.arg("fix");
-        if dry_run {
-            cmd.arg("--dry-run");
-        }
-        cmd.args(args);
-
+        let mut cmd = self.configure_command("fix", args, Some(dry_run));
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -679,6 +775,7 @@ mod tests {
             None,
             "echo".to_string(),
             std::collections::HashMap::new(),
+            true,
         );
         assert_eq!(tool.name(), "test");
         assert_eq!(tool.description(), "desc");

@@ -226,3 +226,30 @@ bridle-cli/dummy
 bridle-rest/*.yml
 tarpaulin_output.txt
 lcov.info
+
+# ------------------------------------------------------------------------------
+# 🚨 Additional Wildcards for Careless `git add .` 
+# ------------------------------------------------------------------------------
+# Auto-generated JSON payloads
+test_pipeline_*.json
+
+# Patch and scratch test files
+*tests_patch*.rs
+*patch*.rs
+*debug*.rs
+*temp*.rs
+test_rand.rs
+run_test.rs
+runner_tests.rs
+
+# Scripts and binaries for generating/running tests
+generate_tests
+generate_tests.rs
+
+# Tarpaulin coverage and custom target folders
+target-tarpaulin/
+tarpaulin-report.json
+coverage.json
+
+# Random temporary yaml
+test.yaml

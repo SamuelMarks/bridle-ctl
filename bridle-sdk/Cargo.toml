@@ -8,6 +8,7 @@ chrono = { version = "0.4", features = ["serde"] }
 derive_more = { version = "1.0.0", features = ["display", "from", "error"] }
 diesel = { version = "2.2", features = ["chrono", "postgres", "sqlite"] }
 diesel_migrations = { version = "2.3.1", features = ["sqlite"] }
+dotenvy = "0.15.7"
 encoding_rs = "0.8.35"
 fs4 = "0.13.1"
 globset = "0.4.18"

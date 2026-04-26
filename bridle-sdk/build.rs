@@ -123,7 +123,7 @@ fn main() {
 
     // --- cdd-c ---
     let cdd_local = Path::new(&manifest_dir).join("../../cdd-c");
-    let cdd_repo = if cdd_local.exists() {
+    let cdd_repo = if std::env::var("USE_LOCAL_CDD").is_ok() && cdd_local.exists() {
         cdd_local
     } else {
         let git_dir = out_path.join("cdd-c");

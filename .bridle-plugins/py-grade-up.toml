@@ -1,0 +1,9 @@
+description = "Upgrades Python source code syntax to newer language features."
+match_regex = ".*\\.py$"
+version = "1.0.0"
+author = "Samuel Marks"
+url = "https://github.com/SamuelMarks/py-grade-up"
+license = "Apache-2.0 OR MIT"
+type = "subprocess"
+command = "py-grade-up"
+venv_aware = true

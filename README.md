@@ -88,6 +88,7 @@ For a step-by-step guide on creating, wrapping, and registering new tools, see [
 | `go-auto-err-handling`         | Automatically injects `if err != nil { return err }` blocks.     | Go              |
 | `type-correct`                 | Resolves standard C/C++ type inconsistencies via AST parsing.    | C/C++           |
 | `lib2notebook2lib`             | Bi-directional sync between Python source and Jupyter notebooks. | Python          |
+| `py-grade-up`                  | Upgrades Python source code syntax to newer language features.   | Python          |
 | `cdd-extern-c`                 | Safely wraps headers in `extern "C"` blocks.                     | C/C++           |
 | `encoding-normalizer`          | Standardizes file encodings (UTF-8) and line endings (LF).       | Any             |
 | `rust-unwrap-to-question-mark` | Safely refactors `.unwrap()` calls to idiomatic `?` usage.       | Rust            |

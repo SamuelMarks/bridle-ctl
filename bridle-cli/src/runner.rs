@@ -84,7 +84,11 @@ fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
         .filter(|t| detected_names.contains(&t.name().to_string()))
         .collect();
 
-    let selected_indices = tui::select_tools(&available_tools)?;
+    let selected_indices = if std::env::var("BRIDLE_TEST_MOCK_TUI").is_ok() {
+        vec![0] // Mock selection
+    } else {
+        tui::select_tools(&available_tools)?
+    };
 
     // Need to extract the selected tools from the vector, taking ownership.
     // We can do this by keeping the ones that were selected.
@@ -193,14 +197,7 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
             selected_tools_opt = Some(filtered);
         } else {
             // Interactive mode
-            #[cfg(not(tarpaulin_include))]
-            {
-                selected_tools_opt = Some(interactive_selection()?);
-            }
-            #[cfg(tarpaulin_include)]
-            {
-                selected_tools_opt = Some(vec![]);
-            }
+            selected_tools_opt = Some(interactive_selection()?);
         }
     }
 
@@ -286,6 +283,29 @@ mod tests {
         let applicable = detect_applicable_tools(&tools);
         // Will always detect rust in this codebase
         assert!(applicable.contains(&"rust-unwrap-to-question-mark".to_string()));
+    }
+
+    #[test]
+    fn test_interactive_selection_mocked() -> Result<(), CliError> {
+        unsafe {
+            std::env::set_var("BRIDLE_TEST_MOCK_TUI", "1");
+        }
+
+        let req = ToolRunRequest {
+            pattern: None,
+            tools: None,
+            tool_args: None,
+            dry_run: None,
+            action: None,
+        };
+        // Run shouldn't fail if tools are detected in current dir, or if no tools detected it prints and returns Ok.
+        // Btw run interactive mode
+        run(Action::Audit, req)?;
+
+        unsafe {
+            std::env::remove_var("BRIDLE_TEST_MOCK_TUI");
+        }
+        Ok(())
     }
 
     #[test]

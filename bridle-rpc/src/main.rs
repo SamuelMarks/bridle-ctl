@@ -370,7 +370,7 @@ async fn main() -> Result<(), RpcError> {
         eprintln!("Warning: Failed to initialize telemetry: {}", e);
     }
 
-    let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "bridle.db".to_string());
+    let db_url = bridle_sdk::db::database_url();
     let addr = run_server(db_url).await?;
     println!("JSON-RPC server running at {}", addr);
 

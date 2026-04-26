@@ -51,7 +51,7 @@ pub struct DbActionArgs {
 
 /// Provides the default database URL.
 fn default_db_url() -> String {
-    std::env::var("DATABASE_URL").unwrap_or_else(|_| "bridle.db".to_string())
+    bridle_sdk::db::database_url()
 }
 
 /// Executes a registered MCP tool by name.

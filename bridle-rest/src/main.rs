@@ -270,7 +270,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     // In production, you might get this from an environment variable.
-    let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "bridle.db".to_string());
+    let db_url = bridle_sdk::db::database_url();
 
     let app_state = web::Data::new(AppState { db_url });
 

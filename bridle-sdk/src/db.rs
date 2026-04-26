@@ -19,6 +19,14 @@ pub const MIGRATIONS_SQLITE: EmbeddedMigrations = embed_migrations!("migrations"
 /// Embedded database migrations for PostgreSQL.
 pub const MIGRATIONS_PG: EmbeddedMigrations = embed_migrations!("migrations_pg");
 
+/// Helper to get the database url, with fallbacks.
+pub fn database_url() -> String {
+    let _ = dotenvy::dotenv();
+    std::env::var("DATABASE_URL")
+        .or_else(|_| std::env::var("POSTGRES_URL"))
+        .unwrap_or_else(|_| "bridle.db".to_string())
+}
+
 /// Helper function to convert any generic error display into a `BridleError::Database` execution error.
 fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
     BridleError::Database(diesel::result::Error::DatabaseError(
@@ -29,7 +37,11 @@ fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
 
 /// Establishes a PostgreSQL database connection and runs pending migrations.
 fn establish_pg(database_url: &str) -> Result<DbConnection, BridleError> {
+    static MIGRATION_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let mut connection = PgConnection::establish(database_url).map_err(db_exec_err)?;
+    let _guard = MIGRATION_MUTEX
+        .lock()
+        .map_err(|e| BridleError::Generic(format!("Mutex lock failed: {}", e)))?;
     connection
         .run_pending_migrations(MIGRATIONS_PG)
         .map_err(|e| BridleError::Migration(e.to_string()))?;
@@ -43,7 +55,11 @@ pub fn establish_connection_and_run_migrations(
     if database_url.starts_with("postgres://") || database_url.starts_with("postgresql://") {
         establish_pg(database_url)
     } else {
+        static SQLITE_MIGRATION_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
         let mut connection = SqliteConnection::establish(database_url).map_err(db_exec_err)?;
+        let _guard = SQLITE_MIGRATION_MUTEX
+            .lock()
+            .map_err(|e| BridleError::Generic(format!("Mutex lock failed: {}", e)))?;
         connection
             .run_pending_migrations(MIGRATIONS_SQLITE)
             .map_err(|e| BridleError::Migration(e.to_string()))?;
@@ -1273,7 +1289,8 @@ mod tests {
     fn test_insert_and_get_key() -> Result<(), BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
         let now = chrono::Utc::now().naive_utc();
-        let unique_id = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0) % 1000000) as i32;
+        static COUNTER: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(1000);
+        let unique_id = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         let dummy_user = crate::models::User {
             id: unique_id,
@@ -1308,10 +1325,13 @@ mod tests {
         assert!(missing.is_err());
 
         // Test Pg branch
-        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "".to_string());
+        let url = database_url();
         if url.starts_with("postgres") {
             let mut pg_conn = establish_connection_and_run_migrations(&url)?;
-            let pg_id = unique_id + 1000;
+            let pg_id: i32 = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos() as i32;
 
             let dummy_user_pg = crate::models::User {
                 id: pg_id,

@@ -226,7 +226,11 @@ pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
                 let load_res = PluginDef::load(&actual_path);
                 if let Ok(def) = load_res {
                     match def.dynamic {
-                        DynamicToolConfig::Subprocess { command, env } => {
+                        DynamicToolConfig::Subprocess {
+                            command,
+                            env,
+                            venv_aware,
+                        } => {
                             tools.push(Box::new(SubprocessTool::new(
                                 name,
                                 def.description,
@@ -237,6 +241,7 @@ pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
                                 def.license,
                                 command,
                                 env,
+                                venv_aware,
                             )));
                         }
                         DynamicToolConfig::JsonRpc {
@@ -538,7 +543,7 @@ mod tests {
         assert_eq!(rust_tools_alias[0].name(), "rust-unwrap-to-question-mark");
 
         let py_tools = get_tools_for_pattern("python");
-        assert_eq!(py_tools.len(), 0);
+        assert_eq!(py_tools.len(), 1);
 
         let l2n_tools = get_tools_for_pattern(r".*\.(py|ipynb)$");
         assert_eq!(l2n_tools.len(), 1);

@@ -54,6 +54,9 @@ pub enum DynamicToolConfig {
         /// Optional environment variables
         #[serde(default)]
         env: HashMap<String, String>,
+        /// Optional virtual environment awareness
+        #[serde(default)]
+        venv_aware: bool,
     },
     /// A dynamic library plugin
     #[serde(rename = "dlopen")]

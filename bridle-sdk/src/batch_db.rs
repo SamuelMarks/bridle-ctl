@@ -331,7 +331,7 @@ mod extra_tests {
 
     #[test]
     fn test_pg_stubs() -> Result<(), crate::error::BridleError> {
-        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "".to_string());
+        let url = crate::db::database_url();
         if url.starts_with("postgres") {
             let mut conn = establish_connection_and_run_migrations(&url)?;
             let job = create_batch_job(&mut conn, "test")?;

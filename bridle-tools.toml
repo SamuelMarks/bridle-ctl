@@ -7,6 +7,7 @@
 "cdd-gnu-standardizer" = ".bridle-plugins/cdd-gnu-standardizer.toml"
 "cdd-error-percolator" = ".bridle-plugins/cdd-error-percolator.toml"
 "cdd-safe-crt" = ".bridle-plugins/cdd-safe-crt.toml"
+"py-grade-up" = ".bridle-plugins/py-grade-up.toml"
 
 [enabled]
 "type-correct" = true
@@ -17,3 +18,4 @@
 "cdd-gnu-standardizer" = true
 "cdd-error-percolator" = true
 "cdd-safe-crt" = true
+"py-grade-up" = true
