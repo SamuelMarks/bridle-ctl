@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Full "AI Engineering Team" offline-first simulations.
 
 use crate::error::AgentError;

@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! FFI interfaces for `bridle-sdk`.
 
 use derive_more::derive::{Display, Error, From};

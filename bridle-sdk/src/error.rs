@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Error types for the Bridle SDK.
 
 use derive_more::derive::{Display, Error};

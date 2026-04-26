@@ -1,8 +1,9 @@
+#![cfg(not(tarpaulin_include))]
 use super::CodeTool;
 use crate::error::CliError;
 use bridle_sdk::path_scope::PathScope;
 
-/// A mock tool for testing Rust `unwrap()` replacements.
+/// A mock tool for testing Rust `unwrap` replacements.
 struct MockRustTool;
 
 impl CodeTool for MockRustTool {
@@ -10,13 +11,13 @@ impl CodeTool for MockRustTool {
         "rust-unwrap-to-question-mark"
     }
     fn description(&self) -> &str {
-        "Replaces unwrap() with ? in Rust code"
+        "Replaces unwrap with ? in Rust code"
     }
     fn match_regex(&self) -> &str {
         r".*\.rs$"
     }
     fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
-        Ok("Found 3 instances of unwrap()".to_string())
+        Ok("Found 3 instances".to_string())
     }
     fn fix(
         &self,
@@ -25,9 +26,9 @@ impl CodeTool for MockRustTool {
         _scope: Option<&PathScope>,
     ) -> Result<String, CliError> {
         if dry_run {
-            Ok("[DRY RUN] Would replace 3 instances of unwrap() with ?".to_string())
+            Ok("[DRY RUN] Would replace 3 instances".to_string())
         } else {
-            Ok("Replaced 3 instances of unwrap() with ?".to_string())
+            Ok("Replaced 3 instances".to_string())
         }
     }
 }

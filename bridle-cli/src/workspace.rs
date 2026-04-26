@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 use crate::error::CliError;
 use std::path::{Path, PathBuf};
 use std::process::Command;

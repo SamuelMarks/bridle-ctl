@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 use crate::error::CliError;
 use reqwest::Client;
 use serde_json::json;

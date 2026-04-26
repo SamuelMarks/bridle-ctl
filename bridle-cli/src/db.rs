@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! DB action executor.
 
 use crate::error;

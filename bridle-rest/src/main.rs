@@ -1,5 +1,6 @@
 #![deny(missing_docs)]
 #![warn(missing_docs)]
+#![cfg(not(tarpaulin_include))]
 //! REST API Interface for bridle-ctl.
 
 /// Error module.

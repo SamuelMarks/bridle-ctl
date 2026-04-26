@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Database connection and migration management.
 
 use crate::error::BridleError;

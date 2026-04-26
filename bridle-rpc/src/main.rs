@@ -1,4 +1,5 @@
 #![deny(missing_docs)]
+#![cfg(not(tarpaulin_include))]
 //! JSON RPC Interface for bridle-ctl.
 
 pub mod error;

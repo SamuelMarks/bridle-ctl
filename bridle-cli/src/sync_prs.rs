@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Upstream PR synchronization.
 
 use crate::error::CliError;

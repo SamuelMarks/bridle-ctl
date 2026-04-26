@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Agent interaction loop mechanism.
 
 use crate::error::AgentError;

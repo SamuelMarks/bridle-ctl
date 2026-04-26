@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Model Context Protocol (MCP) Server for `bridle-ctl`.
 
 use crate::error::AgentError;

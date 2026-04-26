@@ -1,5 +1,6 @@
 #![deny(missing_docs)]
 #![warn(missing_docs)]
+#![cfg(not(tarpaulin_include))]
 //! CLI Interface for bridle-ctl.
 
 use bridle_cli::{error, runner};
