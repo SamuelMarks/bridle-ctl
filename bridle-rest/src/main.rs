@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 #![warn(missing_docs)]
-#![cfg(not(tarpaulin_include))]
 //! REST API Interface for bridle-ctl.
 
 /// Error module.
@@ -46,6 +45,7 @@ pub async fn run_tools(
 }
 
 /// Endpoint to run batch pipeline
+#[cfg(not(tarpaulin_include))]
 pub async fn batch_run(
     data: web::Data<AppState>,
     req: web::Json<bridle_sdk::models::BatchRunRequest>,
@@ -63,6 +63,7 @@ pub async fn batch_run(
 }
 
 /// Endpoint to sync prs
+#[cfg(not(tarpaulin_include))]
 pub async fn sync_prs(
     data: web::Data<AppState>,
     req: web::Json<bridle_sdk::models::SyncPrsRequest>,
@@ -265,6 +266,7 @@ define_crud_endpoints!(
 
 /// Main entry point for the REST API.
 #[actix_web::main]
+#[cfg(not(tarpaulin_include))]
 async fn main() -> std::io::Result<()> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
         eprintln!("Warning: Failed to initialize telemetry: {}", e);
@@ -352,6 +354,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[cfg(test)]
+#[cfg(not(tarpaulin_include))]
 mod tests {
     use super::*;
     use actix_web::{App, test};

@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Plugin configuration handling.
 
 use crate::error::CliError;

@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Handles reading and writing text files while preserving line endings and text encoding.
 
 use std::borrow::Cow;

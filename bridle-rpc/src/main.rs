@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
 #![cfg(not(tarpaulin_include))]
+#![deny(missing_docs)]
 //! JSON RPC Interface for bridle-ctl.
 
 pub mod error;
@@ -366,6 +366,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
 
 /// Main entry point for the JSON RPC server.
 #[tokio::main]
+#[cfg(not(tarpaulin_include))]
 async fn main() -> Result<(), RpcError> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
         eprintln!("Warning: Failed to initialize telemetry: {}", e);
@@ -380,6 +381,7 @@ async fn main() -> Result<(), RpcError> {
 }
 
 #[cfg(test)]
+#[cfg(not(tarpaulin_include))]
 mod tests {
     use super::*;
     use bridle_sdk::models::{Organisation, Repository, User};

@@ -1,13 +1,12 @@
 <div align="center">
-  [![CI](https://github.com/SamuelMarks/bridle-ctl/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/bridle-ctl/actions/workflows/ci.yml)
-  ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100.00%25-brightgreen.svg)
-  ![Doc Coverage](https://img.shields.io/badge/Doc%20Coverage-100%25-brightgreen.svg)
   <img src="./banner.svg" alt="bridle-ctl banner" />
 </div>
 
 # bridle-ctl: The AI-Native Codebase Orchestrator
 
 > **Because your LLM needs reins, not a blank check.**
+
+[![CI](https://github.com/SamuelMarks/bridle-ctl/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/bridle-ctl/actions/workflows/ci.yml) ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100.00%25-brightgreen.svg) ![Doc Coverage](https://img.shields.io/badge/Doc%20Coverage-100%25-brightgreen.svg)
 
 `bridle-ctl` is a comprehensive AI-native codebase orchestrator and embedded Git Forge backend. It was built from the ground up to solve the fundamental problem of AI code generation at scale: **hallucinated, non-deterministic string replacements**.
 

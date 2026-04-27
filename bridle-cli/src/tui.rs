@@ -21,6 +21,7 @@ use crate::error::CliError;
 use crate::tools::CodeTool;
 
 /// Launches the interactive TUI to select tools.
+#[cfg(not(tarpaulin_include))]
 pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError> {
     enable_raw_mode().map_err(CliError::Io)?;
     let mut stdout = io::stdout();

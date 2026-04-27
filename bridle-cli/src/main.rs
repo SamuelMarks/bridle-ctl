@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 #![warn(missing_docs)]
-#![cfg(not(tarpaulin_include))]
 //! CLI Interface for bridle-ctl.
 
 use bridle_cli::{error, runner};
@@ -330,6 +329,7 @@ where
 }
 
 /// Main entry point for the CLI.
+#[cfg(not(tarpaulin_include))]
 fn main() {
     if let Err(e) = run_cli(std::env::args()) {
         eprintln!("{}", e);

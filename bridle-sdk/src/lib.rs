@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 #![warn(missing_docs)]
-#![cfg(not(tarpaulin_include))]
 //! Core logic, models, and FFI bindings for bridle-ctl.
 
 pub mod db;

@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 /// Plugin configuration
 pub mod config;
 /// Dynamic plugin tools (dlopen, subprocess, jsonrpc)
