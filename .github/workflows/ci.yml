@@ -10,10 +10,26 @@ jobs:
   rust:
     name: Rust Build & Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: samuel
+          POSTGRES_DB: bridle_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - name: Configure Git Default Branch
+        run: git config --global init.defaultBranch master
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libpq-dev libsqlite3-dev llvm llvm-dev libclang-dev clang
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev libsqlite3-dev llvm llvm-dev libclang-dev clang lld
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Rust Cache
