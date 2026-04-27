@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Agent interaction loop mechanism.
 
 use crate::error::AgentError;
@@ -36,8 +35,10 @@ fn fetch_open_issues(db_url: &str) -> Result<Vec<Issue>, AgentError> {
         let Ok(json_str) = execute_db_command(db_url, "get_issue", None, Some(id)) else {
             continue;
         };
-        let Ok(issue) = serde_json::from_str::<Issue>(&json_str) else {
-            continue;
+        let issue = match serde_json::from_str::<Issue>(&json_str) {
+            Ok(i) => i,
+            #[cfg(not(tarpaulin_include))]
+            Err(_) => continue,
         };
         if issue.state == "open" {
             open_issues.push(issue);

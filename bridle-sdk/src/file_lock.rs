@@ -133,4 +133,19 @@ mod tests {
         let result = mutate_file_exclusively("non_existent_file.txt", None, |_| None);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_mutate_file_exclusively_scope_violation() -> Result<(), BridleError> {
+        let temp_dir = tempfile::tempdir().map_err(BridleError::Io)?;
+        let path = temp_dir.path().join("test_scope.txt");
+        let mut f = File::create(&path).map_err(BridleError::Io)?;
+        f.write_all(b"initial contents").map_err(BridleError::Io)?;
+        drop(f);
+
+        let scope = PathScope::new(&[], &["**/test_scope.txt".to_string()])?;
+        let err = mutate_file_exclusively(&path, Some(&scope), |_| Some("new".to_string()));
+        assert!(matches!(err, Err(BridleError::Config(_))));
+
+        Ok(())
+    }
 }

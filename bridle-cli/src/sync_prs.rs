@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Upstream PR synchronization.
 
 use crate::error::CliError;
@@ -144,6 +143,33 @@ mod tests {
         let res = sync_prs("testorg", "bridle.db", Some(0), None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 0 PR(s).");
+        Ok(())
+    }
+
+    #[test]
+    fn test_sync_prs_template_render_fail() -> Result<(), CliError> {
+        // Create an invalid PR template in the simulated repo path
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        let repo_path = std::path::Path::new(&home)
+            .join(".bridle")
+            .join("workspace")
+            .join("testorg_fail")
+            .join("repo-0");
+        let github_dir = repo_path.join(".github");
+        std::fs::create_dir_all(&github_dir).unwrap_or_default();
+        std::fs::write(
+            github_dir.join("pull_request_template.md"),
+            "{{ invalid_syntax }}",
+        )
+        .unwrap_or_default();
+
+        let res = sync_prs("testorg_fail", "bridle.db", Some(1), None);
+
+        // Clean up
+        std::fs::remove_dir_all(repo_path).unwrap_or_default();
+
+        assert!(res.is_ok());
+        assert_eq!(res?, "Successfully synced 1 PR(s).");
         Ok(())
     }
 }
