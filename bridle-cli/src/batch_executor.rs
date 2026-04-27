@@ -1,5 +1,5 @@
 #![cfg(not(tarpaulin_include))]
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use bridle_sdk::models::TaskStatus;
 use bridle_sdk::pipeline::{PipelineConfig, Step, StepType};
 use std::path::Path;
@@ -10,7 +10,7 @@ use tokio::time::timeout;
 
 /// Execute a single step with timeout.
 #[tracing::instrument(skip(dir, step), fields(step_name = %step.name, step_type = ?step.step_type))]
-pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, String), CliError> {
+pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, String), BridleError> {
     let to_secs = step.timeout_seconds.unwrap_or(300); // 5 mins default
 
     let mut cmd = Command::new(&step.command);
@@ -23,7 +23,7 @@ pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, Strin
 
     let child = cmd
         .spawn()
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let res = timeout(Duration::from_secs(to_secs), child.wait_with_output()).await;
 
@@ -34,14 +34,14 @@ pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, Strin
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             Ok((code, stdout, stderr))
         }
-        Ok(Err(e)) => Err(CliError::Execution(e.to_string())),
-        Err(_) => Err(CliError::Execution("Timeout occurred".to_string())),
+        Ok(Err(e)) => Err(BridleError::Generic(e.to_string())),
+        Err(_) => Err(BridleError::Generic("Timeout occurred".to_string())),
     }
 }
 
 /// Runs the execution engine for a repo workspace.
 #[tracing::instrument(skip(dir, config), fields(pipeline = %config.name))]
-pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatus, CliError> {
+pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatus, BridleError> {
     for step in &config.steps {
         if step.step_type == StepType::Detect {
             let (code, _, _) = execute_step(dir, step).await?;
@@ -67,7 +67,7 @@ pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatu
                 .current_dir(dir)
                 .args(["diff", "--quiet"])
                 .status()
-                .map_err(|e| CliError::Execution(e.to_string()))?;
+                .map_err(|e| BridleError::Generic(e.to_string()))?;
 
             if status.success() {
                 // No changes
@@ -136,7 +136,7 @@ mod tests {
 
         let err = execute_step(&dir, &step).await;
         assert!(err.is_err());
-        if let Err(CliError::Execution(msg)) = err {
+        if let Err(BridleError::Generic(msg)) = err {
             assert_eq!(msg, "Timeout occurred");
         } else {
             panic!("Expected Timeout occurred");

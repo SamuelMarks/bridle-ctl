@@ -1,9 +1,9 @@
 #![cfg(not(tarpaulin_include))]
 use crate::batch_executor::run_engine;
-use crate::error::CliError;
 use crate::forge_mutator::{ForgeClient, GitMutator};
 use crate::pr_templating::PrTemplateEngine;
 use crate::workspace::EphemeralWorkspace;
+use bridle_sdk::BridleError;
 use bridle_sdk::models::{Repository, TaskStatus};
 use bridle_sdk::pipeline::PipelineConfig;
 use std::path::Path;
@@ -17,21 +17,21 @@ pub fn run_pipeline(
     safety_mode: bool,
     max_repos: Option<usize>,
     max_prs_per_hour: Option<usize>,
-) -> Result<String, CliError> {
+) -> Result<String, BridleError> {
     // For test compatibility if it is "config.yml" and doesn't exist
     if config_path == "config.yml" && !std::path::Path::new(config_path).exists() {
         return Ok(format!("Batch pipeline run from {}", config_path));
     }
 
     let content =
-        std::fs::read_to_string(config_path).map_err(|e| CliError::Execution(e.to_string()))?;
+        std::fs::read_to_string(config_path).map_err(|e| BridleError::Generic(e.to_string()))?;
     let config: PipelineConfig =
-        serde_json::from_str(&content).map_err(|e| CliError::Execution(e.to_string()))?;
+        serde_json::from_str(&content).map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let db_url_owned = db_url.to_string();
 
     let handle = std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| CliError::Execution(e.to_string()))?;
+        let rt = tokio::runtime::Runtime::new().map_err(|e| BridleError::Generic(e.to_string()))?;
         rt.block_on(async move {
             let orchestrator = Orchestrator::new(
                 config,
@@ -42,9 +42,9 @@ pub fn run_pipeline(
             );
 
             let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url_owned)
-                .map_err(|e| CliError::Execution(e.to_string()))?;
+                .map_err(|e| BridleError::Generic(e.to_string()))?;
             let job = bridle_sdk::batch_db::create_batch_job(&mut conn, &orchestrator.config.name)
-                .map_err(|e| CliError::Execution(e.to_string()))?;
+                .map_err(|e| BridleError::Generic(e.to_string()))?;
 
             let mut rx = orchestrator.execute_run(job.id).await?;
 
@@ -60,27 +60,27 @@ pub fn run_pipeline(
                     }
                 }
             }
-            Ok::<(), CliError>(())
+            Ok::<(), BridleError>(())
         })
     });
     handle
         .join()
-        .map_err(|_| CliError::Execution("Thread panicked".to_string()))??;
+        .map_err(|_| BridleError::Generic("Thread panicked".to_string()))??;
 
     Ok(format!("Batch pipeline run from {}", config_path))
 }
 
 /// Resumes a batch pipeline given a job ID.
-pub fn resume_pipeline(job_id: i32, db_url: &str) -> Result<String, CliError> {
+pub fn resume_pipeline(job_id: i32, db_url: &str) -> Result<String, BridleError> {
     if job_id == 123 {
         return Ok(format!("Resumed batch job {}", job_id));
     }
 
     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let tasks = bridle_sdk::batch_db::get_job_tasks(&mut conn, job_id)
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     Ok(format!(
         "Resumed batch job {} with {} tasks",
@@ -90,16 +90,16 @@ pub fn resume_pipeline(job_id: i32, db_url: &str) -> Result<String, CliError> {
 }
 
 /// Displays the status of a batch pipeline run given a job ID.
-pub fn status_pipeline(job_id: i32, db_url: &str) -> Result<String, CliError> {
+pub fn status_pipeline(job_id: i32, db_url: &str) -> Result<String, BridleError> {
     if job_id == 123 {
         return Ok(format!("Status of batch job {}", job_id));
     }
 
     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let tasks = bridle_sdk::batch_db::get_job_tasks(&mut conn, job_id)
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let mut clean_count = 0;
     for task in &tasks {
@@ -169,12 +169,12 @@ impl Orchestrator {
     }
 
     /// Selects repositories based on pipeline config selectors.
-    pub fn select_targets(&self) -> Result<Vec<Repository>, CliError> {
+    pub fn select_targets(&self) -> Result<Vec<Repository>, BridleError> {
         use bridle_sdk::schema::repositories::dsl::*;
         use diesel::prelude::*;
 
         let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&self.db_url)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
 
         let results = match &mut conn {
             #[cfg(feature = "sqlite")]
@@ -185,7 +185,7 @@ impl Orchestrator {
                 }
                 query
                     .load::<Repository>(sqlite_conn)
-                    .map_err(|e| CliError::Execution(format!("Database error: {}", e)))?
+                    .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?
             }
             #[cfg(feature = "postgres")]
             bridle_sdk::db::DbConnection::Pg(pg_conn) => {
@@ -195,7 +195,7 @@ impl Orchestrator {
                 }
                 query
                     .load::<Repository>(pg_conn)
-                    .map_err(|e| CliError::Execution(format!("Database error: {}", e)))?
+                    .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?
             }
         };
 
@@ -207,12 +207,12 @@ impl Orchestrator {
         &self,
         repo: &Repository,
         branch_name: &str,
-    ) -> Result<bool, CliError> {
+    ) -> Result<bool, BridleError> {
         use bridle_sdk::schema::pull_requests::dsl::*;
         use diesel::prelude::*;
 
         let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&self.db_url)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
 
         let count = match &mut conn {
             #[cfg(feature = "sqlite")]
@@ -222,7 +222,7 @@ impl Orchestrator {
                 .filter(state.eq("open"))
                 .count()
                 .get_result::<i64>(sqlite_conn)
-                .map_err(|e| CliError::Execution(format!("Database error: {}", e)))?,
+                .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?,
             #[cfg(feature = "postgres")]
             bridle_sdk::db::DbConnection::Pg(pg_conn) => pull_requests
                 .filter(repo_id.eq(repo.id))
@@ -230,14 +230,17 @@ impl Orchestrator {
                 .filter(state.eq("open"))
                 .count()
                 .get_result::<i64>(pg_conn)
-                .map_err(|e| CliError::Execution(format!("Database error: {}", e)))?,
+                .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?,
         };
 
         Ok(count > 0)
     }
 
     /// Run the pipeline.
-    pub async fn execute_run(&self, job_id: i32) -> Result<mpsc::Receiver<TuiMessage>, CliError> {
+    pub async fn execute_run(
+        &self,
+        job_id: i32,
+    ) -> Result<mpsc::Receiver<TuiMessage>, BridleError> {
         let (tx, rx) = mpsc::channel(100);
         let targets = self.select_targets()?;
 
@@ -427,7 +430,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
-    fn test_pipeline_methods() -> Result<(), CliError> {
+    fn test_pipeline_methods() -> Result<(), BridleError> {
         let tf = tempfile::NamedTempFile::new()?;
         let db_url = tf.path().to_str().ok_or("invalid path")?;
 
@@ -469,7 +472,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orchestrator_check_idempotency() -> Result<(), CliError> {
+    async fn test_orchestrator_check_idempotency() -> Result<(), BridleError> {
         let db_url = format!("test_idempotency_{}.db", uuid::Uuid::new_v4());
         let _conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
@@ -505,7 +508,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orchestrator_select_targets() -> Result<(), CliError> {
+    async fn test_orchestrator_select_targets() -> Result<(), BridleError> {
         let db_url = format!("test_select_targets_{}.db", uuid::Uuid::new_v4());
         let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
@@ -554,7 +557,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_pipeline() -> Result<(), CliError> {
+    fn test_run_pipeline() -> Result<(), BridleError> {
         let db_url = format!("test_run_pipeline_{}.db", uuid::Uuid::new_v4());
         // Init the db
         let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;

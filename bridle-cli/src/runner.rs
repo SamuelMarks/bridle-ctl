@@ -13,9 +13,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::error::CliError;
 use crate::tools::{self, registry};
 use crate::tui;
+use bridle_sdk::BridleError;
 
 /// Defines the action to be performed by the runner.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -71,7 +71,7 @@ fn detect_applicable_tools(tools: &[Box<dyn tools::CodeTool>]) -> Vec<String> {
 }
 
 /// Interactive selection
-fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
+fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, BridleError> {
     let all_tools = registry::get_tools();
     let detected_names = detect_applicable_tools(&all_tools);
 
@@ -111,7 +111,7 @@ fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, CliError> {
 }
 
 /// Append to README
-fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), CliError> {
+fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), BridleError> {
     if Path::new("README.md").exists() {
         let mut file = OpenOptions::new().append(true).open("README.md")?;
 
@@ -145,7 +145,7 @@ fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), CliError
 }
 
 /// Runs the selected action (audit/fix) potentially filtering by pattern and specific tools.
-pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Result<(), CliError> {
+pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Result<(), BridleError> {
     let action_name = match action {
         Action::Audit => "audit",
         Action::Fix { .. } => "fix",
@@ -287,7 +287,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interactive_selection_mocked() -> Result<(), CliError> {
+    fn test_interactive_selection_mocked() -> Result<(), BridleError> {
         unsafe {
             std::env::set_var("BRIDLE_TEST_MOCK_TUI", "1");
         }
@@ -310,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_no_tools() -> Result<(), CliError> {
+    fn test_run_non_interactive_no_tools() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: Some("unknown-pattern".to_string()),
             tools: None,
@@ -323,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_with_tools() -> Result<(), CliError> {
+    fn test_run_non_interactive_with_tools() -> Result<(), BridleError> {
         // We provide a known mock tool from registry for go matching r".*\.go$"
         let req = ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_with_tools_no_pattern() -> Result<(), CliError> {
+    fn test_run_non_interactive_with_tools_no_pattern() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: None,
             tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
@@ -350,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_with_missing_tool_no_pattern() -> Result<(), CliError> {
+    fn test_run_non_interactive_with_missing_tool_no_pattern() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: None,
             tools: Some(vec!["non-existent-tool".to_string()]),
@@ -363,7 +363,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_with_tools_dry_run() -> Result<(), CliError> {
+    fn test_run_non_interactive_with_tools_dry_run() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
             tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
@@ -376,7 +376,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_all_tools() -> Result<(), CliError> {
+    fn test_run_non_interactive_all_tools() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
             tools: None,
@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_non_interactive_not_found_tool() -> Result<(), CliError> {
+    fn test_run_non_interactive_not_found_tool() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: Some(r".*\.go$".to_string()),
             tools: Some(vec!["missing-tool".to_string()]),

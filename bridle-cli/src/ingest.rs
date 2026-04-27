@@ -1,7 +1,7 @@
 #![cfg(not(tarpaulin_include))]
 //! Ingests remote repositories into local DB and workspace.
 
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use bridle_sdk::models::{Organisation, Repository};
 use serde::Deserialize;
 use std::fs;
@@ -28,9 +28,9 @@ pub struct GithubRepo {
 }
 
 /// Ingests all repositories for an organization from GitHub.
-pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, CliError> {
+pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, BridleError> {
     if provider != "github" {
-        return Err(CliError::Execution(format!(
+        return Err(BridleError::Generic(format!(
             "Unsupported provider: {}",
             provider
         )));
@@ -49,7 +49,7 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Cli
         let resp = client.get(&page_url).send()?;
 
         if !resp.status().is_success() {
-            return Err(CliError::Execution(format!(
+            return Err(BridleError::Generic(format!(
                 "Failed to fetch repositories: {}",
                 resp.status()
             )));
@@ -80,7 +80,7 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Cli
     fs::create_dir_all(&workspace)?;
 
     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let now = chrono::Utc::now().naive_utc();
 
@@ -161,10 +161,7 @@ mod tests {
     fn test_ingest_org_unsupported_provider() {
         let res = ingest_org("testorg", "gitlab", "bridle.db");
         if let Err(e) = res {
-            assert_eq!(
-                e.to_string(),
-                "Execution Error: Unsupported provider: gitlab"
-            );
+            assert_eq!(e.to_string(), "Generic error: Unsupported provider: gitlab");
         } else {
             panic!("Expected error");
         }

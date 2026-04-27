@@ -461,9 +461,11 @@ dependencies = [
 name = "bridle-sdk"
 version = "0.1.0"
 dependencies = [
+ "actix-web",
  "bridle-models",
  "cc",
  "chrono",
+ "clap",
  "cmake",
  "derive_more 1.0.0",
  "diesel",
@@ -473,7 +475,11 @@ dependencies = [
  "encoding_rs_io",
  "fs4",
  "globset",
+ "indicatif",
+ "jsonrpsee",
+ "reqwest",
  "serde",
+ "serde_json",
  "tempfile",
  "tracing",
  "tracing-subscriber",

@@ -2,7 +2,7 @@
 #![warn(missing_docs)]
 //! CLI Interface for bridle-ctl.
 
-use bridle_cli::{error, runner};
+use bridle_cli::runner;
 use clap::{Parser, Subcommand};
 
 /// Bridle CLI tool for agentic and manual codebase operations.
@@ -170,7 +170,7 @@ fn parse_tool_args(args: Option<Vec<String>>) -> std::collections::HashMap<Strin
 }
 
 /// Executes the provided command.
-pub fn execute(command: &Commands) -> Result<String, error::CliError> {
+pub fn execute(command: &Commands) -> Result<String, bridle_sdk::BridleError> {
     match command {
         Commands::Rest => {
             #[cfg(not(test))]
@@ -310,7 +310,7 @@ pub fn execute(command: &Commands) -> Result<String, error::CliError> {
 }
 
 /// Runs the CLI with given arguments.
-pub fn run_cli<I, T>(args: I) -> Result<(), crate::error::CliError>
+pub fn run_cli<I, T>(args: I) -> Result<(), bridle_sdk::BridleError>
 where
     I: IntoIterator<Item = T>,
     T: Into<std::ffi::OsString> + Clone,
@@ -365,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_commands() -> Result<(), crate::error::CliError> {
+    fn test_execute_commands() -> Result<(), bridle_sdk::BridleError> {
         assert_eq!(execute(&Commands::Rest)?, "REST API stopped.");
         assert_eq!(execute(&Commands::Rpc)?, "JSON-RPC stopped.");
         assert_eq!(execute(&Commands::Agent)?, "Agent stopped.");
@@ -405,7 +405,7 @@ mod tests {
             updated_at: chrono::Utc::now().naive_utc(),
         };
         let payload = serde_json::to_string(&new_user)
-            .map_err(|e| error::CliError::Execution(e.to_string()))?;
+            .map_err(|e| bridle_sdk::BridleError::Generic(e.to_string()))?;
 
         assert_eq!(
             execute(&Commands::Db {

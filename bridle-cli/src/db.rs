@@ -1,14 +1,12 @@
 //! DB action executor.
 
-use crate::error;
-
 /// Macro to simplify generating CRUD CLI commands that serialize and deserialize JSON logic.
 macro_rules! handle_cli_crud {
     ($action:expr, $db_url:expr, $payload:expr, $id:expr, $( ($create_name:expr, $get_name:expr, $sdk_insert:path, $sdk_get:path, $model:ty) ),+ $(,)?) => {
         match $action {
             $(
                 $create_name => {
-                    let data = $payload.ok_or_else(|| error::CliError::Execution(format!("Missing payload for {}", $create_name)))?;
+                    let data = $payload.ok_or_else(|| bridle_sdk::BridleError::Generic(format!("Missing payload for {}", $create_name)))?;
                     let parsed: $model = serde_json::from_str(&data).map_err(cli_exec_err)?;
                     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations($db_url)
                         .map_err(cli_exec_err)?;
@@ -17,7 +15,7 @@ macro_rules! handle_cli_crud {
                     Ok(format!("Successfully executed {}", $create_name))
                 }
                 $get_name => {
-                    let target_id = $id.ok_or_else(|| error::CliError::Execution(format!("Missing id for {}", $get_name)))?;
+                    let target_id = $id.ok_or_else(|| bridle_sdk::BridleError::Generic(format!("Missing id for {}", $get_name)))?;
                     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations($db_url)
                         .map_err(cli_exec_err)?;
                     let fetched = $sdk_get(&mut conn, target_id)
@@ -26,14 +24,14 @@ macro_rules! handle_cli_crud {
                     Ok(json)
                 }
             )+
-            _ => Err(error::CliError::Execution(format!("Unknown action: {}", $action)))
+            _ => Err(bridle_sdk::BridleError::Generic(format!("Unknown action: {}", $action)))
         }
     };
 }
 
 /// Executes a DB action.
-fn cli_exec_err<T: std::fmt::Display>(e: T) -> error::CliError {
-    error::CliError::Execution(e.to_string())
+fn cli_exec_err<T: std::fmt::Display>(e: T) -> bridle_sdk::BridleError {
+    bridle_sdk::BridleError::Generic(e.to_string())
 }
 
 /// Executes a database command.
@@ -42,7 +40,7 @@ pub fn execute_db_command(
     action: &str,
     payload: Option<String>,
     id: Option<i32>,
-) -> Result<String, error::CliError> {
+) -> Result<String, bridle_sdk::BridleError> {
     handle_cli_crud!(
         action,
         db_url,

@@ -1,7 +1,7 @@
 //! Upstream PR synchronization.
 
-use crate::error::CliError;
 use crate::pr_templating::PrTemplateEngine;
+use bridle_sdk::BridleError;
 use std::path::Path;
 
 /// Simulates checking if a fork exists and returning its URL, or creating one.
@@ -27,7 +27,7 @@ pub fn sync_prs(
     _db_url: &str,
     max_prs_per_hour: Option<usize>,
     fork_org: Option<String>,
-) -> Result<String, CliError> {
+) -> Result<String, BridleError> {
     println!("Syncing PRs for organization {}...", org);
 
     if let Some(limit) = max_prs_per_hour {
@@ -110,7 +110,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sync_prs() -> Result<(), CliError> {
+    fn test_sync_prs() -> Result<(), BridleError> {
         let res = sync_prs("testorg", "bridle.db", None, None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 5 PR(s).");
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_prs_with_limit() -> Result<(), CliError> {
+    fn test_sync_prs_with_limit() -> Result<(), BridleError> {
         let res = sync_prs("testorg", "bridle.db", Some(2), None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 2 PR(s).");
@@ -126,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_prs_with_fork_org() -> Result<(), CliError> {
+    fn test_sync_prs_with_fork_org() -> Result<(), BridleError> {
         let res = sync_prs(
             "testorg",
             "bridle.db",
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_prs_zero_limit() -> Result<(), CliError> {
+    fn test_sync_prs_zero_limit() -> Result<(), BridleError> {
         let res = sync_prs("testorg", "bridle.db", Some(0), None);
         assert!(res.is_ok());
         assert_eq!(res?, "Successfully synced 0 PR(s).");
@@ -147,7 +147,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_prs_template_render_fail() -> Result<(), CliError> {
+    fn test_sync_prs_template_render_fail() -> Result<(), BridleError> {
         // Create an invalid PR template in the simulated repo path
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
         let repo_path = std::path::Path::new(&home)

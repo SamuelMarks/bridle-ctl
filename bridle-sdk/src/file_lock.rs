@@ -7,7 +7,7 @@ use std::path::Path;
 
 use fs4::fs_std::FileExt;
 
-use crate::error::BridleError;
+use crate::BridleError;
 use crate::path_scope::PathScope;
 
 /// Safely mutates a file by acquiring an exclusive lock.

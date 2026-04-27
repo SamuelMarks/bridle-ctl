@@ -1,5 +1,5 @@
 #![cfg(not(tarpaulin_include))]
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use reqwest::Client;
 use serde_json::json;
 use std::path::Path;
@@ -20,12 +20,12 @@ pub struct GitMutator;
 
 impl GitMutator {
     /// Adds a remote repository URL.
-    pub async fn add_remote(dir: &Path, remote_name: &str, url: &str) -> Result<(), CliError> {
+    pub async fn add_remote(dir: &Path, remote_name: &str, url: &str) -> Result<(), BridleError> {
         let status = git_command()
             .current_dir(dir)
             .args(["remote", "add", remote_name, url])
             .status()
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
 
         // Might fail if remote already exists, fallback to set-url
         if !status.success() {
@@ -43,7 +43,7 @@ impl GitMutator {
         commit_message: &str,
         branch_name: &str,
         remote: &str,
-    ) -> Result<(), CliError> {
+    ) -> Result<(), BridleError> {
         let _ = git_command().current_dir(dir).args(["add", "-A"]).status();
 
         let _ = git_command()
@@ -58,7 +58,7 @@ impl GitMutator {
                 .current_dir(dir)
                 .args(["push", remote, branch_name, "--force-with-lease"])
                 .status()
-                .map_err(|e| CliError::Execution(e.to_string()))?;
+                .map_err(|e| BridleError::Generic(e.to_string()))?;
 
             if status.success() {
                 return Ok(());
@@ -66,7 +66,7 @@ impl GitMutator {
 
             retries += 1;
             if retries >= 3 {
-                return Err(CliError::Execution("Failed to push changes".to_string()));
+                return Err(BridleError::Generic("Failed to push changes".to_string()));
             }
             tokio::time::sleep(Duration::from_millis(10)).await; // Reduced for testing
         }
@@ -85,14 +85,14 @@ pub struct ForgeClient {
 
 impl ForgeClient {
     /// Create a new client
-    pub fn new(token: String) -> Result<Self, CliError> {
+    pub fn new(token: String) -> Result<Self, BridleError> {
         let api_base = std::env::var("GITHUB_API_URL")
             .unwrap_or_else(|_| "https://api.github.com".to_string());
         Ok(Self {
             client: Client::builder()
                 .user_agent("bridle-ctl/0.1.0")
                 .build()
-                .map_err(|e| CliError::Execution(e.to_string()))?,
+                .map_err(|e| BridleError::Generic(e.to_string()))?,
             token,
             api_base,
         })
@@ -102,12 +102,12 @@ impl ForgeClient {
     async fn send_request(
         &self,
         req: reqwest::RequestBuilder,
-    ) -> Result<serde_json::Value, CliError> {
+    ) -> Result<serde_json::Value, BridleError> {
         let mut retries = 0;
         loop {
             let request = req
                 .try_clone()
-                .ok_or_else(|| CliError::Execution("Failed to clone request".to_string()))?;
+                .ok_or_else(|| BridleError::Generic("Failed to clone request".to_string()))?;
             match request.send().await {
                 Ok(resp) => {
                     let status = resp.status();
@@ -115,7 +115,7 @@ impl ForgeClient {
                         return resp
                             .json()
                             .await
-                            .map_err(|e| CliError::Execution(e.to_string()));
+                            .map_err(|e| BridleError::Generic(e.to_string()));
                     } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                         tokio::time::sleep(Duration::from_millis(10)).await;
                         continue;
@@ -124,11 +124,11 @@ impl ForgeClient {
                         tokio::time::sleep(Duration::from_millis(10)).await;
                         continue;
                     }
-                    return Err(CliError::Execution(format!("API Error: {}", status)));
+                    return Err(BridleError::Generic(format!("API Error: {}", status)));
                 }
                 Err(e) => {
                     if retries >= 3 {
-                        return Err(CliError::Execution(e.to_string()));
+                        return Err(BridleError::Generic(e.to_string()));
                     }
                     retries += 1;
                     tokio::time::sleep(Duration::from_millis(10)).await;
@@ -138,24 +138,28 @@ impl ForgeClient {
     }
 
     /// Fetches the current authenticated user's login.
-    pub async fn get_current_user(&self) -> Result<String, CliError> {
+    pub async fn get_current_user(&self) -> Result<String, BridleError> {
         let url = format!("{}/user", self.api_base);
         let req = self.client.get(&url).bearer_auth(&self.token);
         let json = self.send_request(req).await?;
         let login = json["login"]
             .as_str()
-            .ok_or_else(|| CliError::Execution("Missing login in response".to_string()))?;
+            .ok_or_else(|| BridleError::Generic("Missing login in response".to_string()))?;
         Ok(login.to_string())
     }
 
     /// Creates a fork of the specified repository and returns the fork owner's login.
-    pub async fn create_fork(&self, repo_owner: &str, repo_name: &str) -> Result<String, CliError> {
+    pub async fn create_fork(
+        &self,
+        repo_owner: &str,
+        repo_name: &str,
+    ) -> Result<String, BridleError> {
         let url = format!("{}/repos/{}/{}/forks", self.api_base, repo_owner, repo_name);
         let req = self.client.post(&url).bearer_auth(&self.token);
         let json = self.send_request(req).await?;
         let fork_owner = json["owner"]["login"]
             .as_str()
-            .ok_or_else(|| CliError::Execution("Missing fork owner in response".to_string()))?;
+            .ok_or_else(|| BridleError::Generic("Missing fork owner in response".to_string()))?;
         Ok(fork_owner.to_string())
     }
 
@@ -168,7 +172,7 @@ impl ForgeClient {
         body: &str,
         head: &str,
         base: &str,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         let url = format!("{}/repos/{}/{}/pulls", self.api_base, repo_owner, repo_name);
         let payload = json!({
             "title": title,
@@ -185,7 +189,7 @@ impl ForgeClient {
         let json = self.send_request(req).await?;
         let html_url = json["html_url"]
             .as_str()
-            .ok_or_else(|| CliError::Execution("Missing html_url in response".to_string()))?;
+            .ok_or_else(|| BridleError::Generic("Missing html_url in response".to_string()))?;
         Ok(html_url.to_string())
     }
 }
@@ -196,7 +200,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[tokio::test]
-    async fn test_git_mutator_add_remote() -> Result<(), CliError> {
+    async fn test_git_mutator_add_remote() -> Result<(), BridleError> {
         let dir = tempdir()?;
         let _ = git_command()
             .current_dir(dir.path())
@@ -210,7 +214,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_git_mutator_commit_and_push() -> Result<(), CliError> {
+    async fn test_git_mutator_commit_and_push() -> Result<(), BridleError> {
         // Here we test git commands on a mock repo.
         // It will fail pushing because there is no origin.
         let dir = tempdir()?;
@@ -239,14 +243,14 @@ mod tests {
     }
 
     #[test]
-    fn test_forge_client_new() -> Result<(), CliError> {
+    fn test_forge_client_new() -> Result<(), BridleError> {
         let client = ForgeClient::new("token123".to_string())?;
         assert_eq!(client.token, "token123");
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_forge_client_submit_pr() -> Result<(), CliError> {
+    async fn test_forge_client_submit_pr() -> Result<(), BridleError> {
         let client = ForgeClient::new("token123".to_string())?;
         // Without an actual mock server, calling GitHub API with a fake token will fail.
         let res = client
@@ -262,7 +266,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_forge_client_get_current_user() -> Result<(), CliError> {
+    async fn test_forge_client_get_current_user() -> Result<(), BridleError> {
         let client = ForgeClient::new("token123".to_string())?;
         let res = client.get_current_user().await;
         assert!(res.is_err());
@@ -270,7 +274,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_forge_client_create_fork() -> Result<(), CliError> {
+    async fn test_forge_client_create_fork() -> Result<(), BridleError> {
         let client = ForgeClient::new("token123".to_string())?;
         let res = client.create_fork("dummy", "dummy").await;
         assert!(res.is_err());

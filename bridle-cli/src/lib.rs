@@ -11,7 +11,6 @@ pub mod batch_pipeline;
 /// DB action executor.
 pub mod db;
 /// Error types and handling for the CLI.
-pub mod error;
 /// Git mutator and Forge API client.
 pub mod forge_mutator;
 /// Organization ingestion module.

@@ -1,5 +1,5 @@
 use super::CodeTool;
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;
 use std::ffi::CString;
 use std::env;
@@ -48,22 +48,22 @@ impl CodeTool for FfiTool {
         &self.match_regex
     }
 
-    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
         let path_str = args.first().map(|s| s.as_str()).unwrap_or(".");
         let c_path = CString::new(path_str)
-            .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
+            .map_err(|_| BridleError::Generic("Invalid C string".to_string()))?;
 
         match self.wrapper.as_str() {
             "type_correct" => {
                 if args.is_empty() {
-                    return Err(CliError::Execution(
+                    return Err(BridleError::Generic(
                         "Missing target file argument".to_string(),
                     ));
                 }
                 let result = bridle_sdk::ffi::type_correct_audit_safe(&c_path, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if result != 0 {
-                    return Err(CliError::Execution(format!(
+                    return Err(BridleError::Generic(format!(
                         "Audit returned error code: {}",
                         result
                     )));
@@ -72,7 +72,7 @@ impl CodeTool for FfiTool {
             }
             "go_auto_err" => {
                 let result = bridle_sdk::ffi::audit_go_errors(&c_path, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if result == 0 {
                     Ok(format!(
                         "go-auto-err-handling audit: No issues found for {}",
@@ -93,14 +93,14 @@ impl CodeTool for FfiTool {
                     return Ok("No file provided".to_string());
                 }
                 let res = bridle_sdk::ffi::convert_to_notebook(&c_path, false, false, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if res == 0 {
                     Ok(format!(
                         "lib2notebook2lib audit executed successfully for {}",
                         args[0]
                     ))
                 } else {
-                    Err(CliError::Execution(format!(
+                    Err(BridleError::Generic(format!(
                         "Audit failed with exit code: {}",
                         res
                     )))
@@ -108,24 +108,24 @@ impl CodeTool for FfiTool {
             }
             "cdd" => {
                 if args.is_empty() {
-                    return Err(CliError::Execution(
+                    return Err(BridleError::Generic(
                         "Missing target file argument".to_string(),
                     ));
                 }
                 if let Some(s) = _scope {
                     if !s.is_allowed(path_str) {
-                        return Err(CliError::Tool("Path scope violation".to_string()));
+                        return Err(BridleError::Tool("Path scope violation".to_string()));
                     }
                 }
                 let subcmd = self.subcommand.as_deref().unwrap_or("");
                 let result = bridle_sdk::ffi::cdd_transformer_safe(subcmd, path_str, true, false, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if result != 0 {
-                    return Err(CliError::Execution(format!("{} failed", self.name)));
+                    return Err(BridleError::Generic(format!("{} failed", self.name)));
                 }
                 Ok(format!("{} audit executed", self.name))
             }
-            _ => Err(CliError::Execution(format!("Unknown wrapper: {}", self.wrapper))),
+            _ => Err(BridleError::Generic(format!("Unknown wrapper: {}", self.wrapper))),
         }
     }
 
@@ -134,22 +134,22 @@ impl CodeTool for FfiTool {
         args: &[String],
         dry_run: bool,
         _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         let path_str = args.first().map(|s| s.as_str()).unwrap_or(".");
         let c_path = CString::new(path_str)
-            .map_err(|_| CliError::Execution("Invalid C string".to_string()))?;
+            .map_err(|_| BridleError::Generic("Invalid C string".to_string()))?;
 
         match self.wrapper.as_str() {
             "type_correct" => {
                 if args.is_empty() {
-                    return Err(CliError::Execution(
+                    return Err(BridleError::Generic(
                         "Missing target file argument".to_string(),
                     ));
                 }
                 let result = bridle_sdk::ffi::type_correct_fix_safe(&c_path, dry_run, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if result != 0 {
-                    return Err(CliError::Execution(format!(
+                    return Err(BridleError::Generic(format!(
                         "Fix returned error code: {}",
                         result
                     )));
@@ -161,7 +161,7 @@ impl CodeTool for FfiTool {
             }
             "go_auto_err" => {
                 let result = bridle_sdk::ffi::fix_go_errors(&c_path, dry_run, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 let dry_prefix = if dry_run { "[DRY RUN] " } else { "" };
                 if result == 0 {
                     Ok(format!(
@@ -169,7 +169,7 @@ impl CodeTool for FfiTool {
                         dry_prefix, path_str
                     ))
                 } else {
-                    Err(CliError::Execution(format!(
+                    Err(BridleError::Generic(format!(
                         "go-auto-err-handling fix failed for {}",
                         path_str
                     )))
@@ -186,7 +186,7 @@ impl CodeTool for FfiTool {
                     return Ok("No file provided".to_string());
                 }
                 let res = bridle_sdk::ffi::convert_to_notebook(&c_path, true, dry_run, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if res == 0 {
                     let dry_prefix = if dry_run { "[DRY RUN] " } else { "" };
                     Ok(format!(
@@ -194,7 +194,7 @@ impl CodeTool for FfiTool {
                         dry_prefix, args[0]
                     ))
                 } else {
-                    Err(CliError::Execution(format!(
+                    Err(BridleError::Generic(format!(
                         "Fix failed with exit code: {}",
                         res
                     )))
@@ -202,20 +202,20 @@ impl CodeTool for FfiTool {
             }
             "cdd" => {
                 if args.is_empty() {
-                    return Err(CliError::Execution(
+                    return Err(BridleError::Generic(
                         "Missing target file argument".to_string(),
                     ));
                 }
                 if let Some(s) = _scope {
                     if !s.is_allowed(path_str) {
-                        return Err(CliError::Tool("Path scope violation".to_string()));
+                        return Err(BridleError::Tool("Path scope violation".to_string()));
                     }
                 }
                 let subcmd = self.subcommand.as_deref().unwrap_or("");
                 let result = bridle_sdk::ffi::cdd_transformer_safe(subcmd, path_str, false, dry_run, _scope)
-                    .map_err(|e| CliError::Execution(e.to_string()))?;
+                    .map_err(|e| BridleError::Generic(e.to_string()))?;
                 if result != 0 {
-                    return Err(CliError::Execution(format!("{} failed", self.name)));
+                    return Err(BridleError::Generic(format!("{} failed", self.name)));
                 }
                 if dry_run {
                     Ok(format!("[DRY RUN] {} fix planned", self.name))
@@ -223,7 +223,7 @@ impl CodeTool for FfiTool {
                     Ok(format!("{} fix applied", self.name))
                 }
             }
-            _ => Err(CliError::Execution(format!("Unknown wrapper: {}", self.wrapper))),
+            _ => Err(BridleError::Generic(format!("Unknown wrapper: {}", self.wrapper))),
         }
     }
 }

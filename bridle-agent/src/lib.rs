@@ -2,22 +2,21 @@
 //! Agent Interface for bridle-ctl.
 
 pub mod agent_loop;
-pub mod error;
 pub mod mcp;
 pub mod simulation;
 pub mod team_simulation;
 
-use crate::error::AgentError;
+use bridle_sdk::BridleError;
 
 /// Starts the Agent service.
-pub fn start_agent() -> Result<&'static str, AgentError> {
+pub fn start_agent() -> Result<&'static str, BridleError> {
     mcp::register_tools()?;
 
     mcp::self_healing_loop()?;
     mcp::run_agent_daemon()?;
 
     // Auto-run simulation on startup for testing
-    let tf = tempfile::NamedTempFile::new().map_err(|e| AgentError::Daemon(e.to_string()))?;
+    let tf = tempfile::NamedTempFile::new().map_err(|e| BridleError::Daemon(e.to_string()))?;
     if let Some(path) = tf.path().to_str() {
         let _ = simulation::run_workflow_simulation(path);
         let _ = team_simulation::run_ai_team_simulation(path);
@@ -35,7 +34,7 @@ pub fn generate_claude_manifest() -> String {
 mod tests {
     use super::*;
     #[test]
-    fn test_agent_start() -> Result<(), AgentError> {
+    fn test_agent_start() -> Result<(), BridleError> {
         assert_eq!(start_agent()?, "Agent started");
         Ok(())
     }
@@ -45,7 +44,7 @@ mod tests {
         assert_eq!(generate_claude_manifest(), r#"{"tools": ["bridle-cli"]}"#);
     }
     #[test]
-    fn test_mcp_stubs() -> Result<(), AgentError> {
+    fn test_mcp_stubs() -> Result<(), BridleError> {
         let tools = mcp::register_tools()?;
         assert!(tools.contains(&"run_code_tool".to_string()));
         mcp::self_healing_loop()?;
@@ -59,7 +58,7 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_mcp_tool() -> Result<(), AgentError> {
+    fn test_execute_mcp_tool() -> Result<(), BridleError> {
         let err1 = mcp::execute_mcp_tool("unknown", "");
         assert!(err1.is_err());
         // Test run_code_tool (valid)
@@ -84,11 +83,11 @@ mod tests {
         assert!(mcp::execute_mcp_tool("run_code_tool", "{invalid").is_err());
 
         // Test git_forge_db_action (valid)
-        let tf = tempfile::NamedTempFile::new().map_err(|e| AgentError::Daemon(e.to_string()))?;
+        let tf = tempfile::NamedTempFile::new().map_err(|e| BridleError::Daemon(e.to_string()))?;
         let db_url = tf
             .path()
             .to_str()
-            .ok_or(AgentError::Daemon("Invalid path".to_string()))?
+            .ok_or(BridleError::Daemon("Invalid path".to_string()))?
             .to_string();
         let valid_db_req = format!(
             r#"{{

@@ -1,4 +1,4 @@
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use std::path::Path;
 use tera::{Context, Tera};
 
@@ -10,7 +10,7 @@ pub struct PrTemplateEngine {
 
 impl PrTemplateEngine {
     /// Creates a new template engine.
-    pub fn new() -> Result<Self, CliError> {
+    pub fn new() -> Result<Self, BridleError> {
         let tera = Tera::default();
         Ok(Self { tera })
     }
@@ -44,10 +44,10 @@ impl PrTemplateEngine {
         repo_owner: &str,
         branch_name: &str,
         diff_stats: &str,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         self.tera
             .add_raw_template("pr_body", template_content)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
 
         let mut context = Context::new();
         context.insert(
@@ -64,7 +64,7 @@ impl PrTemplateEngine {
 
         self.tera
             .render("pr_body", &context)
-            .map_err(|e| CliError::Execution(e.to_string()))
+            .map_err(|e| BridleError::Generic(e.to_string()))
     }
 }
 
@@ -74,7 +74,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn test_resolve_template_fallback() -> Result<(), CliError> {
+    fn test_resolve_template_fallback() -> Result<(), BridleError> {
         let dir = tempdir()?;
         let fallback = "Fallback template";
         let resolved = PrTemplateEngine::resolve_template(dir.path(), fallback);
@@ -83,7 +83,7 @@ mod tests {
     }
 
     #[test]
-    fn test_resolve_template_exists() -> Result<(), CliError> {
+    fn test_resolve_template_exists() -> Result<(), BridleError> {
         let dir = tempdir()?;
         let file_path = dir.path().join("PULL_REQUEST_TEMPLATE.md");
         std::fs::write(&file_path, "Real template")?;
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_render_pr_body_success() -> Result<(), CliError> {
+    fn test_render_pr_body_success() -> Result<(), BridleError> {
         let mut engine = PrTemplateEngine::new()?;
         let template = "Repo: {{ repo.name }}, Owner: {{ repo.owner }}, Branch: {{ branch_name }}, Stats: {{ diff_stats }}";
         let body = engine.render_pr_body(template, "my_repo", "my_owner", "my_branch", "+5 -2")?;
@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[test]
-    fn test_render_pr_body_invalid_template() -> Result<(), CliError> {
+    fn test_render_pr_body_invalid_template() -> Result<(), BridleError> {
         let mut engine = PrTemplateEngine::new()?;
         let template = "Repo: {{ repo.name "; // Missing closing braces
         let err = engine.render_pr_body(template, "my_repo", "my_owner", "my_branch", "+5 -2");

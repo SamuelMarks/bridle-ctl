@@ -5,7 +5,7 @@ pub mod dynamic;
 /// Contains the registry of all available code tools.
 pub mod registry;
 
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;
 
 /// Defines a standard interface for code processing tools.
@@ -35,7 +35,7 @@ pub trait CodeTool: Send + Sync {
     }
 
     /// Runs the audit logic (checking for issues)
-    fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, CliError>;
+    fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, BridleError>;
 
     /// Runs the fix logic (automatically fixing issues)
     fn fix(
@@ -43,7 +43,7 @@ pub trait CodeTool: Send + Sync {
         args: &[String],
         dry_run: bool,
         scope: Option<&PathScope>,
-    ) -> Result<String, CliError>;
+    ) -> Result<String, BridleError>;
 }
 
 #[cfg(test)]
@@ -61,7 +61,11 @@ mod tests {
         fn match_regex(&self) -> &str {
             ".*"
         }
-        fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+        fn audit(
+            &self,
+            _args: &[String],
+            _scope: Option<&PathScope>,
+        ) -> Result<String, BridleError> {
             Ok("ok".into())
         }
         fn fix(
@@ -69,7 +73,7 @@ mod tests {
             _args: &[String],
             _dry_run: bool,
             _scope: Option<&PathScope>,
-        ) -> Result<String, CliError> {
+        ) -> Result<String, BridleError> {
             Ok("ok".into())
         }
     }

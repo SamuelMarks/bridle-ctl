@@ -1,6 +1,6 @@
 //! Provides blast radius scoping for file paths.
 
-use crate::error::BridleError;
+use crate::BridleError;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use std::path::Path;
 

@@ -1,6 +1,6 @@
 #![cfg(not(tarpaulin_include))]
 use super::CodeTool;
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;
 
 /// A mock tool for testing Rust `unwrap` replacements.
@@ -16,7 +16,7 @@ impl CodeTool for MockRustTool {
     fn match_regex(&self) -> &str {
         r".*\.rs$"
     }
-    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
         Ok("Found 3 instances".to_string())
     }
     fn fix(
@@ -24,7 +24,7 @@ impl CodeTool for MockRustTool {
         _args: &[String],
         dry_run: bool,
         _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         if dry_run {
             Ok("[DRY RUN] Would replace 3 instances".to_string())
         } else {
@@ -46,7 +46,7 @@ impl CodeTool for GithubActionsTool {
     fn match_regex(&self) -> &str {
         r"\.github/workflows/.*\.ya?ml$"
     }
-    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
         Ok("Found 2 workflow improvements".to_string())
     }
     fn fix(
@@ -54,7 +54,7 @@ impl CodeTool for GithubActionsTool {
         _args: &[String],
         dry_run: bool,
         _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         if dry_run {
             Ok("[DRY RUN] Would apply 2 workflow improvements".to_string())
         } else {
@@ -76,7 +76,7 @@ impl CodeTool for FileLockTesterTool {
     fn match_regex(&self) -> &str {
         r".*\.txt$"
     }
-    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
         Ok("file-lock-tester audit executed".into())
     }
     fn fix(
@@ -84,7 +84,7 @@ impl CodeTool for FileLockTesterTool {
         args: &[String],
         dry_run: bool,
         _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         if args.is_empty() {
             return Ok("No file provided".to_string());
         }
@@ -100,7 +100,7 @@ impl CodeTool for FileLockTesterTool {
                     None
                 }
             })
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
         if modified {
             Ok(format!("Exclusively mutated {}", path))
         } else {
@@ -122,7 +122,7 @@ impl CodeTool for EncodingNormalizerTool {
     fn match_regex(&self) -> &str {
         r".*\.txt$"
     }
-    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
         Ok("encoding-normalizer audit executed".into())
     }
     fn fix(
@@ -130,7 +130,7 @@ impl CodeTool for EncodingNormalizerTool {
         args: &[String],
         dry_run: bool,
         _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         if args.is_empty() {
             return Ok("No file provided".to_string());
         }
@@ -139,10 +139,10 @@ impl CodeTool for EncodingNormalizerTool {
             return Ok(format!("[DRY RUN] Would normalize {}", path));
         }
         let mut doc = bridle_sdk::encoding::read_file_with_encoding(path)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
         doc.normalize_line_endings();
         bridle_sdk::encoding::write_file_with_encoding(path, &doc)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
         Ok(format!("Normalized encoding for {}", path))
     }
 }
@@ -160,7 +160,7 @@ impl CodeTool for DBMigratorTool {
     fn match_regex(&self) -> &str {
         r".*\.sqlite3$"
     }
-    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, _args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
         Ok("db-migrator-tester audit executed".into())
     }
     fn fix(
@@ -168,7 +168,7 @@ impl CodeTool for DBMigratorTool {
         args: &[String],
         dry_run: bool,
         _scope: Option<&PathScope>,
-    ) -> Result<String, CliError> {
+    ) -> Result<String, BridleError> {
         if args.is_empty() {
             return Ok("No database path provided".to_string());
         }
@@ -177,7 +177,7 @@ impl CodeTool for DBMigratorTool {
             return Ok(format!("[DRY RUN] Would connect to and migrate {}", db_url));
         }
         let mut _conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
         if let Ok(user) = bridle_sdk::db::get_user(&mut _conn, 999) {
             return Ok(format!(
                 "Connected, migrated, and fetched user: {}",
@@ -324,7 +324,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mock_rust_tool() -> Result<(), CliError> {
+    fn test_mock_rust_tool() -> Result<(), BridleError> {
         let tool = MockRustTool;
         assert_eq!(tool.name(), "rust-unwrap-to-question-mark");
         assert_eq!(tool.match_regex(), r".*\.rs$");
@@ -335,7 +335,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mock_gha_tool() -> Result<(), CliError> {
+    fn test_mock_gha_tool() -> Result<(), BridleError> {
         let tool = GithubActionsTool;
         assert_eq!(tool.name(), "gha-improver");
         assert!(tool.audit(&[], None)?.contains("2 workflow"));
@@ -345,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ffi_tools() -> Result<(), CliError> {
+    fn test_ffi_tools() -> Result<(), BridleError> {
         let tools = get_tools();
 
         let tc = tools
@@ -436,7 +436,7 @@ mod tests {
     }
 
     #[test]
-    fn test_file_lock_tester_tool() -> Result<(), CliError> {
+    fn test_file_lock_tester_tool() -> Result<(), BridleError> {
         let tool = FileLockTesterTool;
         assert_eq!(tool.name(), "file-lock-tester");
         assert_eq!(tool.description(), "Tests exclusive file mutations");
@@ -460,7 +460,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encoding_normalizer_tool() -> Result<(), CliError> {
+    fn test_encoding_normalizer_tool() -> Result<(), BridleError> {
         let tool = EncodingNormalizerTool;
         assert_eq!(tool.name(), "encoding-normalizer");
         assert_eq!(
@@ -485,7 +485,7 @@ mod tests {
     }
 
     #[test]
-    fn test_db_migrator_tool() -> Result<(), CliError> {
+    fn test_db_migrator_tool() -> Result<(), BridleError> {
         let tool = DBMigratorTool;
         assert_eq!(tool.name(), "db-migrator-tester");
         assert_eq!(

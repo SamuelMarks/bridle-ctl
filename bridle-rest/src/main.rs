@@ -2,11 +2,8 @@
 #![warn(missing_docs)]
 //! REST API Interface for bridle-ctl.
 
-/// Error module.
-pub mod error;
-
-use crate::error::RestError;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use bridle_sdk::BridleError;
 
 /// Shared application state.
 pub struct AppState {
@@ -20,7 +17,7 @@ pub async fn health_check() -> impl Responder {
 }
 
 /// Endpoint to start the agent.
-pub async fn start_agent() -> Result<HttpResponse, RestError> {
+pub async fn start_agent() -> Result<HttpResponse, BridleError> {
     let msg = bridle_agent::start_agent()?;
     Ok(HttpResponse::Ok().body(msg))
 }
@@ -28,7 +25,7 @@ pub async fn start_agent() -> Result<HttpResponse, RestError> {
 /// Endpoint to run tools using ToolRunRequest.
 pub async fn run_tools(
     req: web::Json<bridle_sdk::models::ToolRunRequest>,
-) -> Result<HttpResponse, RestError> {
+) -> Result<HttpResponse, BridleError> {
     let payload = req.into_inner();
     let action = match payload.action.as_deref() {
         Some("audit") => bridle_cli::runner::Action::Audit,
@@ -49,7 +46,7 @@ pub async fn run_tools(
 pub async fn batch_run(
     data: web::Data<AppState>,
     req: web::Json<bridle_sdk::models::BatchRunRequest>,
-) -> Result<HttpResponse, RestError> {
+) -> Result<HttpResponse, BridleError> {
     let payload = req.into_inner();
     let msg = bridle_cli::batch_pipeline::run_pipeline(
         &payload.config_path,
@@ -57,8 +54,7 @@ pub async fn batch_run(
         payload.safety_mode,
         payload.max_repos,
         payload.max_prs_per_hour,
-    )
-    .map_err(RestError::Cli)?;
+    )?;
     Ok(HttpResponse::Ok().body(msg))
 }
 
@@ -67,15 +63,14 @@ pub async fn batch_run(
 pub async fn sync_prs(
     data: web::Data<AppState>,
     req: web::Json<bridle_sdk::models::SyncPrsRequest>,
-) -> Result<HttpResponse, RestError> {
+) -> Result<HttpResponse, BridleError> {
     let payload = req.into_inner();
     let msg = bridle_cli::sync_prs::sync_prs(
         &payload.org,
         &data.db_url,
         payload.max_prs_per_hour,
         payload.fork_org,
-    )
-    .map_err(RestError::Cli)?;
+    )?;
     Ok(HttpResponse::Ok().body(msg))
 }
 
@@ -87,10 +82,9 @@ macro_rules! define_crud_endpoints {
         pub async fn $create_fn(
             data: web::Data<AppState>,
             payload: web::Json<$model>,
-        ) -> Result<HttpResponse, RestError> {
-            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&data.db_url)
-                .map_err(RestError::Sdk)?;
-            $sdk_insert(&mut conn, &payload.into_inner()).map_err(RestError::Sdk)?;
+        ) -> Result<HttpResponse, BridleError> {
+            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&data.db_url)?;
+            $sdk_insert(&mut conn, &payload.into_inner())?;
             Ok(HttpResponse::Created().finish())
         }
 
@@ -98,11 +92,10 @@ macro_rules! define_crud_endpoints {
         pub async fn $get_fn(
             data: web::Data<AppState>,
             path: web::Path<i32>,
-        ) -> Result<HttpResponse, RestError> {
-            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&data.db_url)
-                .map_err(RestError::Sdk)?;
+        ) -> Result<HttpResponse, BridleError> {
+            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&data.db_url)?;
             let id = path.into_inner();
-            let item = $sdk_get(&mut conn, id).map_err(RestError::Sdk)?;
+            let item = $sdk_get(&mut conn, id)?;
             Ok(HttpResponse::Ok().json(item))
         }
     };

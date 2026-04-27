@@ -1,8 +1,8 @@
 #![cfg(not(tarpaulin_include))]
 //! Batch fix functionality across an organization.
 
-use crate::error::CliError;
 use crate::runner;
+use bridle_sdk::BridleError;
 use std::fs;
 use std::path::Path;
 
@@ -18,16 +18,16 @@ pub fn batch_fix(
     _safety_mode: bool,
     max_repos: Option<usize>,
     _max_prs_per_hour: Option<usize>,
-) -> Result<String, CliError> {
+) -> Result<String, BridleError> {
     let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| BridleError::Generic(e.to_string()))?;
 
     // We assume the repos are cloned in ~/.bridle/workspace/<org>
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
     let workspace = Path::new(&home).join(".bridle").join("workspace").join(org);
 
     if !workspace.exists() {
-        return Err(CliError::Execution(format!(
+        return Err(BridleError::Generic(format!(
             "Workspace for org {} not found. Did you run ingest-org first?",
             org
         )));

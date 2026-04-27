@@ -2,17 +2,15 @@
 #![deny(missing_docs)]
 //! JSON RPC Interface for bridle-ctl.
 
-pub mod error;
-
-use crate::error::RpcError;
+use bridle_sdk::BridleError;
 use jsonrpsee::RpcModule;
 use jsonrpsee::server::ServerBuilder;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-/// Helper to create an `RpcError` from a generic displayable error.
-fn rpc_reg_err<T: std::fmt::Display>(e: T) -> RpcError {
-    RpcError::Register(e.to_string())
+/// Helper to create an `BridleError` from a generic displayable error.
+fn rpc_reg_err<T: std::fmt::Display>(e: T) -> BridleError {
+    BridleError::Register(e.to_string())
 }
 
 /// Helper to convert a generic displayable error into an `ErrorObjectOwned`.
@@ -32,7 +30,7 @@ fn rpc_reg_err_into<T: std::fmt::Display>(
 ) -> Result<String, jsonrpsee::types::error::ErrorObjectOwned> {
     Err(jsonrpsee::types::error::ErrorObject::owned(
         -32000,
-        RpcError::Register(e.to_string()).to_string(),
+        BridleError::Register(e.to_string()).to_string(),
         None::<()>,
     ))
 }
@@ -50,9 +48,8 @@ macro_rules! register_crud_methods {
             .register_method($create_name, |params, state, _| {
                 let (item,): ($model,) = params.parse()?;
                 let mut conn =
-                    bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
-                        .map_err(RpcError::Sdk)?;
-                $sdk_insert(&mut conn, &item).map_err(RpcError::Sdk)?;
+                    bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)?;
+                $sdk_insert(&mut conn, &item)?;
                 Ok::<(), jsonrpsee::types::error::ErrorObjectOwned>(())
             })
             .map_err(rpc_reg_err)?;
@@ -61,9 +58,8 @@ macro_rules! register_crud_methods {
             .register_method($get_name, |params, state, _| {
                 let (id,): (i32,) = params.parse()?;
                 let mut conn =
-                    bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)
-                        .map_err(RpcError::Sdk)?;
-                let item = $sdk_get(&mut conn, id).map_err(RpcError::Sdk)?;
+                    bridle_sdk::db::establish_connection_and_run_migrations(&state.db_url)?;
+                let item = $sdk_get(&mut conn, id)?;
                 Ok::<$model, jsonrpsee::types::error::ErrorObjectOwned>(item)
             })
             .map_err(rpc_reg_err)?;
@@ -71,7 +67,7 @@ macro_rules! register_crud_methods {
 }
 
 /// Starts the JSON-RPC server with a given db_url.
-pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
+pub async fn run_server(db_url: String) -> Result<SocketAddr, BridleError> {
     let server = ServerBuilder::default().build("127.0.0.1:0").await?;
     let addr = server.local_addr()?;
 
@@ -367,7 +363,7 @@ pub async fn run_server(db_url: String) -> Result<SocketAddr, RpcError> {
 /// Main entry point for the JSON RPC server.
 #[tokio::main]
 #[cfg(not(tarpaulin_include))]
-async fn main() -> Result<(), RpcError> {
+async fn main() -> Result<(), BridleError> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
         eprintln!("Warning: Failed to initialize telemetry: {}", e);
     }
@@ -397,7 +393,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_health_check_rpc() -> Result<(), RpcError> {
+    async fn test_health_check_rpc() -> Result<(), BridleError> {
         let addr = run_server(get_test_db()).await?;
         let url = format!("http://{}", addr);
 
@@ -409,7 +405,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_start_agent_rpc() -> Result<(), RpcError> {
+    async fn test_start_agent_rpc() -> Result<(), BridleError> {
         let addr = run_server(get_test_db()).await?;
         let url = format!("http://{}", addr);
 
@@ -423,7 +419,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_tools_rpc() -> Result<(), RpcError> {
+    async fn test_run_tools_rpc() -> Result<(), BridleError> {
         let addr = run_server(get_test_db()).await?;
         let url = format!("http://{}", addr);
 
@@ -459,7 +455,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_team_crud_rpc() -> Result<(), RpcError> {
+    async fn test_team_crud_rpc() -> Result<(), BridleError> {
         let db_url = get_test_db();
         let addr = run_server(db_url.clone()).await?;
         let url = format!("http://{}", addr);
@@ -490,7 +486,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_user_crud_rpc() -> Result<(), RpcError> {
+    async fn test_user_crud_rpc() -> Result<(), BridleError> {
         let db_url = get_test_db();
         let addr = run_server(db_url.clone()).await?;
         let url = format!("http://{}", addr);
@@ -523,7 +519,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_org_crud_rpc() -> Result<(), RpcError> {
+    async fn test_org_crud_rpc() -> Result<(), BridleError> {
         let db_url = get_test_db();
         let addr = run_server(db_url.clone()).await?;
         let url = format!("http://{}", addr);
@@ -554,7 +550,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_repo_crud_rpc() -> Result<(), RpcError> {
+    async fn test_repo_crud_rpc() -> Result<(), BridleError> {
         let db_url = get_test_db();
         let addr = run_server(db_url.clone()).await?;
         let url = format!("http://{}", addr);
@@ -591,7 +587,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_batch_and_sync_rpc() -> Result<(), RpcError> {
+    async fn test_batch_and_sync_rpc() -> Result<(), BridleError> {
         let db_url = get_test_db();
         let addr = run_server(db_url.clone()).await?;
         let url = format!("http://{}", addr);
@@ -646,7 +642,7 @@ mod tests {
         assert!(err.is_err());
 
         let err2 = rpc_reg_err("test");
-        assert!(matches!(err2, RpcError::Register(_)));
+        assert!(matches!(err2, BridleError::Register(_)));
     }
 
     #[tokio::test]

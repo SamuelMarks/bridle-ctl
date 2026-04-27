@@ -17,23 +17,23 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
 };
 
-use crate::error::CliError;
 use crate::tools::CodeTool;
+use bridle_sdk::BridleError;
 
 /// Launches the interactive TUI to select tools.
 #[cfg(not(tarpaulin_include))]
-pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError> {
-    enable_raw_mode().map_err(CliError::Io)?;
+pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, BridleError> {
+    enable_raw_mode().map_err(BridleError::Io)?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen).map_err(CliError::Io)?;
+    execute!(stdout, EnterAlternateScreen).map_err(BridleError::Io)?;
     let backend = ratatui::backend::CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend).map_err(CliError::Io)?;
+    let mut terminal = Terminal::new(backend).map_err(BridleError::Io)?;
 
     let mut state = ListState::default();
     state.select(Some(0));
     let mut selected_indices = vec![false; tools.len()];
 
-    let event_iter = std::iter::from_fn(|| Some(crossterm::event::read().map_err(CliError::Io)));
+    let event_iter = std::iter::from_fn(|| Some(crossterm::event::read().map_err(BridleError::Io)));
     let res = run_app(
         &mut terminal,
         tools,
@@ -42,9 +42,9 @@ pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, CliError>
         event_iter,
     );
 
-    disable_raw_mode().map_err(CliError::Io)?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen).map_err(CliError::Io)?;
-    terminal.show_cursor().map_err(CliError::Io)?;
+    disable_raw_mode().map_err(BridleError::Io)?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen).map_err(BridleError::Io)?;
+    terminal.show_cursor().map_err(BridleError::Io)?;
 
     res?;
 
@@ -65,9 +65,9 @@ fn run_app<B: Backend, I>(
     state: &mut ListState,
     selected_indices: &mut [bool],
     mut events: I,
-) -> Result<(), CliError>
+) -> Result<(), BridleError>
 where
-    I: Iterator<Item = Result<Event, CliError>>,
+    I: Iterator<Item = Result<Event, BridleError>>,
 {
     loop {
         terminal
@@ -119,11 +119,14 @@ where
 
                 f.render_widget(help, chunks[1]);
             })
-            .map_err(|e| CliError::Io(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| BridleError::Io(std::io::Error::other(e.to_string())))?;
 
-        let Ok(Event::Key(key)) = events
-            .next()
-            .unwrap_or(Err(CliError::Io(std::io::Error::other("no more events"))))
+        let Ok(Event::Key(key)) =
+            events
+                .next()
+                .unwrap_or(Err(BridleError::Io(std::io::Error::other(
+                    "no more events",
+                ))))
         else {
             continue;
         };

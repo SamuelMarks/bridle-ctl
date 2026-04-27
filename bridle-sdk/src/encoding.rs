@@ -7,7 +7,7 @@ use std::path::Path;
 
 use encoding_rs::Encoding;
 
-use crate::error::BridleError;
+use crate::BridleError;
 
 /// Analyzes a string slice to detect the predominant line ending sequence.
 ///

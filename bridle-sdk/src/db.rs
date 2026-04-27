@@ -1,7 +1,7 @@
 #![cfg(not(tarpaulin_include))]
 //! Database connection and migration management.
 
-use crate::error::BridleError;
+use crate::BridleError;
 #[cfg(feature = "postgres")]
 use diesel::pg::PgConnection;
 use diesel::prelude::*;

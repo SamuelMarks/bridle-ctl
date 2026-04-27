@@ -1,6 +1,6 @@
 //! Telemetry and logging initialization for the bridle workspace.
 
-use crate::error::BridleError;
+use crate::BridleError;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Initializes structured JSON logging for the application.

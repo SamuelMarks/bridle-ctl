@@ -1,4 +1,4 @@
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -22,16 +22,16 @@ pub struct EphemeralWorkspace {
 
 impl EphemeralWorkspace {
     /// Creates a new ephemeral workspace.
-    pub fn new(orig_path: &Path, pipeline_name: &str) -> Result<Self, CliError> {
+    pub fn new(orig_path: &Path, pipeline_name: &str) -> Result<Self, BridleError> {
         let temp_dir =
             std::env::temp_dir().join(format!("bridle_{}_{}", pipeline_name, uuid::Uuid::new_v4()));
 
         let temp_dir_str = temp_dir
             .to_str()
-            .ok_or_else(|| CliError::Execution("Invalid UTF-8 in temp dir path".to_string()))?;
+            .ok_or_else(|| BridleError::Generic("Invalid UTF-8 in temp dir path".to_string()))?;
         let orig_path_str = orig_path
             .to_str()
-            .ok_or_else(|| CliError::Execution("Invalid UTF-8 in orig path".to_string()))?;
+            .ok_or_else(|| BridleError::Generic("Invalid UTF-8 in orig path".to_string()))?;
 
         // 1. Perform a shallow clone (`--depth=1`) from the local path (`file://...`)
         //    This minimizes disk I/O and creates a deeply isolated environment
@@ -39,14 +39,14 @@ impl EphemeralWorkspace {
         let status = git_command()
             .args(["clone", "--depth=1", &orig_url, temp_dir_str])
             .status()
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
 
         if !status.success() {
             // Fallback: cp -r
             let _ = Command::new("cp")
                 .args(["-r", orig_path_str, temp_dir_str])
                 .status()
-                .map_err(|e| CliError::Execution(e.to_string()))?;
+                .map_err(|e| BridleError::Generic(e.to_string()))?;
         }
 
         // 2. Synchronize the `origin` to the true upstream remote, replacing the `file://` local reference.
@@ -71,10 +71,12 @@ impl EphemeralWorkspace {
             .current_dir(&temp_dir)
             .args(["checkout", "-b", &branch_name])
             .status()
-            .map_err(|e| CliError::Execution(e.to_string()))?;
+            .map_err(|e| BridleError::Generic(e.to_string()))?;
 
         if !branch_status.success() {
-            return Err(CliError::Execution("Failed to checkout branch".to_string()));
+            return Err(BridleError::Generic(
+                "Failed to checkout branch".to_string(),
+            ));
         }
 
         Ok(Self {
@@ -118,7 +120,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn test_ephemeral_workspace() -> Result<(), CliError> {
+    fn test_ephemeral_workspace() -> Result<(), BridleError> {
         let dir = tempdir()?;
         // Setup a dummy git repo
         git_command()
@@ -181,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ephemeral_workspace_checkout_fail() -> Result<(), CliError> {
+    fn test_ephemeral_workspace_checkout_fail() -> Result<(), BridleError> {
         let dir = tempdir()?;
         git_command()
             .current_dir(dir.path())
@@ -195,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ephemeral_workspace_drop_rm_fallback() -> Result<(), CliError> {
+    fn test_ephemeral_workspace_drop_rm_fallback() -> Result<(), BridleError> {
         let dir = tempdir()?;
         git_command()
             .current_dir(dir.path())

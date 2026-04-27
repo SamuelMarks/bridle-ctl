@@ -1,6 +1,6 @@
 #![cfg(not(tarpaulin_include))]
+use crate::BridleError;
 use crate::db::DbConnection;
-use crate::error::BridleError;
 use crate::models::{BatchJob, BatchTask, TaskStatus};
 use crate::schema::{batch_jobs, batch_tasks};
 use chrono::Utc;
@@ -208,7 +208,7 @@ mod tests {
     use crate::db::establish_connection_and_run_migrations;
 
     #[test]
-    fn test_create_and_get_job_tasks() -> Result<(), crate::error::BridleError> {
+    fn test_create_and_get_job_tasks() -> Result<(), crate::BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
 
         let job = create_batch_job(&mut conn, "test_pipeline")?;
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_task_status() -> Result<(), crate::error::BridleError> {
+    fn test_update_task_status() -> Result<(), crate::BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
 
         let job = create_batch_job(&mut conn, "test_pipeline")?;
@@ -240,12 +240,12 @@ mod tests {
                 diesel::insert_into(crate::schema::batch_tasks::table)
                     .values(&new_task)
                     .execute(c)
-                    .map_err(crate::error::BridleError::Database)?;
+                    .map_err(crate::BridleError::Database)?;
 
                 let inserted_task = crate::schema::batch_tasks::table
                     .order(crate::schema::batch_tasks::id.desc())
                     .first::<BatchTask>(c)
-                    .map_err(crate::error::BridleError::Database)?;
+                    .map_err(crate::BridleError::Database)?;
 
                 let updated = update_task_status(
                     &mut conn,
@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_batch_job_status() -> Result<(), crate::error::BridleError> {
+    fn test_update_batch_job_status() -> Result<(), crate::BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
 
         let job = create_batch_job(&mut conn, "test_pipeline")?;
@@ -282,7 +282,7 @@ mod extra_tests {
     use crate::db::establish_connection_and_run_migrations;
 
     #[test]
-    fn test_insert_and_get() -> Result<(), crate::error::BridleError> {
+    fn test_insert_and_get() -> Result<(), crate::BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
 
         // Use create_batch_job just to get a valid inserted job
@@ -305,12 +305,12 @@ mod extra_tests {
                 diesel::insert_into(crate::schema::batch_tasks::table)
                     .values(&new_task)
                     .execute(c)
-                    .map_err(crate::error::BridleError::Database)?;
+                    .map_err(crate::BridleError::Database)?;
 
                 let inserted_task = crate::schema::batch_tasks::table
                     .order(crate::schema::batch_tasks::id.desc())
                     .first::<BatchTask>(c)
-                    .map_err(crate::error::BridleError::Database)?;
+                    .map_err(crate::BridleError::Database)?;
 
                 let fetched_t = get_batch_task(&mut conn, inserted_task.id)?;
                 assert_eq!(fetched_t.id, inserted_task.id);
@@ -349,7 +349,7 @@ mod extra_tests {
     }
 
     #[test]
-    fn test_pg_stubs() -> Result<(), crate::error::BridleError> {
+    fn test_pg_stubs() -> Result<(), crate::BridleError> {
         let url = crate::db::database_url();
         if url.starts_with("postgres") {
             let mut conn = establish_connection_and_run_migrations(&url)?;

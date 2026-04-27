@@ -1,6 +1,6 @@
 //! Plugin configuration handling.
 
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -87,22 +87,23 @@ pub enum DynamicToolConfig {
 
 impl CoreConfig {
     /// Loads the configuration from a given file path. If the file doesn't exist, returns Default.
-    pub fn load(path: &str) -> Result<Self, CliError> {
+    pub fn load(path: &str) -> Result<Self, BridleError> {
         if !Path::new(path).exists() {
             return Ok(Self::default());
         }
         let content = fs::read_to_string(path)?;
         let config: Self =
-            toml::from_str(&content).map_err(|e| CliError::Execution(e.to_string()))?;
+            toml::from_str(&content).map_err(|e| BridleError::Generic(e.to_string()))?;
         Ok(config)
     }
 }
 
 impl PluginDef {
     /// Loads a plugin definition from a given file path.
-    pub fn load(path: &str) -> Result<Self, CliError> {
+    pub fn load(path: &str) -> Result<Self, BridleError> {
         let content = fs::read_to_string(path)?;
-        let def: Self = toml::from_str(&content).map_err(|e| CliError::Execution(e.to_string()))?;
+        let def: Self =
+            toml::from_str(&content).map_err(|e| BridleError::Generic(e.to_string()))?;
         Ok(def)
     }
 }
@@ -113,7 +114,7 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn test_core_config_load() -> Result<(), CliError> {
+    fn test_core_config_load() -> Result<(), BridleError> {
         let path = "test_core_config.toml";
         let config_toml = r#"
         [plugins]
@@ -132,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn test_plugin_def_load() -> Result<(), CliError> {
+    fn test_plugin_def_load() -> Result<(), BridleError> {
         let path = "test_plugin_def.toml";
         let config_toml = r#"
         description = "Test tool"

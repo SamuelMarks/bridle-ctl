@@ -1,9 +1,9 @@
 #![cfg(not(tarpaulin_include))]
 //! Full "AI Engineering Team" offline-first simulations.
 
-use crate::error::AgentError;
 use bridle_cli::db::execute_db_command;
 use bridle_cli::runner::{Action, run};
+use bridle_sdk::BridleError;
 use bridle_sdk::models::{Issue, PullRequest, ToolRunRequest};
 
 /// Simulates a full AI Engineering Team workflow.
@@ -13,7 +13,7 @@ use bridle_sdk::models::{Issue, PullRequest, ToolRunRequest};
 /// - Engineer: Picks up issues, mutates code natively (via tools), opens a Pull Request.
 /// - QA: Verifies the code with automated tests before the PR is created.
 /// - Reviewer: Reviews the Pull Request and merges it natively in the DB.
-pub fn run_ai_team_simulation(db_url: &str) -> Result<String, AgentError> {
+pub fn run_ai_team_simulation(db_url: &str) -> Result<String, BridleError> {
     // 0. Setup mock Repository
     setup_repo(db_url)?;
 
@@ -30,15 +30,15 @@ pub fn run_ai_team_simulation(db_url: &str) -> Result<String, AgentError> {
 }
 
 /// Simulates setting up a repository.
-fn setup_repo(db_url: &str) -> Result<(), AgentError> {
+fn setup_repo(db_url: &str) -> Result<(), BridleError> {
     let repo_payload = r#"{"id": 200, "owner_id": 1, "owner_type": "user", "name": "team_repo", "is_private": false, "is_fork": false, "archived": false, "allow_merge_commit": true, "allow_squash_merge": true, "allow_rebase_merge": true, "created_at": "2026-04-08T00:00:00", "updated_at": "2026-04-08T00:00:00"}"#;
     execute_db_command(db_url, "create_repo", Some(repo_payload.to_string()), None)
-        .map_err(|e| AgentError::Daemon(format!("Setup repo failed: {}", e)))?;
+        .map_err(|e| BridleError::Daemon(format!("Setup repo failed: {}", e)))?;
     Ok(())
 }
 
 /// Simulates a PM creating an issue.
-fn pm_agent_create_issue(db_url: &str) -> Result<(), AgentError> {
+fn pm_agent_create_issue(db_url: &str) -> Result<(), BridleError> {
     println!("PM Agent: Creating issue for tech debt...");
     let issue_payload = r#"{"id": 200, "repo_id": 200, "number": 1, "title": "Refactor C code", "body": "Use cdd-gnu-standardizer to clean up old C code", "state": "open", "author_id": 1, "assignee_id": null, "created_at": "2026-04-08T00:00:00", "updated_at": "2026-04-08T00:00:00"}"#;
     execute_db_command(
@@ -47,19 +47,19 @@ fn pm_agent_create_issue(db_url: &str) -> Result<(), AgentError> {
         Some(issue_payload.to_string()),
         None,
     )
-    .map_err(|e| AgentError::Daemon(format!("PM failed to create issue: {}", e)))?;
+    .map_err(|e| BridleError::Daemon(format!("PM failed to create issue: {}", e)))?;
     Ok(())
 }
 
 /// Simulates an engineer fixing an issue and QA verifying it, looping if needed.
-fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
+fn engineer_and_qa_loop(db_url: &str) -> Result<i32, BridleError> {
     println!("Engineer Agent: Picking up open issues...");
 
     // Simulate fetching the issue we just made
     let json_str = execute_db_command(db_url, "get_issue", None, Some(200))
-        .map_err(|e| AgentError::Daemon(format!("Engineer failed to get issue: {}", e)))?;
+        .map_err(|e| BridleError::Daemon(format!("Engineer failed to get issue: {}", e)))?;
     let issue: Issue = serde_json::from_str(&json_str)
-        .map_err(|e| AgentError::Daemon(format!("Failed to parse issue: {}", e)))?;
+        .map_err(|e| BridleError::Daemon(format!("Failed to parse issue: {}", e)))?;
 
     println!(
         "Engineer Agent: Found issue #{} - {}. Running tools...",
@@ -81,7 +81,7 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
         };
 
         run(Action::Fix { dry_run: true }, req)
-            .map_err(|e| AgentError::Daemon(format!("Engineer code mutation failed: {}", e)))?;
+            .map_err(|e| BridleError::Daemon(format!("Engineer code mutation failed: {}", e)))?;
 
         println!("QA Agent: Verifying codebase...");
         if qa_agent_verify() {
@@ -112,7 +112,7 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
             .args(["clean", "-fd"])
             .status();
 
-        return Err(AgentError::Daemon(
+        return Err(BridleError::Daemon(
             "Semi-Autonomous mode: human intervention required".to_string(),
         ));
     }
@@ -147,7 +147,7 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, AgentError> {
         pr_body.replace("\n", "\\n")
     );
     execute_db_command(db_url, "create_pull_request", Some(pr_payload), None)
-        .map_err(|e| AgentError::Daemon(format!("Engineer PR creation failed: {}", e)))?;
+        .map_err(|e| BridleError::Daemon(format!("Engineer PR creation failed: {}", e)))?;
 
     Ok(pr_id)
 }
@@ -203,13 +203,13 @@ fn qa_agent_verify() -> bool {
 }
 
 /// Simulates a reviewer merging a PR.
-fn reviewer_agent_merge_pr(db_url: &str, pr_id: i32) -> Result<(), AgentError> {
+fn reviewer_agent_merge_pr(db_url: &str, pr_id: i32) -> Result<(), BridleError> {
     println!("Reviewer Agent: Checking PR #{}...", pr_id);
 
     let json_str = execute_db_command(db_url, "get_pull_request", None, Some(pr_id))
-        .map_err(|e| AgentError::Daemon(format!("Reviewer failed to get PR: {}", e)))?;
+        .map_err(|e| BridleError::Daemon(format!("Reviewer failed to get PR: {}", e)))?;
     let mut pr: PullRequest = serde_json::from_str(&json_str)
-        .map_err(|e| AgentError::Daemon(format!("Failed to parse PR: {}", e)))?;
+        .map_err(|e| BridleError::Daemon(format!("Failed to parse PR: {}", e)))?;
 
     println!("Reviewer Agent: PR looks good. Merging (updating DB state)...");
 
@@ -228,12 +228,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_run_ai_team_simulation() -> Result<(), AgentError> {
-        let tf = tempfile::NamedTempFile::new().map_err(|e| AgentError::Daemon(e.to_string()))?;
+    fn test_run_ai_team_simulation() -> Result<(), BridleError> {
+        let tf = tempfile::NamedTempFile::new().map_err(|e| BridleError::Daemon(e.to_string()))?;
         let db_url = tf
             .path()
             .to_str()
-            .ok_or(AgentError::Daemon("Invalid path".to_string()))?
+            .ok_or(BridleError::Daemon("Invalid path".to_string()))?
             .to_string();
 
         let result = run_ai_team_simulation(&db_url)?;
