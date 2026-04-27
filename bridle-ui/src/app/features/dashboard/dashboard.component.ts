@@ -4,7 +4,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SystemStateService } from '../../core/services/system-state.service';
 import { AppButtonComponent } from '../../shared/ui/app-button/app-button.component';
 import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component';
@@ -14,7 +14,7 @@ import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, AppButtonComponent, AppBadgeComponent],
+  imports: [AppButtonComponent, AppBadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container-lg">

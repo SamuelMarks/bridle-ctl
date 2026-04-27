@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AppButtonComponent } from '../../../shared/ui/app-button/app-button.component';
 import { AppInputComponent } from '../../../shared/ui/app-input/app-input.component';
@@ -16,11 +16,10 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
 @Component({
   selector: 'app-batch-run-form',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     AppButtonComponent,
-    AppInputComponent,
-  ],
+    AppInputComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="Box p-3">

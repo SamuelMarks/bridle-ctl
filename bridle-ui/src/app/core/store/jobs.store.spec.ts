@@ -6,7 +6,7 @@ import { of, throwError } from 'rxjs';
 import { BatchJob, BatchJobStatus } from '../models/models';
 
 describe('JobsStore', () => {
-  let store: InstanceType<typeof JobsStore>;
+  let store: JobsStore;
   let batchServiceSpy: jasmine.SpyObj<BatchService>;
   let notificationServiceSpy: jasmine.SpyObj<NotificationService>;
 

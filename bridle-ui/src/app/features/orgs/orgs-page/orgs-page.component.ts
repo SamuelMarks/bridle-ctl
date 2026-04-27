@@ -5,7 +5,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { OrgService } from '../../../core/services/org.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { OrgListComponent } from '../org-list/org-list.component';
@@ -19,11 +19,10 @@ import { Organization } from '../../../core/models/models';
 @Component({
   selector: 'app-orgs-page',
   imports: [
-    CommonModule,
     OrgListComponent,
     IngestOrgFormComponent,
-    RepoListComponent,
-  ],
+    RepoListComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container-lg">

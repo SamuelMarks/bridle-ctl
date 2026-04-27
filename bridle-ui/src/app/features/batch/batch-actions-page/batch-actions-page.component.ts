@@ -6,7 +6,7 @@ import {
   ViewChild,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { BatchService } from '../../../core/services/batch.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import {
@@ -26,13 +26,12 @@ import { JobsStore } from '../../../core/store/jobs.store';
 @Component({
   selector: 'app-batch-actions-page',
   imports: [
-    CommonModule,
     AppTabsComponent,
     BatchFixFormComponent,
     BatchRunFormComponent,
     BatchJobsListComponent,
-    BatchJobDetailComponent,
-  ],
+    BatchJobDetailComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container-lg">

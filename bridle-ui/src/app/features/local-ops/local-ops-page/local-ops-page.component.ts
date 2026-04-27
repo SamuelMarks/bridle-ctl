@@ -5,7 +5,7 @@ import {
   ViewChild,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   LocalOpService,
   OpResult,
@@ -24,11 +24,10 @@ import { LocalFixComponent } from '../local-fix/local-fix.component';
 @Component({
   selector: 'app-local-ops-page',
   imports: [
-    CommonModule,
     AppTabsComponent,
     LocalAuditComponent,
-    LocalFixComponent,
-  ],
+    LocalFixComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container-lg">

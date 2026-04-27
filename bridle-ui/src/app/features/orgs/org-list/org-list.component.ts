@@ -4,7 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Organization } from '../../../core/models/models';
 import {
   AppTableComponent,
@@ -18,11 +18,10 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
 @Component({
   selector: 'app-org-list',
   imports: [
-    CommonModule,
     AppTableComponent,
     AppTableColumnDirective,
-    AppBadgeComponent,
-  ],
+    AppBadgeComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-table

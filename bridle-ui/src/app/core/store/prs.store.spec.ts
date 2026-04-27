@@ -6,7 +6,7 @@ import { of, throwError } from 'rxjs';
 import { PullRequest } from '../models/models';
 
 describe('PrsStore', () => {
-  let store: InstanceType<typeof PrsStore>;
+  let store: PrsStore;
   let prServiceSpy: jasmine.SpyObj<PrService>;
   let notificationServiceSpy: jasmine.SpyObj<NotificationService>;
 

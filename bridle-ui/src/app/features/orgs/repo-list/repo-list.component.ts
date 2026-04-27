@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Repository } from '../../../core/models/models';
 import {
   AppTableComponent,
@@ -11,7 +11,7 @@ import {
  */
 @Component({
   selector: 'app-repo-list',
-  imports: [CommonModule, AppTableComponent, AppTableColumnDirective],
+  imports: [AppTableComponent, AppTableColumnDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-table

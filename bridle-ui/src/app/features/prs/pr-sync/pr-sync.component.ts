@@ -7,7 +7,7 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { OrgService } from '../../../core/services/org.service';
@@ -24,13 +24,12 @@ import { PullRequest } from '../../../core/models/models';
 @Component({
   selector: 'app-pr-sync',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     ScrollingModule,
     AppButtonComponent,
     AppInputComponent,
-    AppBadgeComponent,
-  ],
+    AppBadgeComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container-lg">
