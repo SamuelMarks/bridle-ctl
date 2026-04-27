@@ -2,22 +2,28 @@
 //! Database connection and migration management.
 
 use crate::error::BridleError;
+#[cfg(feature = "postgres")]
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+#[cfg(feature = "sqlite")]
 use diesel::sqlite::SqliteConnection;
 
 /// A dynamic connection wrapper supporting both SQLite and PostgreSQL backends.
 pub enum DbConnection {
     /// SQLite connection variant.
+    #[cfg(feature = "sqlite")]
     Sqlite(SqliteConnection),
     /// PostgreSQL connection variant.
+    #[cfg(feature = "postgres")]
     Pg(PgConnection),
 }
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 /// Embedded database migrations.
+#[cfg(feature = "sqlite")]
 pub const MIGRATIONS_SQLITE: EmbeddedMigrations = embed_migrations!("migrations");
 /// Embedded database migrations for PostgreSQL.
+#[cfg(feature = "postgres")]
 pub const MIGRATIONS_PG: EmbeddedMigrations = embed_migrations!("migrations_pg");
 
 /// Helper to get the database url, with fallbacks.
@@ -37,6 +43,7 @@ fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
 }
 
 /// Establishes a PostgreSQL database connection and runs pending migrations.
+#[cfg(feature = "postgres")]
 fn establish_pg(database_url: &str) -> Result<DbConnection, BridleError> {
     static MIGRATION_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let mut connection = PgConnection::establish(database_url).map_err(db_exec_err)?;
@@ -54,17 +61,31 @@ pub fn establish_connection_and_run_migrations(
     database_url: &str,
 ) -> Result<DbConnection, BridleError> {
     if database_url.starts_with("postgres://") || database_url.starts_with("postgresql://") {
-        establish_pg(database_url)
+        #[cfg(feature = "postgres")]
+        {
+            establish_pg(database_url)
+        }
+        #[cfg(not(feature = "postgres"))]
+        {
+            Err(BridleError::Generic("Postgres feature not enabled".into()))
+        }
     } else {
-        static SQLITE_MIGRATION_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
-        let mut connection = SqliteConnection::establish(database_url).map_err(db_exec_err)?;
-        let _guard = SQLITE_MIGRATION_MUTEX
-            .lock()
-            .map_err(|e| BridleError::Generic(format!("Mutex lock failed: {}", e)))?;
-        connection
-            .run_pending_migrations(MIGRATIONS_SQLITE)
-            .map_err(|e| BridleError::Migration(e.to_string()))?;
-        Ok(DbConnection::Sqlite(connection))
+        #[cfg(feature = "sqlite")]
+        {
+            static SQLITE_MIGRATION_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let mut connection = SqliteConnection::establish(database_url).map_err(db_exec_err)?;
+            let _guard = SQLITE_MIGRATION_MUTEX
+                .lock()
+                .map_err(|e| BridleError::Generic(format!("Mutex lock failed: {}", e)))?;
+            connection
+                .run_pending_migrations(MIGRATIONS_SQLITE)
+                .map_err(|e| BridleError::Migration(e.to_string()))?;
+            Ok(DbConnection::Sqlite(connection))
+        }
+        #[cfg(not(feature = "sqlite"))]
+        {
+            Err(BridleError::Generic("Sqlite feature not enabled".into()))
+        }
     }
 }
 
@@ -75,6 +96,7 @@ pub fn insert_user(
 ) -> Result<(), BridleError> {
     use crate::schema::users::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(users)
                 .values(new_user)
@@ -82,6 +104,7 @@ pub fn insert_user(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(users)
                 .values(new_user)
@@ -96,6 +119,7 @@ pub fn insert_user(
 pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::User, BridleError> {
     use crate::schema::users::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = users
                 .filter(id.eq(user_id))
@@ -103,6 +127,7 @@ pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = users
                 .filter(id.eq(user_id))
@@ -120,6 +145,7 @@ pub fn insert_organisation(
 ) -> Result<(), BridleError> {
     use crate::schema::organisations::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(organisations)
                 .values(new_org)
@@ -127,6 +153,7 @@ pub fn insert_organisation(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(organisations)
                 .values(new_org)
@@ -144,6 +171,7 @@ pub fn get_organisation(
 ) -> Result<crate::models::Organisation, BridleError> {
     use crate::schema::organisations::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = organisations
                 .filter(id.eq(org_id))
@@ -151,6 +179,7 @@ pub fn get_organisation(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = organisations
                 .filter(id.eq(org_id))
@@ -168,6 +197,7 @@ pub fn insert_repository(
 ) -> Result<(), BridleError> {
     use crate::schema::repositories::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(repositories)
                 .values(new_repo)
@@ -175,6 +205,7 @@ pub fn insert_repository(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(repositories)
                 .values(new_repo)
@@ -192,6 +223,7 @@ pub fn get_repository(
 ) -> Result<crate::models::Repository, BridleError> {
     use crate::schema::repositories::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = repositories
                 .filter(id.eq(repo_id))
@@ -199,6 +231,7 @@ pub fn get_repository(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = repositories
                 .filter(id.eq(repo_id))
@@ -216,6 +249,7 @@ pub fn insert_team(
 ) -> Result<(), BridleError> {
     use crate::schema::teams::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(teams)
                 .values(new_item)
@@ -223,6 +257,7 @@ pub fn insert_team(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(teams)
                 .values(new_item)
@@ -237,6 +272,7 @@ pub fn insert_team(
 pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Team, BridleError> {
     use crate::schema::teams::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = teams
                 .filter(id.eq(item_id))
@@ -244,6 +280,7 @@ pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = teams
                 .filter(id.eq(item_id))
@@ -261,6 +298,7 @@ pub fn insert_branch(
 ) -> Result<(), BridleError> {
     use crate::schema::branches::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(branches)
                 .values(new_item)
@@ -268,6 +306,7 @@ pub fn insert_branch(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(branches)
                 .values(new_item)
@@ -285,6 +324,7 @@ pub fn get_branch(
 ) -> Result<crate::models::Branch, BridleError> {
     use crate::schema::branches::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = branches
                 .filter(id.eq(item_id))
@@ -292,6 +332,7 @@ pub fn get_branch(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = branches
                 .filter(id.eq(item_id))
@@ -309,6 +350,7 @@ pub fn insert_branch_protection_rule(
 ) -> Result<(), BridleError> {
     use crate::schema::branch_protection_rules::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(branch_protection_rules)
                 .values(new_item)
@@ -316,6 +358,7 @@ pub fn insert_branch_protection_rule(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(branch_protection_rules)
                 .values(new_item)
@@ -333,6 +376,7 @@ pub fn get_branch_protection_rule(
 ) -> Result<crate::models::BranchProtectionRule, BridleError> {
     use crate::schema::branch_protection_rules::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = branch_protection_rules
                 .filter(id.eq(item_id))
@@ -340,6 +384,7 @@ pub fn get_branch_protection_rule(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = branch_protection_rules
                 .filter(id.eq(item_id))
@@ -357,6 +402,7 @@ pub fn insert_key(
 ) -> Result<(), BridleError> {
     use crate::schema::keys::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(keys)
                 .values(new_item)
@@ -364,6 +410,7 @@ pub fn insert_key(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(keys)
                 .values(new_item)
@@ -378,6 +425,7 @@ pub fn insert_key(
 pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Key, BridleError> {
     use crate::schema::keys::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = keys
                 .filter(id.eq(item_id))
@@ -385,6 +433,7 @@ pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::K
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = keys
                 .filter(id.eq(item_id))
@@ -402,6 +451,7 @@ pub fn insert_follow(
 ) -> Result<(), BridleError> {
     use crate::schema::follows::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(follows)
                 .values(new_item)
@@ -409,6 +459,7 @@ pub fn insert_follow(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(follows)
                 .values(new_item)
@@ -426,6 +477,7 @@ pub fn get_follow(
 ) -> Result<crate::models::Follow, BridleError> {
     use crate::schema::follows::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = follows
                 .filter(id.eq(item_id))
@@ -433,6 +485,7 @@ pub fn get_follow(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = follows
                 .filter(id.eq(item_id))
@@ -450,6 +503,7 @@ pub fn insert_star(
 ) -> Result<(), BridleError> {
     use crate::schema::stars::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(stars)
                 .values(new_item)
@@ -457,6 +511,7 @@ pub fn insert_star(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(stars)
                 .values(new_item)
@@ -471,6 +526,7 @@ pub fn insert_star(
 pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Star, BridleError> {
     use crate::schema::stars::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = stars
                 .filter(id.eq(item_id))
@@ -478,6 +534,7 @@ pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = stars
                 .filter(id.eq(item_id))
@@ -495,6 +552,7 @@ pub fn insert_org_membership(
 ) -> Result<(), BridleError> {
     use crate::schema::org_memberships::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(org_memberships)
                 .values(new_item)
@@ -502,6 +560,7 @@ pub fn insert_org_membership(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(org_memberships)
                 .values(new_item)
@@ -519,6 +578,7 @@ pub fn get_org_membership(
 ) -> Result<crate::models::OrgMembership, BridleError> {
     use crate::schema::org_memberships::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = org_memberships
                 .filter(id.eq(item_id))
@@ -526,6 +586,7 @@ pub fn get_org_membership(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = org_memberships
                 .filter(id.eq(item_id))
@@ -543,6 +604,7 @@ pub fn insert_repo_collaborator(
 ) -> Result<(), BridleError> {
     use crate::schema::repo_collaborators::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(repo_collaborators)
                 .values(new_item)
@@ -550,6 +612,7 @@ pub fn insert_repo_collaborator(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(repo_collaborators)
                 .values(new_item)
@@ -567,6 +630,7 @@ pub fn get_repo_collaborator(
 ) -> Result<crate::models::RepoCollaborator, BridleError> {
     use crate::schema::repo_collaborators::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = repo_collaborators
                 .filter(id.eq(item_id))
@@ -574,6 +638,7 @@ pub fn get_repo_collaborator(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = repo_collaborators
                 .filter(id.eq(item_id))
@@ -591,6 +656,7 @@ pub fn insert_milestone(
 ) -> Result<(), BridleError> {
     use crate::schema::milestones::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(milestones)
                 .values(new_item)
@@ -598,6 +664,7 @@ pub fn insert_milestone(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(milestones)
                 .values(new_item)
@@ -615,6 +682,7 @@ pub fn get_milestone(
 ) -> Result<crate::models::Milestone, BridleError> {
     use crate::schema::milestones::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = milestones
                 .filter(id.eq(item_id))
@@ -622,6 +690,7 @@ pub fn get_milestone(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = milestones
                 .filter(id.eq(item_id))
@@ -639,6 +708,7 @@ pub fn insert_label(
 ) -> Result<(), BridleError> {
     use crate::schema::labels::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(labels)
                 .values(new_item)
@@ -646,6 +716,7 @@ pub fn insert_label(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(labels)
                 .values(new_item)
@@ -663,6 +734,7 @@ pub fn get_label(
 ) -> Result<crate::models::Label, BridleError> {
     use crate::schema::labels::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = labels
                 .filter(id.eq(item_id))
@@ -670,6 +742,7 @@ pub fn get_label(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = labels
                 .filter(id.eq(item_id))
@@ -687,6 +760,7 @@ pub fn insert_issue(
 ) -> Result<(), BridleError> {
     use crate::schema::issues::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(issues)
                 .values(new_item)
@@ -694,6 +768,7 @@ pub fn insert_issue(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(issues)
                 .values(new_item)
@@ -711,6 +786,7 @@ pub fn get_issue(
 ) -> Result<crate::models::Issue, BridleError> {
     use crate::schema::issues::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = issues
                 .filter(id.eq(item_id))
@@ -718,6 +794,7 @@ pub fn get_issue(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = issues
                 .filter(id.eq(item_id))
@@ -735,6 +812,7 @@ pub fn insert_issue_label(
 ) -> Result<(), BridleError> {
     use crate::schema::issue_labels::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(issue_labels)
                 .values(new_item)
@@ -742,6 +820,7 @@ pub fn insert_issue_label(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(issue_labels)
                 .values(new_item)
@@ -759,6 +838,7 @@ pub fn get_issue_label(
 ) -> Result<crate::models::IssueLabel, BridleError> {
     use crate::schema::issue_labels::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = issue_labels
                 .filter(id.eq(item_id))
@@ -766,6 +846,7 @@ pub fn get_issue_label(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = issue_labels
                 .filter(id.eq(item_id))
@@ -783,6 +864,7 @@ pub fn insert_pull_request(
 ) -> Result<(), BridleError> {
     use crate::schema::pull_requests::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(pull_requests)
                 .values(new_item)
@@ -790,6 +872,7 @@ pub fn insert_pull_request(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(pull_requests)
                 .values(new_item)
@@ -807,6 +890,7 @@ pub fn get_pull_request(
 ) -> Result<crate::models::PullRequest, BridleError> {
     use crate::schema::pull_requests::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = pull_requests
                 .filter(id.eq(item_id))
@@ -814,6 +898,7 @@ pub fn get_pull_request(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = pull_requests
                 .filter(id.eq(item_id))
@@ -831,6 +916,7 @@ pub fn insert_pull_request_review(
 ) -> Result<(), BridleError> {
     use crate::schema::pull_request_reviews::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(pull_request_reviews)
                 .values(new_item)
@@ -838,6 +924,7 @@ pub fn insert_pull_request_review(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(pull_request_reviews)
                 .values(new_item)
@@ -855,6 +942,7 @@ pub fn get_pull_request_review(
 ) -> Result<crate::models::PullRequestReview, BridleError> {
     use crate::schema::pull_request_reviews::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = pull_request_reviews
                 .filter(id.eq(item_id))
@@ -862,6 +950,7 @@ pub fn get_pull_request_review(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = pull_request_reviews
                 .filter(id.eq(item_id))
@@ -879,6 +968,7 @@ pub fn insert_release(
 ) -> Result<(), BridleError> {
     use crate::schema::releases::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(releases)
                 .values(new_item)
@@ -886,6 +976,7 @@ pub fn insert_release(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(releases)
                 .values(new_item)
@@ -903,6 +994,7 @@ pub fn get_release(
 ) -> Result<crate::models::Release, BridleError> {
     use crate::schema::releases::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = releases
                 .filter(id.eq(item_id))
@@ -910,6 +1002,7 @@ pub fn get_release(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = releases
                 .filter(id.eq(item_id))
@@ -927,6 +1020,7 @@ pub fn insert_webhook(
 ) -> Result<(), BridleError> {
     use crate::schema::webhooks::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(webhooks)
                 .values(new_item)
@@ -934,6 +1028,7 @@ pub fn insert_webhook(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(webhooks)
                 .values(new_item)
@@ -951,6 +1046,7 @@ pub fn get_webhook(
 ) -> Result<crate::models::Webhook, BridleError> {
     use crate::schema::webhooks::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = webhooks
                 .filter(id.eq(item_id))
@@ -958,6 +1054,7 @@ pub fn get_webhook(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = webhooks
                 .filter(id.eq(item_id))
@@ -975,6 +1072,7 @@ pub fn insert_commit(
 ) -> Result<(), BridleError> {
     use crate::schema::commits::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(commits)
                 .values(new_item)
@@ -982,6 +1080,7 @@ pub fn insert_commit(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(commits)
                 .values(new_item)
@@ -999,6 +1098,7 @@ pub fn get_commit(
 ) -> Result<crate::models::Commit, BridleError> {
     use crate::schema::commits::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = commits
                 .filter(id.eq(item_id))
@@ -1006,6 +1106,7 @@ pub fn get_commit(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = commits
                 .filter(id.eq(item_id))
@@ -1023,6 +1124,7 @@ pub fn insert_tree(
 ) -> Result<(), BridleError> {
     use crate::schema::trees::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(trees)
                 .values(new_item)
@@ -1030,6 +1132,7 @@ pub fn insert_tree(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(trees)
                 .values(new_item)
@@ -1044,6 +1147,7 @@ pub fn insert_tree(
 pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Tree, BridleError> {
     use crate::schema::trees::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = trees
                 .filter(id.eq(item_id))
@@ -1051,6 +1155,7 @@ pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = trees
                 .filter(id.eq(item_id))
@@ -1068,6 +1173,7 @@ pub fn insert_blob(
 ) -> Result<(), BridleError> {
     use crate::schema::blobs::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             diesel::insert_into(blobs)
                 .values(new_item)
@@ -1075,6 +1181,7 @@ pub fn insert_blob(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(blobs)
                 .values(new_item)
@@ -1089,6 +1196,7 @@ pub fn insert_blob(
 pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::Blob, BridleError> {
     use crate::schema::blobs::dsl::*;
     match conn {
+        #[cfg(feature = "sqlite")]
         crate::db::DbConnection::Sqlite(c) => {
             let fetched = blobs
                 .filter(id.eq(item_id))
@@ -1096,6 +1204,7 @@ pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = blobs
                 .filter(id.eq(item_id))

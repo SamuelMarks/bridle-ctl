@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "bridle-models",
     "bridle-sdk",
     "bridle-cli",
     "bridle-rest",
@@ -16,3 +17,19 @@ unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }
 unwrap_used = "deny"
 expect_used = "deny"
 missing_docs_in_private_items = "deny"
+
+[workspace.dependencies]
+chrono = "0.4.44"
+derive_more = { version = "1.0.0", features = ["display", "from", "error"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tempfile = "3.27.0"
+tokio = { version = "1.51.0", features = ["rt-multi-thread", "macros", "net", "time", "sync", "process"] }
+tracing = "0.1.44"
+
+[profile.dev.package."*"]
+opt-level = 0
+debug = 0 # Disables debug info for external dependencies
+
+[profile.dev]
+split-debuginfo = "unpacked"

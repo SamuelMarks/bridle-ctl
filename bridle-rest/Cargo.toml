@@ -8,9 +8,9 @@ actix-web = "4.9"
 bridle-agent = { version = "0.1.0", path = "../bridle-agent" }
 bridle-cli = { version = "0.1.0", path = "../bridle-cli" }
 bridle-sdk = { version = "0.1.0", path = "../bridle-sdk" }
-chrono = "0.4.44"
-derive_more = { version = "1.0.0", features = ["display", "from", "error"] }
-serde_json = "1.0.149"
+chrono = { workspace = true }
+derive_more = { workspace = true }
+serde_json = { workspace = true }
 utoipa = { version = "5.1", features = ["actix_extras"] }
 
 

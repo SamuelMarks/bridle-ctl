@@ -177,6 +177,7 @@ impl Orchestrator {
             .map_err(|e| CliError::Execution(e.to_string()))?;
 
         let results = match &mut conn {
+            #[cfg(feature = "sqlite")]
             bridle_sdk::db::DbConnection::Sqlite(sqlite_conn) => {
                 let mut query = repositories.filter(archived.eq(false)).into_boxed();
                 if let Some(limit) = self.max_repos {
@@ -186,6 +187,7 @@ impl Orchestrator {
                     .load::<Repository>(sqlite_conn)
                     .map_err(|e| CliError::Execution(format!("Database error: {}", e)))?
             }
+            #[cfg(feature = "postgres")]
             bridle_sdk::db::DbConnection::Pg(pg_conn) => {
                 let mut query = repositories.filter(archived.eq(false)).into_boxed();
                 if let Some(limit) = self.max_repos {
@@ -213,6 +215,7 @@ impl Orchestrator {
             .map_err(|e| CliError::Execution(e.to_string()))?;
 
         let count = match &mut conn {
+            #[cfg(feature = "sqlite")]
             bridle_sdk::db::DbConnection::Sqlite(sqlite_conn) => pull_requests
                 .filter(repo_id.eq(repo.id))
                 .filter(head_branch.eq(branch_name))
@@ -220,6 +223,7 @@ impl Orchestrator {
                 .count()
                 .get_result::<i64>(sqlite_conn)
                 .map_err(|e| CliError::Execution(format!("Database error: {}", e)))?,
+            #[cfg(feature = "postgres")]
             bridle_sdk::db::DbConnection::Pg(pg_conn) => pull_requests
                 .filter(repo_id.eq(repo.id))
                 .filter(head_branch.eq(branch_name))

@@ -17,6 +17,7 @@ pub fn create_batch_job(
         batch_jobs::started_at.eq(Utc::now().naive_utc()),
     );
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(&new_job)
@@ -27,6 +28,7 @@ pub fn create_batch_job(
                 .first::<BatchJob>(c)
                 .map_err(BridleError::Database)
         }
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(&new_job)
@@ -43,10 +45,12 @@ pub fn create_batch_job(
 /// Retrieves a batch job by ID.
 pub fn get_batch_job(conn: &mut DbConnection, job_id: i32) -> Result<BatchJob, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => batch_jobs::table
             .find(job_id)
             .first::<BatchJob>(c)
             .map_err(BridleError::Database),
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => batch_jobs::table
             .find(job_id)
             .first::<BatchJob>(_c)
@@ -57,6 +61,7 @@ pub fn get_batch_job(conn: &mut DbConnection, job_id: i32) -> Result<BatchJob, B
 /// Inserts a batch job directly.
 pub fn insert_batch_job(conn: &mut DbConnection, job: &BatchJob) -> Result<BatchJob, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(job)
@@ -64,6 +69,7 @@ pub fn insert_batch_job(conn: &mut DbConnection, job: &BatchJob) -> Result<Batch
                 .map_err(BridleError::Database)?;
             Ok(job.clone())
         }
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(job)
@@ -81,6 +87,7 @@ pub fn update_batch_job_status(
     new_status: &str,
 ) -> Result<BatchJob, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => c
             .transaction(|c| {
                 diesel::update(batch_jobs::table.find(job_id))
@@ -89,6 +96,7 @@ pub fn update_batch_job_status(
                 batch_jobs::table.find(job_id).first::<BatchJob>(c)
             })
             .map_err(BridleError::Database),
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => _c
             .transaction(|c| {
                 diesel::update(batch_jobs::table.find(job_id))
@@ -103,10 +111,12 @@ pub fn update_batch_job_status(
 /// Retrieves a batch task by ID.
 pub fn get_batch_task(conn: &mut DbConnection, task_id: i32) -> Result<BatchTask, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => batch_tasks::table
             .find(task_id)
             .first::<BatchTask>(c)
             .map_err(BridleError::Database),
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => batch_tasks::table
             .find(task_id)
             .first::<BatchTask>(_c)
@@ -120,6 +130,7 @@ pub fn insert_batch_task(
     task: &BatchTask,
 ) -> Result<BatchTask, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => {
             diesel::insert_into(batch_tasks::table)
                 .values(task)
@@ -127,6 +138,7 @@ pub fn insert_batch_task(
                 .map_err(BridleError::Database)?;
             Ok(task.clone())
         }
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_tasks::table)
                 .values(task)
@@ -145,6 +157,7 @@ pub fn update_task_status(
     error_reason: Option<String>,
 ) -> Result<BatchTask, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => c
             .transaction(|c| {
                 diesel::update(batch_tasks::table.find(task_id))
@@ -157,6 +170,7 @@ pub fn update_task_status(
                 batch_tasks::table.find(task_id).first::<BatchTask>(c)
             })
             .map_err(BridleError::Database),
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => _c
             .transaction(|c| {
                 diesel::update(batch_tasks::table.find(task_id))
@@ -175,10 +189,12 @@ pub fn update_task_status(
 /// Resumes a job by returning its tasks.
 pub fn get_job_tasks(conn: &mut DbConnection, job_id: i32) -> Result<Vec<BatchTask>, BridleError> {
     match conn {
+        #[cfg(feature = "sqlite")]
         DbConnection::Sqlite(c) => batch_tasks::table
             .filter(batch_tasks::job_id.eq(job_id))
             .load::<BatchTask>(c)
             .map_err(BridleError::Database),
+        #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => batch_tasks::table
             .filter(batch_tasks::job_id.eq(job_id))
             .load::<BatchTask>(_c)
@@ -214,6 +230,7 @@ mod tests {
         assert!(res.is_err());
 
         match &mut conn {
+            #[cfg(feature = "sqlite")]
             DbConnection::Sqlite(c) => {
                 let new_task = (
                     crate::schema::batch_tasks::job_id.eq(job.id),
@@ -278,6 +295,7 @@ mod extra_tests {
         assert!(missing.is_err());
 
         match &mut conn {
+            #[cfg(feature = "sqlite")]
             DbConnection::Sqlite(c) => {
                 let new_task = (
                     crate::schema::batch_tasks::job_id.eq(job.id),

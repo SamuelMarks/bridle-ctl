@@ -7,8 +7,8 @@ pub mod encoding;
 pub mod error;
 pub mod ffi;
 pub mod file_lock;
-pub mod models;
-pub mod schema;
+pub use bridle_models::models;
+pub use bridle_models::schema;
 pub mod telemetry;
 
 pub use error::BridleError;

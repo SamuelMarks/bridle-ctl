@@ -16,10 +16,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libpq-dev libsqlite3-dev llvm llvm-dev libclang-dev clang
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --verbose
       - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
+        uses: taiki-e/install-action@cargo-tarpaulin
       - name: Run tests and collect coverage
         run: cargo tarpaulin --out Xml --fail-under 100
       - name: Upload to Codecov

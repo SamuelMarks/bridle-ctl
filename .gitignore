@@ -253,3 +253,58 @@ coverage.json
 
 # Random temporary yaml
 test.yaml
+
+# ------------------------------------------------------------------------------
+# 🗑️ Ultimate Careless Git Add Catch-Alls
+# ------------------------------------------------------------------------------
+fix_build*
+test_build*
+scratch_*
+temp_*
+*.scratch
+*.dump
+dump_*/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.pot
+*.mo
+*.swp
+*.swo
+*~
+*.bak
+*.bkp
+*.tmp
+*.temp
+*.sw?
+.#*
+*#
+*.pid
+*.seed
+*.pid.lock
+*.bak.*
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+*.orig
+*.rej
+*.conflict

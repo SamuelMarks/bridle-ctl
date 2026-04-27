@@ -54,6 +54,7 @@ pub fn batch_fix(
                 use diesel::prelude::*;
 
                 let has_issue = match &mut conn {
+                    #[cfg(feature = "sqlite")]
                     bridle_sdk::db::DbConnection::Sqlite(sqlite_conn) => {
                         issues
                             .filter(title.eq(issue))
@@ -63,6 +64,7 @@ pub fn batch_fix(
                             .unwrap_or(0)
                             > 0
                     }
+                    #[cfg(feature = "postgres")]
                     bridle_sdk::db::DbConnection::Pg(pg_conn) => {
                         issues
                             .filter(title.eq(issue))
