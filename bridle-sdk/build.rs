@@ -1,4 +1,4 @@
-#![allow(clippy::expect_used, clippy::unwrap_used)]
+#![allow(clippy::unwrap_used)]
 
 //! Build script for `bridle-sdk`.
 
@@ -6,8 +6,35 @@ use std::env;
 use std::path::Path;
 use std::process::Command;
 
+/// Finds the appropriate llvm-config binary on the system.
+fn find_llvm_config() -> String {
+    let candidates = [
+        "/opt/homebrew/opt/llvm/bin/llvm-config",
+        "llvm-config",
+        "llvm-config-18",
+        "llvm-config-17",
+        "llvm-config-16",
+        "llvm-config-15",
+        "llvm-config-14",
+        "llvm-config-13",
+        "llvm-config-12",
+        "llvm-config-11",
+        "llvm-config-10",
+        "llvm-config-9",
+    ];
+
+    for candidate in &candidates {
+        if let Ok(output) = Command::new(candidate).arg("--version").output()
+            && output.status.success()
+        {
+            return candidate.to_string();
+        }
+    }
+
+    "llvm-config".to_string()
+}
 /// Sets up the FFI bindings and paths for external dependencies.
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Clear Git environment variables to prevent child processes (like cmake or git clones)
     // from inheriting the parent repository's git state (e.g., during a pre-commit hook).
     unsafe {
@@ -18,10 +45,10 @@ fn main() {
 
     println!("cargo:rerun-if-changed=build.rs");
 
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");
+    let out_dir = env::var("OUT_DIR").map_err(|_| "OUT_DIR not set")?;
     let out_path = Path::new(&out_dir);
 
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").map_err(|_| "CARGO_MANIFEST_DIR not set")?;
 
     // --- go-auto-err-handling ---
     let local_repo = Path::new(&manifest_dir).join("../../go-auto-err-handling");
@@ -40,9 +67,9 @@ fn main() {
                 .arg("https://github.com/SamuelMarks/go-auto-err-handling.git")
                 .arg(&git_dir)
                 .status()
-                .expect("Failed to run git clone");
+                .map_err(|e| format!("Failed to run git clone: {}", e))?;
             if !status.success() {
-                panic!("Failed to clone github.com/SamuelMarks/go-auto-err-handling");
+                return Err("Failed to clone github.com/SamuelMarks/go-auto-err-handling".into());
             }
         }
         git_dir
@@ -59,9 +86,11 @@ fn main() {
         .arg(out_path.join("libgoautoerr.a"))
         .arg("./cmd/ffi/main.go")
         .status()
-        .expect("Failed to execute go build");
+        .map_err(|e| format!("Failed to execute go build: {}", e))?;
 
-    assert!(status.success(), "Go build failed");
+    if !status.success() {
+        return Err("Go build failed".into());
+    }
 
     println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=static=goautoerr");
@@ -87,26 +116,25 @@ fn main() {
                 .arg("https://github.com/SamuelMarks/type-correct.git")
                 .arg(&git_dir)
                 .status()
-                .expect("Failed to run git clone type-correct");
-            assert!(status.success(), "Failed to clone type-correct");
+                .map_err(|e| format!("Failed to run git clone type-correct: {}", e))?;
+            if !status.success() {
+                return Err("Failed to clone type-correct".into());
+            }
         }
         git_dir
     };
 
     println!("cargo:rerun-if-changed={}", type_correct_repo.display());
 
-    let llvm_config_bin = if Path::new("/opt/homebrew/opt/llvm/bin/llvm-config").exists() {
-        "/opt/homebrew/opt/llvm/bin/llvm-config"
-    } else {
-        "llvm-config"
-    };
+    let llvm_config_bin = find_llvm_config();
 
-    let llvm_config_out = Command::new(llvm_config_bin)
+    let llvm_config_out = Command::new(&llvm_config_bin)
         .arg("--prefix")
         .output()
-        .expect("Failed to run llvm-config");
+        .map_err(|e| format!("Failed to run {}: {}", llvm_config_bin, e))?;
+
     let llvm_prefix = String::from_utf8(llvm_config_out.stdout)
-        .expect("llvm-config output was not valid UTF-8")
+        .map_err(|_| "llvm-config output was not valid UTF-8")?
         .trim()
         .to_string();
 
@@ -137,8 +165,10 @@ fn main() {
                 .arg("https://github.com/SamuelMarks/cdd-c.git")
                 .arg(&git_dir)
                 .status()
-                .expect("Failed to run git clone cdd-c");
-            assert!(status.success(), "Failed to clone cdd-c");
+                .map_err(|e| format!("Failed to run git clone cdd-c: {}", e))?;
+            if !status.success() {
+                return Err("Failed to clone cdd-c".into());
+            }
         }
         git_dir
     };
@@ -166,4 +196,6 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
         println!("cargo:rustc-link-lib=framework=Security");
     }
+
+    Ok(())
 }
