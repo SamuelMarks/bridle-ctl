@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Batch fix functionality across an organization.
 
 use crate::runner;
@@ -216,7 +215,10 @@ mod tests {
             .status()
             .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
 
-        let db_url = format!("test_batch_fix_{}.db", uuid::Uuid::new_v4());
+        let db_url = format!(
+            "file:test_batch_fix_{}.db?mode=memory&cache=shared",
+            uuid::Uuid::new_v4()
+        );
         let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)
             .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
 
@@ -249,6 +251,6 @@ mod tests {
         unsafe {
             std::env::remove_var("HOME");
         }
-        std::fs::remove_file(db_url).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let _ = std::fs::remove_file(db_url);
     }
 }

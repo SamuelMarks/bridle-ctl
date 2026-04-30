@@ -5,7 +5,6 @@
 use bridle_agent::{generate_claude_manifest, start_agent};
 use bridle_sdk::BridleError;
 
-#[cfg(not(tarpaulin_include))]
 fn main() -> Result<(), BridleError> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
         eprintln!("Warning: Failed to initialize telemetry: {}", e);

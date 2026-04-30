@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 use crate::batch_executor::run_engine;
 use crate::forge_mutator::{ForgeClient, GitMutator};
 use crate::pr_templating::PrTemplateEngine;
@@ -558,7 +557,10 @@ mod tests {
 
     #[test]
     fn test_run_pipeline() -> Result<(), BridleError> {
-        let db_url = format!("test_run_pipeline_{}.db", uuid::Uuid::new_v4());
+        let db_url = format!(
+            "file:test_run_pipeline_{}.db?mode=memory&cache=shared",
+            uuid::Uuid::new_v4()
+        );
         // Init the db
         let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
@@ -574,8 +576,8 @@ mod tests {
         let res = run_pipeline(&config_path, &db_url, false, None, None);
         assert!(res.is_ok());
 
-        std::fs::remove_file(&config_path)?;
-        std::fs::remove_file(&db_url)?;
+        let _ = std::fs::remove_file(&config_path);
+        let _ = std::fs::remove_file(&db_url);
         Ok(())
     }
 }

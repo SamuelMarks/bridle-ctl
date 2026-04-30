@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Logic for running codebase tools (audit and fix modes).
 
 use std::collections::{HashMap, HashSet};
@@ -281,7 +280,9 @@ mod tests {
     #[test]
     fn test_detect_applicable_tools() {
         let tools = registry::get_tools();
+        std::fs::write("dummy_test_detect.rs", "fn main() {}").unwrap_or_default();
         let applicable = detect_applicable_tools(&tools);
+        let _ = std::fs::remove_file("dummy_test_detect.rs");
         // Will always detect rust in this codebase
         assert!(applicable.contains(&"rust-unwrap-to-question-mark".to_string()));
     }

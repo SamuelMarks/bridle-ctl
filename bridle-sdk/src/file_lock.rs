@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Provides safe concurrent file modification through per-file locking.
 
 use std::fs::OpenOptions;

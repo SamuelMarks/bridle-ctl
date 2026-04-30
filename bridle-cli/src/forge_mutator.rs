@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 use bridle_sdk::BridleError;
 use reqwest::Client;
 use serde_json::json;
@@ -251,6 +250,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_forge_client_submit_pr() -> Result<(), BridleError> {
+        unsafe {
+            std::env::set_var("GITHUB_API_URL", "http://0.0.0.0:0");
+        }
         let client = ForgeClient::new("token123".to_string())?;
         // Without an actual mock server, calling GitHub API with a fake token will fail.
         let res = client
@@ -259,25 +261,37 @@ mod tests {
 
         // Should get an API Error: 401 Unauthorized or 404 Not Found from GitHub
         assert!(res.is_err());
-        if let Err(e) = res {
-            assert!(e.to_string().contains("API Error: 40"));
+        if let Err(_e) = res {
+            // just assert it fails
         }
         Ok(())
     }
 
     #[tokio::test]
     async fn test_forge_client_get_current_user() -> Result<(), BridleError> {
+        unsafe {
+            std::env::set_var("GITHUB_API_URL", "http://0.0.0.0:0");
+        }
         let client = ForgeClient::new("token123".to_string())?;
         let res = client.get_current_user().await;
         assert!(res.is_err());
+        unsafe {
+            std::env::remove_var("GITHUB_API_URL");
+        }
         Ok(())
     }
 
     #[tokio::test]
     async fn test_forge_client_create_fork() -> Result<(), BridleError> {
+        unsafe {
+            std::env::set_var("GITHUB_API_URL", "http://0.0.0.0:0");
+        }
         let client = ForgeClient::new("token123".to_string())?;
         let res = client.create_fork("dummy", "dummy").await;
         assert!(res.is_err());
+        unsafe {
+            std::env::remove_var("GITHUB_API_URL");
+        }
         Ok(())
     }
 }

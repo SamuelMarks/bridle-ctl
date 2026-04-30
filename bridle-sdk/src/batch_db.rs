@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 use crate::BridleError;
 use crate::db::DbConnection;
 use crate::models::{BatchJob, BatchTask, TaskStatus};

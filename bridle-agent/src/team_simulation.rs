@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Full "AI Engineering Team" offline-first simulations.
 
 use bridle_cli::db::execute_db_command;

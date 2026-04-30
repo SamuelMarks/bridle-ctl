@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Ingests remote repositories into local DB and workspace.
 
 use bridle_sdk::BridleError;
@@ -40,7 +39,9 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
         .user_agent("bridle-ctl")
         .build()?;
 
-    let url = format!("https://api.github.com/orgs/{}/repos?per_page=100", org);
+    let api_base =
+        std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".to_string());
+    let url = format!("{}/orgs/{}/repos?per_page=100", api_base, org);
     let mut repos = Vec::new();
     let mut page = 1;
 
