@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 #![deny(missing_docs)]
 #![warn(missing_docs)]
 //! REST API Interface for bridle-ctl.

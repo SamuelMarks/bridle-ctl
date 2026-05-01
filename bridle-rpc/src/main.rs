@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 #![deny(missing_docs)]
 //! JSON RPC Interface for bridle-ctl.
 

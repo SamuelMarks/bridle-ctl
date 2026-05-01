@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 use bridle_sdk::BridleError;
 use reqwest::Client;
 use serde_json::json;

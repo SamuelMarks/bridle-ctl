@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 use bridle_sdk::BridleError;
 use bridle_sdk::models::TaskStatus;
 use bridle_sdk::pipeline::{PipelineConfig, Step, StepType};

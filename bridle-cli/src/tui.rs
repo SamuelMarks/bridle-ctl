@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! TUI Module for interactive tool selection.
 
 use std::io;

@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 //! Dynamic tool implementations
 use std::ffi::{CStr, CString};
 

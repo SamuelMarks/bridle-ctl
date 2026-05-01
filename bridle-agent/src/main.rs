@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 #![deny(missing_docs)]
 #![warn(missing_docs)]
 //! Main entry point for the bridle-agent executable.

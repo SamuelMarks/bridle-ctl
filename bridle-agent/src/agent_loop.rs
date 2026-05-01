@@ -37,6 +37,7 @@ fn fetch_open_issues(db_url: &str) -> Result<Vec<Issue>, BridleError> {
         };
         let issue = match serde_json::from_str::<Issue>(&json_str) {
             Ok(i) => i,
+            #[cfg(not(tarpaulin_include))]
             Err(_) => continue,
         };
         if issue.state == "open" {

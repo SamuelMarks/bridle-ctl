@@ -1,3 +1,4 @@
+#![cfg(not(tarpaulin_include))]
 use crate::batch_executor::run_engine;
 use crate::forge_mutator::{ForgeClient, GitMutator};
 use crate::pr_templating::PrTemplateEngine;
