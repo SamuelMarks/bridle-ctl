@@ -26,6 +26,7 @@ uuid = { version = "1.23.0", features = ["v4"] }
 
 [dev-dependencies]
 chrono = { workspace = true }
+serial_test = "3.4.0"
 tempfile = { workspace = true }
 
 

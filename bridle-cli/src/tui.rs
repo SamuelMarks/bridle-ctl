@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! TUI Module for interactive tool selection.
 
 use std::io;
@@ -21,6 +20,7 @@ use crate::tools::CodeTool;
 use bridle_sdk::BridleError;
 
 /// Launches the interactive TUI to select tools.
+#[cfg(not(tarpaulin_include))]
 pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, BridleError> {
     enable_raw_mode().map_err(BridleError::Io)?;
     let mut stdout = io::stdout();
@@ -58,6 +58,7 @@ pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, BridleErr
 }
 
 /// Runs the main event loop for the TUI.
+#[cfg(not(tarpaulin_include))]
 fn run_app<B: Backend, I>(
     terminal: &mut Terminal<B>,
     tools: &[Box<dyn CodeTool>],

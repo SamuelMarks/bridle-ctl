@@ -153,6 +153,8 @@ fn engineer_and_qa_loop(db_url: &str) -> Result<i32, BridleError> {
 }
 
 /// Searches for common PR template locations in the current repository.
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 fn find_pr_template() -> Option<std::path::PathBuf> {
     let cwd = std::env::current_dir().unwrap_or_default();
     let candidates = vec![

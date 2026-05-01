@@ -16,3 +16,6 @@ utoipa = { version = "5.1", features = ["actix_extras"] }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+serial_test = "3.4.0"

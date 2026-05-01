@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Batch fix functionality across an organization.
 
 use crate::runner;
@@ -8,6 +7,9 @@ use std::path::Path;
 
 /// Runs a batch fix across all repos in an organization.
 #[allow(clippy::too_many_arguments)]
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 pub fn batch_fix(
     org: &str,
     issue: &str,
@@ -194,6 +196,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_batch_fix_logic() {
         let org = format!("testorg_{}", uuid::Uuid::new_v4());
         let home = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));

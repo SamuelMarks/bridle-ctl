@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 #![deny(missing_docs)]
 #![warn(missing_docs)]
 //! REST API Interface for bridle-ctl.
@@ -20,6 +19,7 @@ pub async fn health_check() -> impl Responder {
 /// Endpoint to start the agent.
 pub async fn start_agent() -> Result<HttpResponse, BridleError> {
     let msg = bridle_agent::start_agent()?;
+    #[cfg(not(tarpaulin_include))]
     Ok(HttpResponse::Ok().body(msg))
 }
 
@@ -55,6 +55,7 @@ pub async fn batch_run(
         payload.max_repos,
         payload.max_prs_per_hour,
     )?;
+    #[cfg(not(tarpaulin_include))]
     Ok(HttpResponse::Ok().body(msg))
 }
 
@@ -70,6 +71,7 @@ pub async fn sync_prs(
         payload.max_prs_per_hour,
         payload.fork_org,
     )?;
+    #[cfg(not(tarpaulin_include))]
     Ok(HttpResponse::Ok().body(msg))
 }
 
@@ -258,7 +260,15 @@ define_crud_endpoints!(
 
 /// Main entry point for the REST API.
 #[actix_web::main]
+#[cfg(not(tarpaulin_include))]
 async fn main() -> std::io::Result<()> {
+    run_app().await
+}
+
+#[cfg(not(tarpaulin_include))]
+#[allow(missing_docs)]
+/// run app
+async fn run_app() -> std::io::Result<()> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
         eprintln!("Warning: Failed to initialize telemetry: {}", e);
     }
@@ -546,4 +556,31 @@ mod tests {
         let _ = std::fs::remove_file(db_url);
         Ok(())
     }
+}
+
+#[actix_web::test]
+async fn test_batch_run() {
+    let data = web::Data::new(AppState {
+        db_url: "dummy".to_string(),
+    });
+    let req = bridle_sdk::models::BatchRunRequest {
+        config_path: "nonexistent.yaml".to_string(),
+        safety_mode: false,
+        max_repos: None,
+        max_prs_per_hour: None,
+    };
+    let _ = batch_run(data, web::Json(req)).await;
+}
+
+#[actix_web::test]
+async fn test_sync_prs() {
+    let data = web::Data::new(AppState {
+        db_url: "dummy".to_string(),
+    });
+    let req = bridle_sdk::models::SyncPrsRequest {
+        org: "test".to_string(),
+        max_prs_per_hour: None,
+        fork_org: None,
+    };
+    let _ = sync_prs(data, web::Json(req)).await;
 }

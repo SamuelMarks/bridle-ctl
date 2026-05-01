@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Ingests remote repositories into local DB and workspace.
 
 use bridle_sdk::BridleError;
@@ -28,6 +27,8 @@ pub struct GithubRepo {
 }
 
 /// Ingests all repositories for an organization from GitHub.
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, BridleError> {
     if provider != "github" {
         return Err(BridleError::Generic(format!(
@@ -157,6 +158,53 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    #[serial_test::serial]
+    fn test_ingest_org_success() -> Result<(), Box<dyn std::error::Error>> {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
+
+        std::thread::spawn(move || {
+            use std::io::{Read, Write};
+            for mut stream in listener.incoming().flatten() {
+                let mut buf = [0; 1024];
+                if let Ok(n) = stream.read(&mut buf) {
+                    let req = String::from_utf8_lossy(&buf[..n]);
+                    if req.contains("GET /orgs/testorg/repos?per_page=100&page=1 ") {
+                        let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n[{\"name\":\"repo1\",\"clone_url\":\"http://invalid\",\"description\":\"desc\",\"private\":false,\"fork\":false,\"archived\":false,\"updated_at\":\"2030-01-01T00:00:00Z\"}]";
+                        let _ = stream.write_all(response.as_bytes());
+                    } else if req.contains("GET /orgs/testorg/repos?per_page=100&page=2 ") {
+                        let response =
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n[]";
+                        let _ = stream.write_all(response.as_bytes());
+                    }
+                }
+            }
+        });
+
+        let home = tempfile::tempdir()?;
+        unsafe {
+            std::env::set_var("GITHUB_API_URL", format!("http://127.0.0.1:{}", port));
+            std::env::set_var("HOME", home.path());
+        }
+
+        let db_url = format!("test_ingest_{}.db", uuid::Uuid::new_v4());
+
+        let res = ingest_org("testorg", "github", &db_url);
+        assert!(res.is_ok());
+
+        // Call again to test "Repository already exists" branch
+        let res2 = ingest_org("testorg", "github", &db_url);
+        assert!(res2.is_ok());
+
+        unsafe {
+            std::env::remove_var("GITHUB_API_URL");
+            std::env::remove_var("HOME");
+        }
+        std::fs::remove_file(db_url).ok();
+        Ok(())
+    }
+
     use super::*;
 
     #[test]

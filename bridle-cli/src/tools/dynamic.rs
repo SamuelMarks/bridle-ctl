@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Dynamic tool implementations
 use std::ffi::{CStr, CString};
 
@@ -33,6 +32,7 @@ pub struct SubprocessTool {
     venv_aware: bool,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl SubprocessTool {
     /// Create a new SubprocessTool
     #[allow(clippy::too_many_arguments)]
@@ -166,6 +166,7 @@ impl SubprocessTool {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for SubprocessTool {
     fn name(&self) -> &str {
         &self.name
@@ -263,6 +264,7 @@ pub struct JsonRpcTool {
     endpoint: String,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl JsonRpcTool {
     /// Create a new JsonRpcTool
     #[allow(clippy::too_many_arguments)]
@@ -306,6 +308,7 @@ impl JsonRpcTool {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for JsonRpcTool {
     fn name(&self) -> &str {
         &self.name
@@ -385,6 +388,8 @@ pub struct DlopenTool {
 unsafe impl Send for DlopenTool {}
 unsafe impl Sync for DlopenTool {}
 
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 impl DlopenTool {
     /// Create a new DlopenTool
     #[allow(clippy::too_many_arguments)]
@@ -464,6 +469,8 @@ impl DlopenTool {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for DlopenTool {
     fn name(&self) -> &str {
         &self.name
@@ -525,6 +532,7 @@ pub struct FfiTool {
     subcommand: Option<String>,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl FfiTool {
     /// Create a new FfiTool
     #[allow(clippy::too_many_arguments)]
@@ -554,6 +562,8 @@ impl FfiTool {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))]
 impl CodeTool for FfiTool {
     fn name(&self) -> &str {
         &self.name

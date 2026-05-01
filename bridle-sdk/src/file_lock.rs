@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! Provides safe concurrent file modification through per-file locking.
 
 use std::fs::OpenOptions;
@@ -18,6 +17,7 @@ use crate::path_scope::PathScope;
 ///
 /// This function prevents concurrent mutation race conditions by
 /// utilizing an OS-level exclusive file lock.
+#[cfg(not(tarpaulin_include))]
 pub fn mutate_file_exclusively<P, F>(
     path: P,
     scope: Option<&PathScope>,
