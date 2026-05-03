@@ -115,7 +115,8 @@ mod tests {
 
     #[test]
     fn test_core_config_load() -> Result<(), BridleError> {
-        let path = "test_core_config.toml";
+        let dir = tempfile::tempdir().map_err(|e| BridleError::Generic(e.to_string()))?;
+        let path = dir.path().join("test_core_config.toml");
         let config_toml = r#"
         [plugins]
         "test-tool" = "test-tool.toml"
@@ -123,34 +124,33 @@ mod tests {
         [enabled]
         "test-tool" = true
         "#;
-        fs::write(path, config_toml)?;
-        let config = CoreConfig::load(path)?;
+        fs::write(&path, config_toml)?;
+        let config = CoreConfig::load(path.to_str().unwrap_or(""))?;
         assert_eq!(config.plugins.len(), 1);
         assert_eq!(config.plugins["test-tool"], "test-tool.toml");
         assert!(config.enabled["test-tool"]);
-        fs::remove_file(path)?;
         Ok(())
     }
 
     #[test]
     fn test_plugin_def_load() -> Result<(), BridleError> {
-        let path = "test_plugin_def.toml";
+        let dir = tempfile::tempdir().map_err(|e| BridleError::Generic(e.to_string()))?;
+        let path = dir.path().join("test_plugin_def.toml");
         let config_toml = r#"
         description = "Test tool"
         match_regex = ".*"
         type = "subprocess"
         command = "echo"
         "#;
-        fs::write(path, config_toml)?;
-        let def = PluginDef::load(path)?;
+        fs::write(&path, config_toml)?;
+        let def = PluginDef::load(path.to_str().unwrap_or(""))?;
         assert_eq!(def.description, "Test tool");
         assert_eq!(def.match_regex, ".*");
         if let DynamicToolConfig::Subprocess { command, .. } = def.dynamic {
             assert_eq!(command, "echo");
         } else {
-            panic!("Expected subprocess tool");
+            return Err(BridleError::Generic("Expected subprocess tool".to_string()));
         }
-        fs::remove_file(path)?;
         Ok(())
     }
 }
