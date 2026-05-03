@@ -1840,7 +1840,7 @@ fn test_schema_parity_sqlite_pg_all() -> Result<(), BridleError> {
     let now = chrono::Utc::now().naive_utc();
     let id_offset: i32 = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_else(|e| panic!("must succeed: {:?}", e))
+        .map_err(|e| crate::BridleError::Generic(e.to_string()))?
         .subsec_nanos() as i32;
 
     let user = crate::models::User {

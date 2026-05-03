@@ -325,6 +325,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[serial_test::serial]
     fn test_mock_rust_tool() -> Result<(), BridleError> {
         let tool = MockRustTool;
         assert_eq!(tool.name(), "rust-unwrap-to-question-mark");
@@ -336,6 +337,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_mock_gha_tool() -> Result<(), BridleError> {
         let tool = GithubActionsTool;
         assert_eq!(tool.name(), "gha-improver");
@@ -346,6 +348,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_ffi_tools() -> Result<(), BridleError> {
         let tools = get_tools();
 
@@ -441,6 +444,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_file_lock_tester_tool() -> Result<(), BridleError> {
         let tool = FileLockTesterTool;
         assert_eq!(tool.name(), "file-lock-tester");
@@ -468,6 +472,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_encoding_normalizer_tool() -> Result<(), BridleError> {
         let tool = EncodingNormalizerTool;
         assert_eq!(tool.name(), "encoding-normalizer");
@@ -496,6 +501,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_db_migrator_tool() -> Result<(), BridleError> {
         let tool = DBMigratorTool;
         assert_eq!(tool.name(), "db-migrator-tester");
@@ -539,12 +545,14 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_get_tools() {
         let tools = get_tools();
         assert!(tools.len() >= 8);
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_get_tools_for_pattern() {
         let rust_tools = get_tools_for_pattern(r".*\.rs$");
         assert_eq!(rust_tools.len(), 1);

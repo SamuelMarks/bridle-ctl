@@ -105,8 +105,8 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_execute_step_success() {
-        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_execute_step_success() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = std::env::current_dir()?;
         let step = Step {
             name: "test".to_string(),
             step_type: StepType::Detect,
@@ -116,16 +116,15 @@ mod tests {
             expected_exit_codes: None,
         };
 
-        let (code, stdout, _) = execute_step(&dir, &step)
-            .await
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let (code, stdout, _) = execute_step(&dir, &step).await?;
         assert_eq!(code, 0);
         assert!(stdout.contains("hello"));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_execute_step_timeout() {
-        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_execute_step_timeout() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = std::env::current_dir()?;
         let step = Step {
             name: "test_timeout".to_string(),
             step_type: StepType::Detect,
@@ -142,11 +141,12 @@ mod tests {
         } else {
             panic!("Expected Timeout occurred");
         }
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_execute_step_spawn_fail() {
-        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_execute_step_spawn_fail() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = std::env::current_dir()?;
         let step = Step {
             name: "fail".to_string(),
             step_type: StepType::Detect,
@@ -158,11 +158,12 @@ mod tests {
 
         let err = execute_step(&dir, &step).await;
         assert!(err.is_err());
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_detect_clean() {
-        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_run_engine_detect_clean() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = std::env::current_dir()?;
         let config = PipelineConfig {
             name: "pipe".to_string(),
             description: None,
@@ -185,15 +186,14 @@ mod tests {
             }],
         };
 
-        let status = run_engine(&dir, &config)
-            .await
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let status = run_engine(&dir, &config).await?;
         assert_eq!(status, TaskStatus::Clean);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_mkconf_fail() {
-        let dir = std::env::current_dir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_run_engine_mkconf_fail() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = std::env::current_dir()?;
         let config = PipelineConfig {
             name: "pipe".to_string(),
             description: None,
@@ -216,25 +216,22 @@ mod tests {
             }],
         };
 
-        let status = run_engine(&dir, &config)
-            .await
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let status = run_engine(&dir, &config).await?;
         assert_eq!(status, TaskStatus::FailedValidation);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_fix_clean() {
-        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_run_engine_fix_clean() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
         std::process::Command::new("git")
             .arg("init")
             .current_dir(dir.path())
-            .status()
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+            .status()?;
         std::process::Command::new("git")
             .args(["commit", "--allow-empty", "-m", "init"])
             .current_dir(dir.path())
-            .status()
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+            .status()?;
 
         let config = PipelineConfig {
             name: "pipe".to_string(),
@@ -258,20 +255,18 @@ mod tests {
             }],
         };
 
-        let status = run_engine(dir.path(), &config)
-            .await
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let status = run_engine(dir.path(), &config).await?;
         assert_eq!(status, TaskStatus::Clean);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_validate_fail() {
-        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+    async fn test_run_engine_validate_fail() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
         std::process::Command::new("git")
             .arg("init")
             .current_dir(dir.path())
-            .status()
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+            .status()?;
 
         let config = PipelineConfig {
             name: "pipe".to_string(),
@@ -295,9 +290,8 @@ mod tests {
             }],
         };
 
-        let status = run_engine(dir.path(), &config)
-            .await
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let status = run_engine(dir.path(), &config).await?;
         assert_eq!(status, TaskStatus::FailedValidation);
+        Ok(())
     }
 }

@@ -210,17 +210,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ingest_org_unsupported_provider() {
+    fn test_ingest_org_unsupported_provider() -> Result<(), Box<dyn std::error::Error>> {
         let res = ingest_org("testorg", "gitlab", "bridle.db");
         if let Err(e) = res {
             assert_eq!(e.to_string(), "Generic error: Unsupported provider: gitlab");
         } else {
             panic!("Expected error");
         }
+        Ok(())
     }
 
     #[test]
-    fn test_ingest_org_http_fail() {
+    fn test_ingest_org_http_fail() -> Result<(), Box<dyn std::error::Error>> {
         // Just trigger reqwest. It will fail with 404 or similar, which returns Err
         let res = ingest_org(
             "invalid_org_1234567890_does_not_exist_test",
@@ -228,13 +229,14 @@ mod tests {
             "bridle.db",
         );
         assert!(res.is_err());
+        Ok(())
     }
 
     #[test]
-    fn test_ingest_github_repo_struct() {
+    fn test_ingest_github_repo_struct() -> Result<(), Box<dyn std::error::Error>> {
         let json = r#"{"name": "test", "clone_url": "url", "private": false, "fork": false, "archived": false, "updated_at": "2026-04-08T00:00:00Z"}"#;
-        let parsed: GithubRepo =
-            serde_json::from_str(json).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let parsed: GithubRepo = serde_json::from_str(json)?;
         assert_eq!(parsed.name, "test");
+        Ok(())
     }
 }

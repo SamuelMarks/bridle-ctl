@@ -143,7 +143,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_batch_fix_no_workspace() {
+    fn test_batch_fix_no_workspace() -> Result<(), Box<dyn std::error::Error>> {
         let res = batch_fix(
             "nonexistent_org",
             "test issue",
@@ -163,10 +163,11 @@ mod tests {
         } else {
             panic!("Expected error");
         }
+        Ok(())
     }
 
     #[test]
-    fn test_batch_fix_unsupported_org() {
+    fn test_batch_fix_unsupported_org() -> Result<(), Box<dyn std::error::Error>> {
         let err = batch_fix(
             "unsupported_org",
             "issue",
@@ -179,10 +180,11 @@ mod tests {
             None,
         );
         assert!(err.is_err());
+        Ok(())
     }
 
     #[test]
-    fn test_batch_fix_no_tools() {
+    fn test_batch_fix_no_tools() -> Result<(), Box<dyn std::error::Error>> {
         let err = batch_fix(
             "test_org",
             "issue",
@@ -195,38 +197,36 @@ mod tests {
             None,
         );
         assert!(err.is_err());
+        Ok(())
     }
 
     #[test]
     #[serial_test::serial]
-    fn test_batch_fix_logic() {
+    fn test_batch_fix_logic() -> Result<(), Box<dyn std::error::Error>> {
         let org = format!("testorg_{}", uuid::Uuid::new_v4());
-        let home = tempfile::tempdir().unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let home = tempfile::tempdir()?;
         unsafe {
             std::env::set_var("HOME", home.path());
         }
         let workspace = home.path().join(".bridle").join("workspace").join(&org);
-        std::fs::create_dir_all(&workspace).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::fs::create_dir_all(&workspace)?;
 
         let repo_dir = workspace.join("repo1");
-        std::fs::create_dir_all(&repo_dir).unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        std::fs::create_dir_all(&repo_dir)?;
         std::process::Command::new("git")
             .arg("init")
             .current_dir(&repo_dir)
-            .status()
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+            .status()?;
         std::process::Command::new("git")
             .args(["commit", "--allow-empty", "-m", "init"])
             .current_dir(&repo_dir)
-            .status()
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+            .status()?;
 
         let db_url = format!(
             "file:test_batch_fix_{}.db?mode=memory&cache=shared",
             uuid::Uuid::new_v4()
         );
-        let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)
-            .unwrap_or_else(|e| panic!("must succeed: {:?}", e));
+        let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
         let res = batch_fix(
             &org,
@@ -258,5 +258,6 @@ mod tests {
             std::env::remove_var("HOME");
         }
         let _ = std::fs::remove_file(db_url);
+        Ok(())
     }
 }
