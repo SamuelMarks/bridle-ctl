@@ -1,4 +1,5 @@
 #![cfg(not(tarpaulin_include))]
+#![cfg(not(tarpaulin_include))]
 //! Agent interaction loop mechanism.
 
 use bridle_cli::db::execute_db_command;

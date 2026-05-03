@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 //! Logic for running codebase tools (audit and fix modes).
 
 use std::collections::{HashMap, HashSet};

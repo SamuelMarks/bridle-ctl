@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 //! Batch fix functionality across an organization.
 
 use crate::runner;

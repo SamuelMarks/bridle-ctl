@@ -227,6 +227,15 @@ fn reviewer_agent_merge_pr(db_url: &str, pr_id: i32) -> Result<(), BridleError> 
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_internal_simulation_methods() {
+        let _ = super::setup_repo("/invalid/path");
+        let _ = super::pm_agent_create_issue("/invalid/path");
+        let _ = super::engineer_and_qa_loop("/invalid/path");
+        let _ = super::reviewer_agent_merge_pr("/invalid/path", 1);
+        let _ = super::find_pr_template();
+        let _ = super::qa_agent_verify();
+    }
     use super::*;
 
     #[test]

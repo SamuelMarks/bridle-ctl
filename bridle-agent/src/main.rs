@@ -15,3 +15,19 @@ fn main() -> Result<(), BridleError> {
     println!("{}", start_agent()?);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_main_exec() {
+        unsafe {
+            std::env::set_var("RUST_TEST_MODE", "1");
+        }
+        let _ = main();
+        unsafe {
+            std::env::remove_var("RUST_TEST_MODE");
+        }
+    }
+}

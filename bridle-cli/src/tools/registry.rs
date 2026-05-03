@@ -1,4 +1,5 @@
 #![cfg(not(tarpaulin_include))]
+#![cfg(not(tarpaulin_include))]
 use super::CodeTool;
 use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;

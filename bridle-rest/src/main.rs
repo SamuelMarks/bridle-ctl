@@ -510,6 +510,473 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_team_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/teams", web::post().to(create_team))
+                .route("/teams/{id}", web::get().to(get_team)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/teams/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_branch_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/branchs", web::post().to(create_branch))
+                .route("/branchs/{id}", web::get().to(get_branch)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/branchs/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_branch_protection_rule_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route(
+                    "/branch_protection_rules",
+                    web::post().to(create_branch_protection_rule),
+                )
+                .route(
+                    "/branch_protection_rules/{id}",
+                    web::get().to(get_branch_protection_rule),
+                ),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get()
+            .uri("/branch_protection_rules/999")
+            .to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_key_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/keys", web::post().to(create_key))
+                .route("/keys/{id}", web::get().to(get_key)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/keys/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_follow_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/follows", web::post().to(create_follow))
+                .route("/follows/{id}", web::get().to(get_follow)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/follows/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_star_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/stars", web::post().to(create_star))
+                .route("/stars/{id}", web::get().to(get_star)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/stars/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_org_membership_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/org_memberships", web::post().to(create_org_membership))
+                .route("/org_memberships/{id}", web::get().to(get_org_membership)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get()
+            .uri("/org_memberships/999")
+            .to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_repo_collaborator_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route(
+                    "/repo_collaborators",
+                    web::post().to(create_repo_collaborator),
+                )
+                .route(
+                    "/repo_collaborators/{id}",
+                    web::get().to(get_repo_collaborator),
+                ),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get()
+            .uri("/repo_collaborators/999")
+            .to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_milestone_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/milestones", web::post().to(create_milestone))
+                .route("/milestones/{id}", web::get().to(get_milestone)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/milestones/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_label_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/labels", web::post().to(create_label))
+                .route("/labels/{id}", web::get().to(get_label)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/labels/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_issue_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/issues", web::post().to(create_issue))
+                .route("/issues/{id}", web::get().to(get_issue)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/issues/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_issue_label_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/issue_labels", web::post().to(create_issue_label))
+                .route("/issue_labels/{id}", web::get().to(get_issue_label)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get()
+            .uri("/issue_labels/999")
+            .to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_pull_request_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/pull_requests", web::post().to(create_pull_request))
+                .route("/pull_requests/{id}", web::get().to(get_pull_request)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get()
+            .uri("/pull_requests/999")
+            .to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_pull_request_review_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route(
+                    "/pull_request_reviews",
+                    web::post().to(create_pull_request_review),
+                )
+                .route(
+                    "/pull_request_reviews/{id}",
+                    web::get().to(get_pull_request_review),
+                ),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get()
+            .uri("/pull_request_reviews/999")
+            .to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_release_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/releases", web::post().to(create_release))
+                .route("/releases/{id}", web::get().to(get_release)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/releases/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_webhook_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/webhooks", web::post().to(create_webhook))
+                .route("/webhooks/{id}", web::get().to(get_webhook)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/webhooks/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_commit_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/commits", web::post().to(create_commit))
+                .route("/commits/{id}", web::get().to(get_commit)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/commits/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_tree_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/trees", web::post().to(create_tree))
+                .route("/trees/{id}", web::get().to(get_tree)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/trees/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_blob_crud() -> Result<(), actix_web::Error> {
+        let state = test_app_state();
+        let db_url = state.db_url.clone();
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .route("/blobs", web::post().to(create_blob))
+                .route("/blobs/{id}", web::get().to(get_blob)),
+        )
+        .await;
+
+        let req_get = test::TestRequest::get().uri("/blobs/999").to_request();
+        let resp_get = test::call_service(&app, req_get).await;
+        assert_eq!(
+            resp_get.status(),
+            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[actix_web::test]
     async fn test_repo_crud() -> Result<(), actix_web::Error> {
         let state = test_app_state();
         let db_url = state.db_url.clone();

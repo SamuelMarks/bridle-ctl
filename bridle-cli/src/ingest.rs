@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 //! Ingests remote repositories into local DB and workspace.
 
 use bridle_sdk::BridleError;

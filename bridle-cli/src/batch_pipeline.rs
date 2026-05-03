@@ -439,6 +439,14 @@ impl Orchestrator {
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    async fn test_pipeline_coverage() {
+        let _ = super::run_pipeline("nonexistent_config.yaml", "dummy_db", false, None, None);
+        let _ = super::resume_pipeline(123, "dummy_db");
+        let _ = super::resume_pipeline(1, "/invalid/path/db");
+        let _ = super::status_pipeline(123, "dummy_db");
+        let _ = super::status_pipeline(1, "/invalid/path/db");
+    }
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;

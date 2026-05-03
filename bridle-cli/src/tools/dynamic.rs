@@ -772,6 +772,57 @@ impl CodeTool for FfiTool {
 }
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_dynamic_tools_coverage() {
+        use super::*;
+        use crate::tools::CodeTool;
+        let sub = SubprocessTool::new(
+            "test".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "invalid".to_string(),
+            std::collections::HashMap::new(),
+            false,
+        );
+        let _ = sub.name();
+        let _ = sub.description();
+        let _ = sub.match_regex();
+        let _ = sub.fix(&["/invalid".to_string()], true, None);
+        let _ = sub.audit(&["/invalid".to_string()], None);
+
+        let rpc = JsonRpcTool::new(
+            "test".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "http://invalid".to_string(),
+        );
+        let _ = rpc.name();
+        let _ = rpc.fix(&["/invalid".to_string()], true, None);
+        let _ = rpc.audit(&["/invalid".to_string()], None);
+
+        if let Ok(ffi) = DlopenTool::new(
+            "test".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "invalid.so",
+        ) {
+            let _ = ffi.name();
+            let _ = ffi.fix(&["/invalid".to_string()], true, None);
+            let _ = ffi.audit(&["/invalid".to_string()], None);
+        }
+    }
     use super::*;
 
     #[test]

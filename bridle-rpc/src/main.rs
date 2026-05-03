@@ -487,6 +487,325 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_branch_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_branch", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_branch_protection_rule_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_branch_protection_rule", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_key_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> =
+            client.request("get_key", jsonrpsee::rpc_params![999]).await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_follow_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_follow", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_star_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_star", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_org_membership_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_org_membership", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_repo_collaborator_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_repo_collaborator", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_milestone_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_milestone", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_label_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_label", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_issue_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_issue", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_issue_label_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_issue_label", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pull_request_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_pull_request", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pull_request_review_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_pull_request_review", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_release_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_release", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_webhook_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_webhook", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_commit_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_commit", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_tree_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_tree", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_blob_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_blob", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_batch_job_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_batch_job", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_batch_task_crud_rpc() -> Result<(), BridleError> {
+        let db_url = get_test_db();
+        let addr = run_server(db_url.clone()).await?;
+        let url = format!("http://{}", addr);
+        let client = HttpClientBuilder::default().build(url)?;
+
+        let res: Result<jsonrpsee::core::JsonValue, _> = client
+            .request("get_batch_task", jsonrpsee::rpc_params![999])
+            .await;
+        assert!(res.is_err());
+
+        let _ = std::fs::remove_file(db_url);
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_team_crud_rpc() -> Result<(), BridleError> {
         let db_url = get_test_db();
         let addr = run_server(db_url.clone()).await?;
