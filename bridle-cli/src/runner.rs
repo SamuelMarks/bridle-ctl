@@ -290,13 +290,21 @@ mod tests {
     use bridle_sdk::models::ToolRunRequest;
 
     #[test]
-    fn test_detect_applicable_tools() {
+    fn test_detect_applicable_tools() -> Result<(), Box<dyn std::error::Error>> {
         let tools = registry::get_tools();
+        let tmp_dir = tempfile::tempdir()?;
+        let original_dir = std::env::current_dir().unwrap_or_default();
+        std::env::set_current_dir(tmp_dir.path())?;
+
         std::fs::write("dummy_test_detect.rs", "fn main() {}").unwrap_or_default();
         let applicable = detect_applicable_tools(&tools);
         let _ = std::fs::remove_file("dummy_test_detect.rs");
+
+        let _ = std::env::set_current_dir(original_dir);
+
         // Will always detect rust in this codebase
         assert!(applicable.contains(&"rust-unwrap-to-question-mark".to_string()));
+        Ok(())
     }
 
     #[test]

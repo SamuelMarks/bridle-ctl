@@ -374,39 +374,45 @@ mod tests {
             "Automatically injects `if err != nil { return err }` blocks."
         );
         assert_eq!(ge.match_regex(), r".*\.go$");
-        let res_audit = ge.audit(&[".".to_string()], None)?;
-        assert!(res_audit.contains("No issues found for ."));
 
-        let res_audit_no_arg = ge.audit(&[], None)?;
-        assert!(res_audit_no_arg.contains("No issues found for ."));
+        let tmp_dir = tempfile::tempdir()?;
+        let original_dir = std::env::current_dir().unwrap_or_default();
+        std::env::set_current_dir(tmp_dir.path())?;
+        let _ = std::process::Command::new("git").arg("init").status();
 
-        let res_fix = ge.fix(&[".".to_string()], false, None)?;
-        assert!(res_fix.contains("fix applied successfully"));
-
-        let res_fix_dry = ge.fix(&[".".to_string()], true, None)?;
-        assert!(res_fix_dry.contains("[DRY RUN]"));
+        let res_audit = ge.audit(&[".".to_string()], None);
+        let res_audit_no_arg = ge.audit(&[], None);
+        let res_fix = ge.fix(&[".".to_string()], false, None);
+        let res_fix_dry = ge.fix(&[".".to_string()], true, None);
 
         let invalid_c_string = String::from_utf8(vec![0x61, 0x00, 0x62])?; // "a\0b"
         let bad_audit_res = ge.audit(std::slice::from_ref(&invalid_c_string), None);
-        assert!(bad_audit_res.is_err());
         let bad_fix_res = ge.fix(std::slice::from_ref(&invalid_c_string), false, None);
-        assert!(bad_fix_res.is_err());
 
         let tmp_file = format!("test_{}.go", uuid::Uuid::new_v4());
-        let tmp_file = tmp_file.as_str();
+        let tmp_file_str = tmp_file.as_str();
         std::fs::write(
-            tmp_file,
+            tmp_file_str,
             "package main\nfunc fail() error { return nil }\nfunc main() { fail() }\n",
         )?;
-        let audit_fail_res = ge.audit(&[tmp_file.to_string()], None)?;
-        assert!(audit_fail_res.contains("Issues found for"));
+        let audit_fail_res = ge.audit(std::slice::from_ref(&tmp_file), None);
 
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(tmp_file)?.permissions();
+        let mut perms = std::fs::metadata(tmp_file_str)?.permissions();
         perms.set_mode(0o400);
-        std::fs::set_permissions(tmp_file, perms)?;
+        std::fs::set_permissions(tmp_file_str, perms)?;
 
-        std::fs::remove_file(tmp_file).unwrap_or_default();
+        std::fs::remove_file(tmp_file_str).unwrap_or_default();
+
+        let _ = std::env::set_current_dir(original_dir);
+
+        assert!(res_audit?.contains("No issues found for ."));
+        assert!(res_audit_no_arg?.contains("No issues found for ."));
+        assert!(res_fix?.contains("fix applied successfully"));
+        assert!(res_fix_dry?.contains("[DRY RUN]"));
+        assert!(bad_audit_res.is_err());
+        assert!(bad_fix_res.is_err());
+        assert!(audit_fail_res?.contains("Issues found for"));
 
         let l2n = tools
             .iter()
@@ -447,13 +453,16 @@ mod tests {
             "[DRY RUN] Would mutate test.txt"
         );
 
-        let tmp = "test_lock.txt";
-        std::fs::write(tmp, "hello LOCK_ME world")?;
-        let res = tool.fix(&[tmp.to_string()], false, None)?;
+        let tmp_dir = tempfile::tempdir()?;
+        let tmp_file_path = tmp_dir.path().join("test_lock.txt");
+        let tmp = tmp_file_path.to_string_lossy().to_string();
+
+        std::fs::write(&tmp_file_path, "hello LOCK_ME world")?;
+        let res = tool.fix(std::slice::from_ref(&tmp), false, None)?;
         assert!(res.contains("Exclusively mutated"));
-        let res2 = tool.fix(&[tmp.to_string()], false, None)?;
+        let res2 = tool.fix(std::slice::from_ref(&tmp), false, None)?;
         assert!(res2.contains("No mutation needed"));
-        std::fs::remove_file(tmp)?;
+        std::fs::remove_file(&tmp_file_path)?;
 
         Ok(())
     }
@@ -474,11 +483,14 @@ mod tests {
             "[DRY RUN] Would normalize test.txt"
         );
 
-        let tmp = "test_enc.txt";
-        std::fs::write(tmp, "hello\r\nworld")?;
-        let res = tool.fix(&[tmp.to_string()], false, None)?;
+        let tmp_dir = tempfile::tempdir()?;
+        let tmp_file_path = tmp_dir.path().join("test_enc.txt");
+        let tmp = tmp_file_path.to_string_lossy().to_string();
+
+        std::fs::write(&tmp_file_path, "hello\r\nworld")?;
+        let res = tool.fix(std::slice::from_ref(&tmp), false, None)?;
         assert!(res.contains("Normalized"));
-        std::fs::remove_file(tmp)?;
+        std::fs::remove_file(&tmp_file_path)?;
 
         Ok(())
     }
