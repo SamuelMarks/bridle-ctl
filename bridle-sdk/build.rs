@@ -1,5 +1,3 @@
-#![allow(clippy::unwrap_used)]
-
 //! Build script for `bridle-sdk`.
 
 use std::env;
@@ -34,7 +32,7 @@ fn find_llvm_config() -> String {
     "llvm-config".to_string()
 }
 /// Sets up the FFI bindings and paths for external dependencies.
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), String> {
     // Clear Git environment variables to prevent child processes (like cmake or git clones)
     // from inheriting the parent repository's git state (e.g., during a pre-commit hook).
     unsafe {

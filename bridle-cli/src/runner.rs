@@ -290,7 +290,7 @@ mod tests {
     use bridle_sdk::models::ToolRunRequest;
 
     #[test]
-    fn test_detect_applicable_tools() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_detect_applicable_tools() -> Result<(), bridle_sdk::BridleError> {
         let tools = registry::get_tools();
         let tmp_dir = tempfile::tempdir()?;
         let original_dir = std::env::current_dir().unwrap_or_default();

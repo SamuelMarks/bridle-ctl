@@ -143,7 +143,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_batch_fix_no_workspace() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_batch_fix_no_workspace() -> Result<(), bridle_sdk::BridleError> {
         let res = batch_fix(
             "nonexistent_org",
             "test issue",
@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn test_batch_fix_unsupported_org() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_batch_fix_unsupported_org() -> Result<(), bridle_sdk::BridleError> {
         let err = batch_fix(
             "unsupported_org",
             "issue",
@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_batch_fix_no_tools() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_batch_fix_no_tools() -> Result<(), bridle_sdk::BridleError> {
         let err = batch_fix(
             "test_org",
             "issue",
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn test_batch_fix_logic() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_batch_fix_logic() -> Result<(), bridle_sdk::BridleError> {
         let org = format!("testorg_{}", uuid::Uuid::new_v4());
         let home = tempfile::tempdir()?;
         unsafe {

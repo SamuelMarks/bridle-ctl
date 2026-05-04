@@ -162,7 +162,7 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
 mod tests {
     #[test]
     #[serial_test::serial]
-    fn test_ingest_org_success() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ingest_org_success() -> Result<(), bridle_sdk::BridleError> {
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
         let port = listener.local_addr()?.port();
 
@@ -210,7 +210,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ingest_org_unsupported_provider() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ingest_org_unsupported_provider() -> Result<(), bridle_sdk::BridleError> {
         let res = ingest_org("testorg", "gitlab", "bridle.db");
         if let Err(e) = res {
             assert_eq!(e.to_string(), "Generic error: Unsupported provider: gitlab");
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ingest_org_http_fail() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ingest_org_http_fail() -> Result<(), bridle_sdk::BridleError> {
         // Just trigger reqwest. It will fail with 404 or similar, which returns Err
         let res = ingest_org(
             "invalid_org_1234567890_does_not_exist_test",
@@ -233,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ingest_github_repo_struct() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_ingest_github_repo_struct() -> Result<(), bridle_sdk::BridleError> {
         let json = r#"{"name": "test", "clone_url": "url", "private": false, "fork": false, "archived": false, "updated_at": "2026-04-08T00:00:00Z"}"#;
         let parsed: GithubRepo = serde_json::from_str(json)?;
         assert_eq!(parsed.name, "test");

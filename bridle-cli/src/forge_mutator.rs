@@ -219,7 +219,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    async fn test_forge_client_success_paths() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_forge_client_success_paths() -> Result<(), bridle_sdk::BridleError> {
         use std::io::{Read, Write};
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
         let port = listener.local_addr()?.port();

@@ -105,7 +105,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_execute_step_success() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_execute_step_success() -> Result<(), bridle_sdk::BridleError> {
         let dir = std::env::current_dir()?;
         let step = Step {
             name: "test".to_string(),
@@ -123,7 +123,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_execute_step_timeout() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_execute_step_timeout() -> Result<(), bridle_sdk::BridleError> {
         let dir = std::env::current_dir()?;
         let step = Step {
             name: "test_timeout".to_string(),
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_execute_step_spawn_fail() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_execute_step_spawn_fail() -> Result<(), bridle_sdk::BridleError> {
         let dir = std::env::current_dir()?;
         let step = Step {
             name: "fail".to_string(),
@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_engine_detect_clean() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_run_engine_detect_clean() -> Result<(), bridle_sdk::BridleError> {
         let dir = std::env::current_dir()?;
         let config = PipelineConfig {
             name: "pipe".to_string(),
@@ -192,7 +192,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_engine_mkconf_fail() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_run_engine_mkconf_fail() -> Result<(), bridle_sdk::BridleError> {
         let dir = std::env::current_dir()?;
         let config = PipelineConfig {
             name: "pipe".to_string(),
@@ -222,7 +222,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_engine_fix_clean() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_run_engine_fix_clean() -> Result<(), bridle_sdk::BridleError> {
         let dir = tempfile::tempdir()?;
         std::process::Command::new("git")
             .arg("init")
@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_engine_validate_fail() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_run_engine_validate_fail() -> Result<(), bridle_sdk::BridleError> {
         let dir = tempfile::tempdir()?;
         std::process::Command::new("git")
             .arg("init")

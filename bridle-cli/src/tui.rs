@@ -197,9 +197,12 @@ mod tests {
     }
 
     #[test]
-    fn test_tui_run_app() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_tui_run_app() -> Result<(), bridle_sdk::BridleError> {
         let backend = TestBackend::new(80, 24);
-        let mut terminal = Terminal::new(backend)?;
+        let mut terminal = match Terminal::new(backend) {
+            Ok(t) => t,
+            Err(e) => match e {},
+        };
         let tools = get_tools();
         let mut state = ListState::default();
         state.select(Some(0));
@@ -230,9 +233,12 @@ mod tests {
     }
 
     #[test]
-    fn test_tui_cancel() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_tui_cancel() -> Result<(), bridle_sdk::BridleError> {
         let backend = TestBackend::new(80, 24);
-        let mut terminal = Terminal::new(backend)?;
+        let mut terminal = match Terminal::new(backend) {
+            Ok(t) => t,
+            Err(e) => match e {},
+        };
         let tools = get_tools();
         let mut state = ListState::default();
         state.select(None); // hit None state
