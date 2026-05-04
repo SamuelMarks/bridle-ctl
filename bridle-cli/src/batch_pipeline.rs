@@ -531,7 +531,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_orchestrator_select_targets() -> Result<(), BridleError> {
-        let db_url = format!("test_select_targets_{}.db", uuid::Uuid::new_v4());
+        let db_url = format!(
+            "file:test_select_targets_{}.db?mode=memory&cache=shared",
+            uuid::Uuid::new_v4()
+        );
         let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
         let repo = bridle_sdk::models::Repository {
@@ -574,7 +577,7 @@ mod tests {
         let targets = orchestrator.select_targets()?;
         assert_eq!(targets.len(), 1);
 
-        std::fs::remove_file(db_url)?;
+        let _ = std::fs::remove_file(&db_url);
         Ok(())
     }
 
