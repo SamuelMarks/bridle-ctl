@@ -43,12 +43,24 @@ mod tests {
     fn test_generate_claude_manifest() {
         assert_eq!(generate_claude_manifest(), r#"{"tools": ["bridle-cli"]}"#);
     }
+    use serial_test::serial;
+
     #[test]
+    #[serial]
     fn test_mcp_stubs() -> Result<(), BridleError> {
+        let temp_dir = tempfile::tempdir()?;
+        let old_dir = std::env::current_dir()?;
+        std::env::set_current_dir(temp_dir.path())?;
+
+        // initialize empty git repo so mutator doesn't fail
+        let _ = std::process::Command::new("git").arg("init").status();
+
         let tools = mcp::register_tools()?;
         assert!(tools.contains(&"run_code_tool".to_string()));
         mcp::self_healing_loop()?;
         mcp::run_agent_daemon()?;
+
+        std::env::set_current_dir(old_dir)?;
         Ok(())
     }
 
