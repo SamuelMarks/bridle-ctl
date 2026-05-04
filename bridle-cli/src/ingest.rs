@@ -190,7 +190,10 @@ mod tests {
             std::env::set_var("HOME", home.path());
         }
 
-        let db_url = format!("test_ingest_{}.db", uuid::Uuid::new_v4());
+        let db_url = format!(
+            "file:test_ingest_{}.db?mode=memory&cache=shared",
+            uuid::Uuid::new_v4()
+        );
 
         let res = ingest_org("testorg", "github", &db_url);
         assert!(res.is_ok());
@@ -203,7 +206,7 @@ mod tests {
             std::env::remove_var("GITHUB_API_URL");
             std::env::remove_var("HOME");
         }
-        std::fs::remove_file(db_url).ok();
+        std::fs::remove_file(&db_url).ok();
         Ok(())
     }
 
