@@ -1,0 +1,5 @@
+[profile.default]
+exclude-files = [
+    "bridle-models/src/schema.rs",
+    "bridle-sdk/tests/schema_parity.rs"
+]
