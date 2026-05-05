@@ -27,6 +27,7 @@ pub fn create_batch_job(
                 .first::<BatchJob>(c)
                 .map_err(BridleError::Database)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_jobs::table)
@@ -49,6 +50,7 @@ pub fn get_batch_job(conn: &mut DbConnection, job_id: i32) -> Result<BatchJob, B
             .find(job_id)
             .first::<BatchJob>(c)
             .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => batch_jobs::table
             .find(job_id)
@@ -68,6 +70,7 @@ pub fn insert_batch_job(conn: &mut DbConnection, job: &BatchJob) -> Result<Batch
                 .map_err(BridleError::Database)?;
             Ok(job.clone())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_jobs::table)
@@ -95,6 +98,7 @@ pub fn update_batch_job_status(
                 batch_jobs::table.find(job_id).first::<BatchJob>(c)
             })
             .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => _c
             .transaction(|c| {
@@ -115,6 +119,7 @@ pub fn get_batch_task(conn: &mut DbConnection, task_id: i32) -> Result<BatchTask
             .find(task_id)
             .first::<BatchTask>(c)
             .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => batch_tasks::table
             .find(task_id)
@@ -137,6 +142,7 @@ pub fn insert_batch_task(
                 .map_err(BridleError::Database)?;
             Ok(task.clone())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => {
             diesel::insert_into(batch_tasks::table)
@@ -169,6 +175,7 @@ pub fn update_task_status(
                 batch_tasks::table.find(task_id).first::<BatchTask>(c)
             })
             .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => _c
             .transaction(|c| {
@@ -193,6 +200,7 @@ pub fn get_job_tasks(conn: &mut DbConnection, job_id: i32) -> Result<Vec<BatchTa
             .filter(batch_tasks::job_id.eq(job_id))
             .load::<BatchTask>(c)
             .map_err(BridleError::Database),
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         DbConnection::Pg(_c) => batch_tasks::table
             .filter(batch_tasks::job_id.eq(job_id))

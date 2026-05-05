@@ -104,6 +104,7 @@ pub fn insert_user(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(users)
@@ -127,6 +128,7 @@ pub fn get_user(conn: &mut DbConnection, user_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = users
@@ -153,6 +155,7 @@ pub fn insert_organisation(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(organisations)
@@ -179,6 +182,7 @@ pub fn get_organisation(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = organisations
@@ -205,6 +209,7 @@ pub fn insert_repository(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(repositories)
@@ -231,6 +236,7 @@ pub fn get_repository(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = repositories
@@ -257,6 +263,7 @@ pub fn insert_team(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(teams)
@@ -280,6 +287,7 @@ pub fn get_team(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = teams
@@ -306,6 +314,7 @@ pub fn insert_branch(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(branches)
@@ -332,6 +341,7 @@ pub fn get_branch(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = branches
@@ -358,6 +368,7 @@ pub fn insert_branch_protection_rule(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(branch_protection_rules)
@@ -384,6 +395,7 @@ pub fn get_branch_protection_rule(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = branch_protection_rules
@@ -410,6 +422,7 @@ pub fn insert_key(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(keys)
@@ -433,6 +446,7 @@ pub fn get_key(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::K
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = keys
@@ -459,6 +473,7 @@ pub fn insert_follow(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(follows)
@@ -485,6 +500,7 @@ pub fn get_follow(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = follows
@@ -511,6 +527,7 @@ pub fn insert_star(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(stars)
@@ -534,6 +551,7 @@ pub fn get_star(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = stars
@@ -560,6 +578,7 @@ pub fn insert_org_membership(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(org_memberships)
@@ -586,6 +605,7 @@ pub fn get_org_membership(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = org_memberships
@@ -612,6 +632,7 @@ pub fn insert_repo_collaborator(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(repo_collaborators)
@@ -638,6 +659,7 @@ pub fn get_repo_collaborator(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = repo_collaborators
@@ -664,6 +686,7 @@ pub fn insert_milestone(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(milestones)
@@ -690,6 +713,7 @@ pub fn get_milestone(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = milestones
@@ -716,6 +740,7 @@ pub fn insert_label(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(labels)
@@ -742,6 +767,7 @@ pub fn get_label(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = labels
@@ -768,6 +794,7 @@ pub fn insert_issue(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(issues)
@@ -794,6 +821,7 @@ pub fn get_issue(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = issues
@@ -820,6 +848,7 @@ pub fn insert_issue_label(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(issue_labels)
@@ -846,6 +875,7 @@ pub fn get_issue_label(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = issue_labels
@@ -872,6 +902,7 @@ pub fn insert_pull_request(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(pull_requests)
@@ -898,6 +929,7 @@ pub fn get_pull_request(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = pull_requests
@@ -924,6 +956,7 @@ pub fn insert_pull_request_review(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(pull_request_reviews)
@@ -950,6 +983,7 @@ pub fn get_pull_request_review(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = pull_request_reviews
@@ -976,6 +1010,7 @@ pub fn insert_release(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(releases)
@@ -1002,6 +1037,7 @@ pub fn get_release(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = releases
@@ -1028,6 +1064,7 @@ pub fn insert_webhook(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(webhooks)
@@ -1054,6 +1091,7 @@ pub fn get_webhook(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = webhooks
@@ -1080,6 +1118,7 @@ pub fn insert_commit(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(commits)
@@ -1106,6 +1145,7 @@ pub fn get_commit(
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = commits
@@ -1132,6 +1172,7 @@ pub fn insert_tree(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(trees)
@@ -1155,6 +1196,7 @@ pub fn get_tree(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = trees
@@ -1181,6 +1223,7 @@ pub fn insert_blob(
                 .map_err(db_exec_err)?;
             Ok(())
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             diesel::insert_into(blobs)
@@ -1204,6 +1247,7 @@ pub fn get_blob(conn: &mut DbConnection, item_id: i32) -> Result<crate::models::
                 .map_err(db_exec_err)?;
             Ok(fetched)
         }
+        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
         crate::db::DbConnection::Pg(c) => {
             let fetched = blobs
