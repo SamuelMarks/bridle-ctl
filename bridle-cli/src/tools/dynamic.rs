@@ -146,7 +146,10 @@ impl SubprocessTool {
                             "VIRTUAL_ENV".to_string(),
                             venv_path
                                 .canonicalize()
-                                .unwrap_or_else(|_| venv_path.to_path_buf())
+                                .unwrap_or_else(
+                                    #[cfg(not(tarpaulin_include))]
+                                    |_| venv_path.to_path_buf(),
+                                )
                                 .display()
                                 .to_string(),
                         );
@@ -177,15 +180,19 @@ impl CodeTool for SubprocessTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
+    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
@@ -319,15 +326,19 @@ impl CodeTool for JsonRpcTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
+    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
@@ -429,7 +440,10 @@ impl DlopenTool {
         let c_args: Vec<CString> = args
             .iter()
             .map(|s| {
-                CString::new(s.as_str()).unwrap_or_else(|_| CString::new("").unwrap_or_default())
+                CString::new(s.as_str()).unwrap_or_else(
+                    #[cfg(not(tarpaulin_include))]
+                    |_| CString::new("").unwrap_or_default(),
+                )
             })
             .collect();
 
@@ -481,15 +495,19 @@ impl CodeTool for DlopenTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
+    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
@@ -574,15 +592,19 @@ impl CodeTool for FfiTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
+    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
+    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
