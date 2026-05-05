@@ -147,6 +147,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(tarpaulin_include))]
     fn test_sync_prs_template_render_fail() -> Result<(), BridleError> {
         // Create an invalid PR template in the simulated repo path
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());

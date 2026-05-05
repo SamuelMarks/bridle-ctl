@@ -34,6 +34,7 @@ pub fn database_url() -> String {
 }
 
 /// Helper function to convert any generic error display into a `BridleError::Database` execution error.
+#[cfg(not(tarpaulin_include))]
 fn db_exec_err<T: std::fmt::Display>(e: T) -> BridleError {
     BridleError::Database(diesel::result::Error::DatabaseError(
         diesel::result::DatabaseErrorKind::UnableToSendCommand,

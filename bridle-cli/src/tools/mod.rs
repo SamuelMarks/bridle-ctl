@@ -18,18 +18,22 @@ pub trait CodeTool: Send + Sync {
     fn match_regex(&self) -> &str;
 
     /// The version of the tool, if specified
+    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         None
     }
     /// The author of the tool, if specified
+    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         None
     }
     /// The URL of the tool's homepage or repository, if specified
+    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         None
     }
     /// The license of the tool, if specified
+    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         None
     }
