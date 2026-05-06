@@ -1,1 +1,2 @@
-[profile.default]\nexclude-files = ["bridle-models/src/schema.rs"]
+[profile.default]
+exclude-files = ["bridle-models/src/schema.rs"]
