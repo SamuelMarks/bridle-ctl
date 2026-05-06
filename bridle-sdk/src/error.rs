@@ -79,9 +79,9 @@ pub enum BridleError {
     #[display("JsonRpsee Client Error: {}", _0)]
     Client(jsonrpsee::core::client::Error),
 
-    /// Bridle SDK error mapping
-    #[display("SDK FFI Error: {}", _0)]
-    SdkFfi(crate::ffi::FfiError),
+    /// Failed to parse a C string.
+    #[display("Invalid C String encountered: {}", _0)]
+    InvalidString(std::str::Utf8Error),
 
     /// A generic error used as a fallback.
     #[display("Generic error: {}", _0)]

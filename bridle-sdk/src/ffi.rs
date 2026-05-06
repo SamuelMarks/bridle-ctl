@@ -1,7 +1,6 @@
 #![cfg(not(tarpaulin_include))]
 //! FFI interfaces for `bridle-sdk`.
 
-use derive_more::derive::{Display, Error, From};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int};
 
@@ -9,17 +8,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-/// FFI Error Type using derive_more without unwrap.
-#[derive(Debug, Display, Error, From)]
-pub enum FfiError {
-    /// Failed to parse a C string.
-    #[display("Invalid C String encountered")]
-    InvalidString(std::str::Utf8Error),
-    /// A generic FFI error.
-    #[display("Generic FFI error: {}", _0)]
-    #[error(ignore)]
-    Generic(String),
-}
+use crate::BridleError;
 
 #[cfg(not(tarpaulin_include))]
 unsafe extern "C" {}
@@ -70,11 +59,11 @@ pub fn convert_to_notebook(
     fix: bool,
     dry_run: bool,
     scope: Option<&PathScope>,
-) -> Result<i32, FfiError> {
+) -> Result<i32, BridleError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
     {
-        return Err(FfiError::Generic("Path scope violation".into()));
+        return Err(BridleError::Generic("Path scope violation".into()));
     }
     let path_str = path.to_str()?.to_string();
     let mut cmd = get_lib2notebook2lib_cmd();
@@ -97,7 +86,7 @@ pub fn convert_to_notebook(
             if env::var("RUST_TEST_MODE").is_ok() || env::var("CARGO_MANIFEST_DIR").is_ok() {
                 return Ok(0);
             }
-            return Err(FfiError::Generic(format!(
+            return Err(BridleError::Generic(format!(
                 "Failed to execute process: {}",
                 e
             )));
@@ -113,11 +102,11 @@ pub fn convert_to_notebook(
 
 /// Safely wraps the FFI call to `type-correct` audit.
 #[cfg(not(tarpaulin_include))]
-pub fn type_correct_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
+pub fn type_correct_audit_safe(path: &CStr, scope: Option<&PathScope>) -> Result<i32, BridleError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
     {
-        return Err(FfiError::Generic("Path scope violation".into()));
+        return Err(BridleError::Generic("Path scope violation".into()));
     }
     let result = unsafe { type_correct_audit(path.as_ptr()) };
     Ok(result as i32)
@@ -129,11 +118,11 @@ pub fn type_correct_fix_safe(
     path: &CStr,
     dry_run: bool,
     scope: Option<&PathScope>,
-) -> Result<i32, FfiError> {
+) -> Result<i32, BridleError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
     {
-        return Err(FfiError::Generic("Path scope violation".into()));
+        return Err(BridleError::Generic("Path scope violation".into()));
     }
     let result = unsafe { type_correct_fix(path.as_ptr(), dry_run) };
     Ok(result as i32)
@@ -141,11 +130,11 @@ pub fn type_correct_fix_safe(
 
 /// Safely wraps the FFI call to `go-auto-err-handling` audit.
 #[cfg(not(tarpaulin_include))]
-pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, FfiError> {
+pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, BridleError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
     {
-        return Err(FfiError::Generic("Path scope violation".into()));
+        return Err(BridleError::Generic("Path scope violation".into()));
     }
     let result = unsafe { GoAutoErrAudit(path.as_ptr()) };
     Ok(result as i32)
@@ -157,11 +146,11 @@ pub fn fix_go_errors(
     path: &CStr,
     dry_run: bool,
     scope: Option<&PathScope>,
-) -> Result<i32, FfiError> {
+) -> Result<i32, BridleError> {
     if let (Some(s), Ok(p)) = (scope, path.to_str())
         && !s.is_allowed(p)
     {
-        return Err(FfiError::Generic("Path scope violation".into()));
+        return Err(BridleError::Generic("Path scope violation".into()));
     }
     let result = unsafe { GoAutoErrFix(path.as_ptr(), dry_run) };
     Ok(result as i32)
@@ -210,8 +199,8 @@ mod tests {
 
     #[test]
     fn test_ffi_error_display() {
-        let err = FfiError::Generic("Linker error".into());
-        assert_eq!(format!("{}", err), "Generic FFI error: Linker error");
+        let err = BridleError::Generic("Linker error".into());
+        assert_eq!(format!("{}", err), "Generic error: Linker error");
     }
 }
 
@@ -230,9 +219,9 @@ pub fn cdd_transformer_safe(
     is_audit: bool,
     dry_run: bool,
     scope: Option<&PathScope>,
-) -> Result<i32, FfiError> {
+) -> Result<i32, BridleError> {
     if scope.is_some_and(|s| !s.is_allowed(path)) {
-        return Err(FfiError::Generic("Path scope violation".into()));
+        return Err(BridleError::Generic("Path scope violation".into()));
     }
     // Simulate cdd-c success in test environment
     if env::var("RUST_TEST_MODE").is_ok() {
@@ -240,32 +229,32 @@ pub fn cdd_transformer_safe(
             return Ok(1);
         }
         if path == "error.c" {
-            return Err(FfiError::Generic("Simulated error".into()));
+            return Err(BridleError::Generic("Simulated error".into()));
         }
         return Ok(0);
     }
 
     use std::ffi::CString;
-    let tool_cstr = CString::new(tool).map_err(|e| FfiError::Generic(e.to_string()))?;
-    let path_cstr = CString::new(path).map_err(|e| FfiError::Generic(e.to_string()))?;
+    let tool_cstr = CString::new(tool).map_err(|e| BridleError::Generic(e.to_string()))?;
+    let path_cstr = CString::new(path).map_err(|e| BridleError::Generic(e.to_string()))?;
 
     let mut args = vec![tool_cstr.into_raw()];
     if is_audit {
         args.push(
             CString::new("--audit")
-                .map_err(|e| FfiError::Generic(e.to_string()))?
+                .map_err(|e| BridleError::Generic(e.to_string()))?
                 .into_raw(),
         );
     } else {
         args.push(
             CString::new("--fix")
-                .map_err(|e| FfiError::Generic(e.to_string()))?
+                .map_err(|e| BridleError::Generic(e.to_string()))?
                 .into_raw(),
         );
         if dry_run {
             args.push(
                 CString::new("--dry-run")
-                    .map_err(|e| FfiError::Generic(e.to_string()))?
+                    .map_err(|e| BridleError::Generic(e.to_string()))?
                     .into_raw(),
             );
         }
