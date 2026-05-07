@@ -1,2 +1,0 @@
-[profile.default]
-exclude-files = ["bridle-models/src/schema.rs"]

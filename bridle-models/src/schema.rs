@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 #![allow(clippy::missing_docs_in_private_items)]
-
+#![cfg(not(tarpaulin_include))]
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
