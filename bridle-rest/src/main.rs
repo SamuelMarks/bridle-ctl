@@ -266,7 +266,6 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[cfg(not(tarpaulin_include))]
-#[allow(missing_docs)]
 /// run app
 async fn run_app() -> std::io::Result<()> {
     if let Err(e) = bridle_sdk::telemetry::init_telemetry() {
