@@ -172,6 +172,48 @@ mod tests {
     }
 
     #[test]
+    #[allow(invalid_from_utf8)]
+    fn test_missing_variants_display() {
+        let req_err_inner = match reqwest::Client::new().get("htt p:/").build() {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let req_err = BridleError::Request(req_err_inner);
+        assert!(format!("{}", req_err).starts_with("Request Error:"));
+
+        let json_err_inner = match serde_json::from_str::<serde_json::Value>("{bad") {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let json_err = BridleError::Json(json_err_inner);
+        assert!(format!("{}", json_err).starts_with("JSON Error:"));
+
+        let tpl_err_inner = match indicatif::ProgressStyle::with_template("{foo:^>") {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let tpl_err = BridleError::Template(tpl_err_inner);
+        assert!(format!("{}", tpl_err).starts_with("Template Error:"));
+
+        let clap_err_inner =
+            clap::Command::new("test").error(clap::error::ErrorKind::UnknownArgument, "err");
+        let clap_err = BridleError::Clap(clap_err_inner);
+        assert!(format!("{}", clap_err).starts_with("CLI Error:"));
+
+        let client_err_inner = jsonrpsee::core::client::Error::Custom("custom".to_string());
+        let client_err = BridleError::Client(client_err_inner);
+        assert!(format!("{}", client_err).starts_with("JsonRpsee Client Error:"));
+
+        let utf8_err_inner = match std::str::from_utf8(&[0, 159]) {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let utf8_err = BridleError::InvalidString(utf8_err_inner);
+        assert!(format!("{}", utf8_err).starts_with("Invalid C String encountered:"));
+    }
+
+    #[test]
+    #[allow(invalid_from_utf8)]
     fn test_from_traits() {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "not found");
         let bridle_io = BridleError::from(io_err);
@@ -185,11 +227,48 @@ mod tests {
         let bridle_db = BridleError::from(db_err);
         assert!(matches!(bridle_db, BridleError::Database(_)));
 
-        let utf8_err = match String::from_utf8(vec![0, 159]) {
+        let req_err_inner = match reqwest::Client::new().get("htt p:/").build() {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let bridle_req = BridleError::from(req_err_inner);
+        assert!(matches!(bridle_req, BridleError::Request(_)));
+
+        let json_err_inner = match serde_json::from_str::<serde_json::Value>("{bad") {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let bridle_json = BridleError::from(json_err_inner);
+        assert!(matches!(bridle_json, BridleError::Json(_)));
+
+        let tpl_err_inner = match indicatif::ProgressStyle::with_template("{foo:^>") {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let bridle_tpl = BridleError::from(tpl_err_inner);
+        assert!(matches!(bridle_tpl, BridleError::Template(_)));
+
+        let clap_err_inner =
+            clap::Command::new("test").error(clap::error::ErrorKind::UnknownArgument, "err");
+        let bridle_clap = BridleError::from(clap_err_inner);
+        assert!(matches!(bridle_clap, BridleError::Clap(_)));
+
+        let client_err_inner = jsonrpsee::core::client::Error::Custom("custom".to_string());
+        let bridle_client = BridleError::from(client_err_inner);
+        assert!(matches!(bridle_client, BridleError::Client(_)));
+
+        let utf8_err_inner = match std::str::from_utf8(&[0, 159]) {
+            Err(e) => e,
+            Ok(_) => panic!("Expected error"),
+        };
+        let bridle_utf8 = BridleError::from(utf8_err_inner);
+        assert!(matches!(bridle_utf8, BridleError::InvalidString(_)));
+
+        let utf8_err2 = match String::from_utf8(vec![0, 159]) {
             Err(e) => e,
             Ok(_) => panic!("Expected UTF8 error"),
         };
-        let err: BridleError = utf8_err.into();
+        let err: BridleError = utf8_err2.into();
         assert!(err.to_string().starts_with("Generic error:"));
 
         let str_err: BridleError = "some error".into();
