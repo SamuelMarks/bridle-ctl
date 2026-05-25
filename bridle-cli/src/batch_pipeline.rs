@@ -495,7 +495,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_orchestrator_check_idempotency() -> Result<(), BridleError> {
-        let db_url = format!("test_idempotency_{}.db", uuid::Uuid::new_v4());
+        let db_url = ":memory:".to_string();
         let _conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
         let config = PipelineConfig {
