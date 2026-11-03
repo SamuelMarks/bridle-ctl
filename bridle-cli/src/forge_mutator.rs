@@ -344,6 +344,7 @@ Content-Type: application/json
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_forge_client_network_error() -> Result<(), BridleError> {
         unsafe {
             std::env::remove_var("GITHUB_API_URL");

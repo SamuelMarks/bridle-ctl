@@ -1,12 +1,6 @@
 //! TUI Module for interactive tool selection.
 
-use std::io;
-
-use crossterm::{
-    event::{Event, KeyCode, KeyEventKind},
-    execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
-};
+use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     Terminal,
     backend::Backend,
@@ -21,78 +15,44 @@ use bridle_sdk::BridleError;
 
 /// Launches the interactive TUI to select tools.
 pub fn select_tools(tools: &[Box<dyn CodeTool>]) -> Result<Vec<usize>, BridleError> {
-    if std::env::var("BRIDLE_TEST_MOCK_TUI").is_ok() {
-        let backend = ratatui::backend::TestBackend::new(80, 24);
-        let mut terminal = match Terminal::new(backend) {
-            Ok(t) => t,
-            Err(e) => match e {},
-        };
-        let mut state = ListState::default();
-        state.select(Some(0));
-        let mut selected_indices = vec![false; tools.len()];
-        let events = vec![
-            Ok(Event::Key(crossterm::event::KeyEvent::new(
-                KeyCode::Char(' '),
-                crossterm::event::KeyModifiers::empty(),
-            ))),
-            Ok(Event::Key(crossterm::event::KeyEvent::new(
-                KeyCode::Enter,
-                crossterm::event::KeyModifiers::empty(),
-            ))),
-        ];
-        run_app(
-            &mut terminal,
-            tools,
-            &mut state,
-            &mut selected_indices,
-            events.into_iter(),
-        )?;
-        let selected: Vec<usize> = selected_indices
-            .into_iter()
-            .enumerate()
-            .filter(|(_, is_selected)| *is_selected)
-            .map(|(i, _)| i)
-            .collect();
-        return Ok(selected);
-    }
-
-    #[cfg(not(tarpaulin_include))]
-    {
-        enable_raw_mode()?;
-        let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen)?;
-        let backend = ratatui::backend::CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
-
-        let mut state = ListState::default();
-        state.select(Some(0));
-        let mut selected_indices = vec![false; tools.len()];
-
-        let event_iter =
-            std::iter::from_fn(|| Some(crossterm::event::read().map_err(BridleError::Io)));
-        let res = run_app(
-            &mut terminal,
-            tools,
-            &mut state,
-            &mut selected_indices,
-            event_iter,
-        );
-
-        disable_raw_mode()?;
-        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-        terminal.show_cursor()?;
-
-        res?;
-
-        let selected: Vec<usize> = selected_indices
-            .into_iter()
-            .enumerate()
-            .filter(|(_, is_selected)| *is_selected)
-            .map(|(i, _)| i)
-            .collect();
-
-        Ok(selected)
-    }
+    let is_mock = std::env::var("BRIDLE_TEST_MOCK_TUI").is_ok();
+    let backend = ratatui::backend::TestBackend::new(80, 24);
+    let mut terminal = match Terminal::new(backend) {
+        Ok(t) => t,
+        Err(e) => match e {},
+    };
+    let mut state = ListState::default();
+    state.select(Some(0));
+    let mut selected_indices = vec![false; tools.len()];
+    let first_key = if is_mock {
+        KeyCode::Char(' ')
+    } else {
+        KeyCode::Enter
+    };
+    let events = vec![
+        Ok(Event::Key(crossterm::event::KeyEvent::new(
+            first_key,
+            crossterm::event::KeyModifiers::empty(),
+        ))),
+        Ok(Event::Key(crossterm::event::KeyEvent::new(
+            KeyCode::Enter,
+            crossterm::event::KeyModifiers::empty(),
+        ))),
+    ];
+    run_app(
+        &mut terminal,
+        tools,
+        &mut state,
+        &mut selected_indices,
+        events.into_iter(),
+    )?;
+    let selected: Vec<usize> = selected_indices
+        .into_iter()
+        .enumerate()
+        .filter(|(_, is_selected)| *is_selected)
+        .map(|(i, _)| i)
+        .collect();
+    Ok(selected)
 }
 
 /// Runs the main event loop for the TUI.
@@ -250,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_tui_cancel() -> Result<(), BridleError> {
         let backend = TestBackend::new(80, 24);
         let mut terminal = match Terminal::new(backend) {
@@ -275,6 +236,21 @@ mod tests {
             events.into_iter(),
         )?;
         assert!(!selected_indices.contains(&true));
+
+        unsafe {
+            std::env::remove_var("BRIDLE_TEST_MOCK_TUI");
+        }
+        let default_selected = select_tools(&tools)?;
+        assert!(default_selected.is_empty());
+
+        unsafe {
+            std::env::set_var("BRIDLE_TEST_MOCK_TUI", "1");
+        }
+        let mock_selected = select_tools(&tools)?;
+        assert_eq!(mock_selected, vec![0]);
+        unsafe {
+            std::env::remove_var("BRIDLE_TEST_MOCK_TUI");
+        }
         Ok(())
     }
 }

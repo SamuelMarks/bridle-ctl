@@ -287,6 +287,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_type_correct_audit_and_fix_safe() -> Result<(), BridleError> {
         let path = CString::new("tests_fixtures/empty.c")?;
         assert!(type_correct_audit_safe(&path, None).is_ok());
@@ -305,6 +306,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_go_auto_err_audit_and_fix() -> Result<(), BridleError> {
         let path = CString::new("tests_fixtures/empty.c")?;
         assert!(audit_go_errors(&path, None).is_ok());

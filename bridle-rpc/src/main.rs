@@ -353,15 +353,15 @@ mod tests {
     use jsonrpsee::core::client::ClientT;
     use jsonrpsee::http_client::HttpClientBuilder;
 
-    fn get_test_db() -> (tempfile::NamedTempFile, String) {
-        let tf = tempfile::NamedTempFile::new().unwrap_or_else(|e| panic!("temp file: {}", e));
+    fn get_test_db() -> Result<(tempfile::NamedTempFile, String), BridleError> {
+        let tf = tempfile::NamedTempFile::new()?;
         let path = tf.path().to_string_lossy().to_string();
-        (tf, path)
+        Ok((tf, path))
     }
 
     #[tokio::test]
     async fn test_health_and_start_agent_rpc() -> Result<(), BridleError> {
-        let (_tf, db_url) = get_test_db();
+        let (_tf, db_url) = get_test_db()?;
         let addr = run_server(db_url).await?;
         let url = format!("http://{}", addr);
 
@@ -380,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_run_tools_rpc() -> Result<(), BridleError> {
-        let (_tf, db_url) = get_test_db();
+        let (_tf, db_url) = get_test_db()?;
         let addr = run_server(db_url).await?;
         let url = format!("http://{}", addr);
         let client = HttpClientBuilder::default().build(url)?;
@@ -416,7 +416,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_all_crud_methods_rpc() -> Result<(), BridleError> {
-        let (_tf, db_url) = get_test_db();
+        let (_tf, db_url) = get_test_db()?;
         let addr = run_server(db_url).await?;
         let url = format!("http://{}", addr);
         let client = HttpClientBuilder::default().build(url)?;
@@ -881,7 +881,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_batch_and_sync_rpc() -> Result<(), BridleError> {
-        let (_tf, db_url) = get_test_db();
+        let (_tf, db_url) = get_test_db()?;
         let addr = run_server(db_url).await?;
         let url = format!("http://{}", addr);
         let client = HttpClientBuilder::default().build(url)?;
@@ -963,7 +963,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_rpc_error_paths() -> Result<(), BridleError> {
-        let (_tf, db_url) = get_test_db();
+        let (_tf, db_url) = get_test_db()?;
         let addr = run_server(db_url).await?;
         let url = format!("http://{}", addr);
         let client = HttpClientBuilder::default().build(url)?;

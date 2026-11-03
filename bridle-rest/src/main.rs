@@ -470,15 +470,15 @@ mod tests {
     use actix_web::{App, test};
     use bridle_sdk::models::{Organisation, Repository, User};
 
-    fn test_app_state() -> (tempfile::NamedTempFile, web::Data<AppState>) {
-        let tf = tempfile::NamedTempFile::new().unwrap_or_else(|e| panic!("temp file: {}", e));
+    fn test_app_state() -> Result<(tempfile::NamedTempFile, web::Data<AppState>), std::io::Error> {
+        let tf = tempfile::NamedTempFile::new()?;
         let db_url = tf.path().to_string_lossy().to_string();
-        (tf, web::Data::new(AppState { db_url }))
+        Ok((tf, web::Data::new(AppState { db_url })))
     }
 
     #[actix_web::test]
-    async fn test_health_and_operational_endpoints() {
-        let (_tf, state) = test_app_state();
+    async fn test_health_and_operational_endpoints() -> Result<(), std::io::Error> {
+        let (_tf, state) = test_app_state()?;
         let app = test::init_service(
             App::new()
                 .app_data(state.clone())
@@ -586,7 +586,7 @@ mod tests {
         let resp_sync = test::call_service(&app, req_sync).await;
         assert!(resp_sync.status().is_success());
 
-        let tmp_ws = tempfile::tempdir().unwrap_or_else(|e| panic!("tempdir: {}", e));
+        let tmp_ws = tempfile::tempdir()?;
         let org_dir = tmp_ws
             .path()
             .join(".bridle")
@@ -612,12 +612,8 @@ mod tests {
         let resp_batch_fix_ok = test::call_service(&app, req_batch_fix_ok).await;
         assert!(resp_batch_fix_ok.status().is_success());
 
-        let listener =
-            std::net::TcpListener::bind("127.0.0.1:0").unwrap_or_else(|e| panic!("bind: {}", e));
-        let port = listener
-            .local_addr()
-            .unwrap_or_else(|e| panic!("addr: {}", e))
-            .port();
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
         let handle = std::thread::spawn(move || {
             use std::io::{Read, Write};
             if let Ok((mut stream, _)) = listener.accept() {
@@ -680,11 +676,12 @@ mod tests {
         assert!(resp_dev_create.status().is_success());
 
         let _ = std::thread::spawn(super::main).join();
+        Ok(())
     }
 
     #[actix_web::test]
     async fn test_all_crud_endpoints_create_get_and_not_found() -> Result<(), actix_web::Error> {
-        let (_tf, state) = test_app_state();
+        let (_tf, state) = test_app_state()?;
         let app = test::init_service(
             App::new()
                 .app_data(state.clone())

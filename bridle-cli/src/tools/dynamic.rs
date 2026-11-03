@@ -862,7 +862,9 @@ Content-Length: {}
         // Compile a tiny C shared library in a temp directory to test DlopenTool end-to-end
         let tmp_dir = tempfile::tempdir()?;
         let c_file = tmp_dir.path().join("plugin.c");
-        let lib_file = tmp_dir.path().join("libplugin.dylib");
+        let lib_file = tmp_dir
+            .path()
+            .join(format!("libplugin.{}", std::env::consts::DLL_EXTENSION));
         std::fs::write(
             &c_file,
             r#"
@@ -879,7 +881,8 @@ Content-Length: {}
         )?;
         let status = Command::new("cc")
             .args([
-                "-dynamiclib",
+                "-shared",
+                "-fPIC",
                 c_file.to_str().unwrap_or(""),
                 "-o",
                 lib_file.to_str().unwrap_or(""),

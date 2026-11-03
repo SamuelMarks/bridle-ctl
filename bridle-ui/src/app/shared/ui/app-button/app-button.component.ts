@@ -32,7 +32,7 @@ import { Component, input } from '@angular/core';
       border-radius: var(--border-radius);
       appearance: none;
       transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
-      transition-property: color, background-color, box-shadow, border-color;
+      transition-property: box-shadow, border-color;
     }
 
     .btn:disabled {

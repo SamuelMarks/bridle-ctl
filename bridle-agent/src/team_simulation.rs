@@ -149,8 +149,10 @@ fn reviewer_agent_merge_pr(db_url: &str, pr_id: i32) -> Result<(), BridleError> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_internal_simulation_methods() -> Result<(), BridleError> {
         assert!(setup_repo("/invalid/path").is_err());
         assert!(pm_agent_create_issue("/invalid/path").is_err());
@@ -189,6 +191,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_run_ai_team_simulation() -> Result<(), BridleError> {
         let tf = tempfile::NamedTempFile::new()?;
         let db_url = tf

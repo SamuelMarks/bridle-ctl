@@ -9,6 +9,10 @@ pub fn git_command() -> Command {
     cmd.env_remove("GIT_DIR");
     cmd.env_remove("GIT_WORK_TREE");
     cmd.env_remove("GIT_INDEX_FILE");
+    cmd.env("GIT_AUTHOR_NAME", "Bridle Bot");
+    cmd.env("GIT_AUTHOR_EMAIL", "bot@bridle.local");
+    cmd.env("GIT_COMMITTER_NAME", "Bridle Bot");
+    cmd.env("GIT_COMMITTER_EMAIL", "bot@bridle.local");
     cmd
 }
 

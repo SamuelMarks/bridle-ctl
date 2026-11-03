@@ -101,8 +101,10 @@ fn process_issue(db_url: &str, issue: &Issue) -> Result<bool, BridleError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_agent_loop_no_issues() -> Result<(), BridleError> {
         let tf = tempfile::NamedTempFile::new()?;
         let db_url = tf
@@ -117,6 +119,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_agent_loop_with_issues_and_idempotency() -> Result<(), BridleError> {
         let tf = tempfile::NamedTempFile::new()?;
         let db_url = tf

@@ -32,13 +32,8 @@ mod tests {
 
     #[test]
     fn test_init_telemetry() {
-        // Since try_init() works only once per process, we just ensure it either
-        // succeeds or returns our mapped telemetry error.
-        let result = init_telemetry();
-        match result {
-            Ok(_) => {}                          // First time init
-            Err(BridleError::Telemetry(_)) => {} // Subsequent inits
-            Err(_) => panic!("Unexpected error type"),
-        }
+        let _ = init_telemetry();
+        let second = init_telemetry();
+        assert!(matches!(second, Err(BridleError::Telemetry(_))));
     }
 }

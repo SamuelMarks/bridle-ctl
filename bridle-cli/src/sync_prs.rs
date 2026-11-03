@@ -218,6 +218,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_sync_prs_with_fork_org() -> Result<(), BridleError> {
         unsafe {
             std::env::remove_var("GITHUB_URL");
