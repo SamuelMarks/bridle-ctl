@@ -79,12 +79,18 @@ mod tests {
     }
 
     #[test]
-    fn test_code_tool_defaults() {
+    fn test_code_tool_defaults() -> Result<(), BridleError> {
         let tool = DummyTool;
         let dyn_tool: &dyn CodeTool = &tool;
+        assert_eq!(dyn_tool.name(), "dummy");
+        assert_eq!(dyn_tool.description(), "dummy tool");
+        assert_eq!(dyn_tool.match_regex(), ".*");
         assert_eq!(dyn_tool.version(), None);
         assert_eq!(dyn_tool.author(), None);
         assert_eq!(dyn_tool.url(), None);
         assert_eq!(dyn_tool.license(), None);
+        assert_eq!(dyn_tool.audit(&[], None)?, "ok");
+        assert_eq!(dyn_tool.fix(&[], false, None)?, "ok");
+        Ok(())
     }
 }

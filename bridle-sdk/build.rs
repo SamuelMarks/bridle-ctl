@@ -213,5 +213,62 @@ fn main() -> Result<(), String> {
         println!("cargo:rustc-link-lib=framework=Security");
     }
 
+    let sig_onstack_c = out_path.join("sig_onstack.c");
+    let sig_onstack_o = out_path.join("sig_onstack.o");
+    let sig_onstack_a = out_path.join("libbridle_sig_onstack.a");
+    std::fs::write(
+        &sig_onstack_c,
+        r#"#if defined(__unix__) || defined(__APPLE__)
+#include <signal.h>
+#include <stddef.h>
+#endif
+
+void bridle_ensure_sig_onstack(void) {
+#if defined(__unix__) || defined(__APPLE__)
+    int sig;
+    for (sig = 1; sig < 65; ++sig) {
+        if (sig == SIGKILL || sig == SIGSTOP) {
+            continue;
+        }
+        struct sigaction sa;
+        if (sigaction(sig, NULL, &sa) == 0) {
+            int has_handler = ((sa.sa_flags & SA_SIGINFO) != 0) ||
+                              (sa.sa_handler != SIG_DFL && sa.sa_handler != SIG_IGN);
+            if (has_handler && (sa.sa_flags & SA_ONSTACK) == 0) {
+                sa.sa_flags |= SA_ONSTACK;
+                (void)sigaction(sig, &sa, NULL);
+            }
+        }
+    }
+#endif
+}
+"#,
+    )
+    .map_err(|e| format!("Failed to write sig_onstack.c: {}", e))?;
+
+    let cc_bin = env::var("CC").unwrap_or_else(|_| "cc".to_string());
+    let status = Command::new(&cc_bin)
+        .args(["-O2", "-fPIC", "-c"])
+        .arg(&sig_onstack_c)
+        .arg("-o")
+        .arg(&sig_onstack_o)
+        .status()
+        .map_err(|e| format!("Failed to compile sig_onstack.c: {}", e))?;
+    if !status.success() {
+        return Err("Failed to compile sig_onstack.c".into());
+    }
+
+    let _ = std::fs::remove_file(&sig_onstack_a);
+    let status = Command::new("ar")
+        .arg("crs")
+        .arg(&sig_onstack_a)
+        .arg(&sig_onstack_o)
+        .status()
+        .map_err(|e| format!("Failed to archive libbridle_sig_onstack.a: {}", e))?;
+    if !status.success() {
+        return Err("Failed to create libbridle_sig_onstack.a".into());
+    }
+    println!("cargo:rustc-link-lib=static=bridle_sig_onstack");
+
     Ok(())
 }

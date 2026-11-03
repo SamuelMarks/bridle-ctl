@@ -22,8 +22,21 @@ unsafe extern "C" {
     /// Actual Go function compiled into libgoautoerr.a for fixing unhandled errors.
     pub fn GoAutoErrFix(target_path: *const c_char, dry_run: bool) -> c_int;
 
+    /// Ensures all installed POSIX signal handlers have `SA_ONSTACK` enabled so signals delivered
+    /// to Go runtime worker threads execute on `sigaltstack` rather than overflowing 2 KiB Go stacks.
+    pub fn bridle_ensure_sig_onstack();
+
     /// FFI binding to cdd-c's transformer CLI entrypoint.
     pub fn cli_cst_transformer_main(argc: c_int, argv: *const *mut c_char) -> c_int;
+}
+
+/// Ensures all active POSIX signal handlers (such as `SIGCHLD` registered by `signal-hook-registry`
+/// via `tokio::process::Command`) have `SA_ONSTACK` set so that asynchronous signals delivered to
+/// Go `c-archive` worker threads do not execute on and overflow 2 KiB Go goroutine stacks.
+pub fn ensure_signal_handlers_onstack() {
+    unsafe {
+        bridle_ensure_sig_onstack();
+    }
 }
 
 /// RAII guard for a vector of raw C-string pointers passed to an `argc`/`argv` FFI function.
@@ -172,6 +185,7 @@ pub fn type_correct_fix_safe(
 pub fn audit_go_errors(path: &CStr, scope: Option<&PathScope>) -> Result<i32, BridleError> {
     let path_str = path.to_str()?;
     validate_path_scope(path_str, scope)?;
+    ensure_signal_handlers_onstack();
     let result = unsafe { GoAutoErrAudit(path.as_ptr()) };
     Ok(result as i32)
 }
@@ -184,6 +198,7 @@ pub fn fix_go_errors(
 ) -> Result<i32, BridleError> {
     let path_str = path.to_str()?;
     validate_path_scope(path_str, scope)?;
+    ensure_signal_handlers_onstack();
     let result = unsafe { GoAutoErrFix(path.as_ptr(), dry_run) };
     Ok(result as i32)
 }

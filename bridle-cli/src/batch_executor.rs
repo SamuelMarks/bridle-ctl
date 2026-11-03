@@ -21,7 +21,9 @@ pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, Strin
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
-    let child = cmd.spawn()?;
+    let child_res = cmd.spawn();
+    bridle_sdk::ffi::ensure_signal_handlers_onstack();
+    let child = child_res?;
 
     let res = timeout(Duration::from_secs(to_secs), child.wait_with_output()).await;
 
