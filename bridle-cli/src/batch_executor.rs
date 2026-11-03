@@ -1,5 +1,4 @@
-#![cfg(not(tarpaulin_include))]
-
+use crate::workspace::git_command;
 use bridle_sdk::BridleError;
 use bridle_sdk::models::TaskStatus;
 use bridle_sdk::pipeline::{PipelineConfig, Step, StepType};
@@ -12,7 +11,7 @@ use tokio::time::timeout;
 /// Execute a single step with timeout.
 #[tracing::instrument(skip(dir, step), fields(step_name = %step.name, step_type = ?step.step_type))]
 pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, String), BridleError> {
-    let to_secs = step.timeout_seconds.unwrap_or(300); // 5 mins default
+    let to_secs = step.timeout_seconds.unwrap_or(300);
 
     let mut cmd = Command::new(&step.command);
     if let Some(args) = &step.args {
@@ -22,9 +21,7 @@ pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, Strin
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
-    let child = cmd
-        .spawn()
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
+    let child = cmd.spawn()?;
 
     let res = timeout(Duration::from_secs(to_secs), child.wait_with_output()).await;
 
@@ -35,8 +32,8 @@ pub async fn execute_step(dir: &Path, step: &Step) -> Result<(i32, String, Strin
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             Ok((code, stdout, stderr))
         }
-        Ok(Err(e)) => Err(BridleError::Generic(e.to_string())),
-        Err(_) => Err(BridleError::Generic("Timeout occurred".to_string())),
+        Ok(Err(e)) => Err(BridleError::Io(e)),
+        Err(_) => Err(BridleError::Tool("Timeout occurred".to_string())),
     }
 }
 
@@ -47,48 +44,31 @@ pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatu
         if step.step_type == StepType::Detect {
             let (code, _, _) = execute_step(dir, step).await?;
             if code == 0 {
-                // Clean. No issue detected.
                 return Ok(TaskStatus::Clean);
             }
         } else if step.step_type == StepType::MkconfBuild {
-            // Generate Dockerfiles and build using mkconf
             let (code, _stdout, _stderr) = execute_step(dir, step).await?;
             if code != 0 {
-                // Build failed, abort pipeline for this repo
                 return Ok(TaskStatus::FailedValidation);
             }
-            // If successful, we proceed to next step
         } else if step.step_type == StepType::Fix {
             let _ = execute_step(dir, step).await?;
-            // Detect changes
-            let status = std::process::Command::new("git")
-                .env_remove("GIT_DIR")
-                .env_remove("GIT_WORK_TREE")
-                .env_remove("GIT_INDEX_FILE")
+            let status = git_command()
                 .current_dir(dir)
                 .args(["diff", "--quiet"])
-                .status()
-                .map_err(|e| BridleError::Generic(e.to_string()))?;
+                .status()?;
 
             if status.success() {
-                // No changes
                 return Ok(TaskStatus::Clean);
             }
         } else if step.step_type == StepType::Validate {
             let (code, _, _stderr) = execute_step(dir, step).await?;
             if code != 0 {
-                // Rollback
-                let _ = std::process::Command::new("git")
-                    .env_remove("GIT_DIR")
-                    .env_remove("GIT_WORK_TREE")
-                    .env_remove("GIT_INDEX_FILE")
+                let _ = git_command()
                     .current_dir(dir)
                     .args(["reset", "--hard"])
                     .status();
-                let _ = std::process::Command::new("git")
-                    .env_remove("GIT_DIR")
-                    .env_remove("GIT_WORK_TREE")
-                    .env_remove("GIT_INDEX_FILE")
+                let _ = git_command()
                     .current_dir(dir)
                     .args(["clean", "-fd"])
                     .status();
@@ -97,7 +77,7 @@ pub async fn run_engine(dir: &Path, config: &PipelineConfig) -> Result<TaskStatu
         }
     }
 
-    Ok(TaskStatus::PRSubmitted) // Next step is PR
+    Ok(TaskStatus::PRSubmitted)
 }
 
 #[cfg(test)]
@@ -105,7 +85,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_execute_step_success() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_execute_step_success() -> Result<(), BridleError> {
         let dir = std::env::current_dir()?;
         let step = Step {
             name: "test".to_string(),
@@ -123,7 +103,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_execute_step_timeout() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_execute_step_timeout() -> Result<(), BridleError> {
         let dir = std::env::current_dir()?;
         let step = Step {
             name: "test_timeout".to_string(),
@@ -135,17 +115,15 @@ mod tests {
         };
 
         let err = execute_step(&dir, &step).await;
-        assert!(err.is_err());
-        if let Err(BridleError::Generic(msg)) = err {
-            assert_eq!(msg, "Timeout occurred");
-        } else {
-            panic!("Expected Timeout occurred");
-        }
+        assert!(matches!(
+            err,
+            Err(BridleError::Tool(ref msg)) if msg == "Timeout occurred"
+        ));
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_execute_step_spawn_fail() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_execute_step_spawn_fail() -> Result<(), BridleError> {
         let dir = std::env::current_dir()?;
         let step = Step {
             name: "fail".to_string(),
@@ -157,12 +135,12 @@ mod tests {
         };
 
         let err = execute_step(&dir, &step).await;
-        assert!(err.is_err());
+        assert!(matches!(err, Err(BridleError::Io(_))));
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_detect_clean() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_run_engine_detect_clean() -> Result<(), BridleError> {
         let dir = std::env::current_dir()?;
         let config = PipelineConfig {
             name: "pipe".to_string(),
@@ -192,9 +170,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_engine_mkconf_fail() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_run_engine_mkconf_fail_and_success() -> Result<(), BridleError> {
         let dir = std::env::current_dir()?;
-        let config = PipelineConfig {
+        let mut config = PipelineConfig {
             name: "pipe".to_string(),
             description: None,
             author: None,
@@ -218,18 +196,32 @@ mod tests {
 
         let status = run_engine(&dir, &config).await?;
         assert_eq!(status, TaskStatus::FailedValidation);
+
+        config.steps[0].command = "true".to_string();
+        let status_ok = run_engine(&dir, &config).await?;
+        assert_eq!(status_ok, TaskStatus::PRSubmitted);
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_fix_clean() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_run_engine_fix_clean_and_dirty() -> Result<(), BridleError> {
         let dir = tempfile::tempdir()?;
-        std::process::Command::new("git")
-            .arg("init")
+        git_command().arg("init").current_dir(dir.path()).status()?;
+        git_command()
+            .args(["config", "user.name", "Test User"])
             .current_dir(dir.path())
             .status()?;
-        std::process::Command::new("git")
-            .args(["commit", "--allow-empty", "-m", "init"])
+        git_command()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(dir.path())
+            .status()?;
+        std::fs::write(dir.path().join("file.txt"), "initial")?;
+        git_command()
+            .args(["add", "."])
+            .current_dir(dir.path())
+            .status()?;
+        git_command()
+            .args(["commit", "-m", "init"])
             .current_dir(dir.path())
             .status()?;
 
@@ -248,7 +240,7 @@ mod tests {
             steps: vec![Step {
                 name: "fix".to_string(),
                 step_type: StepType::Fix,
-                command: "true".to_string(), // dummy command, does not change git status
+                command: "true".to_string(),
                 args: None,
                 timeout_seconds: None,
                 expected_exit_codes: None,
@@ -257,18 +249,20 @@ mod tests {
 
         let status = run_engine(dir.path(), &config).await?;
         assert_eq!(status, TaskStatus::Clean);
+
+        // Make tracked file dirty so `git diff --quiet` returns 1 and proceeds to PRSubmitted
+        std::fs::write(dir.path().join("file.txt"), "modified")?;
+        let status_dirty = run_engine(dir.path(), &config).await?;
+        assert_eq!(status_dirty, TaskStatus::PRSubmitted);
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_run_engine_validate_fail() -> Result<(), bridle_sdk::BridleError> {
+    async fn test_run_engine_validate_fail_and_pass() -> Result<(), BridleError> {
         let dir = tempfile::tempdir()?;
-        std::process::Command::new("git")
-            .arg("init")
-            .current_dir(dir.path())
-            .status()?;
+        git_command().arg("init").current_dir(dir.path()).status()?;
 
-        let config = PipelineConfig {
+        let mut config = PipelineConfig {
             name: "pipe".to_string(),
             description: None,
             author: None,
@@ -292,6 +286,10 @@ mod tests {
 
         let status = run_engine(dir.path(), &config).await?;
         assert_eq!(status, TaskStatus::FailedValidation);
+
+        config.steps[0].command = "true".to_string();
+        let status_pass = run_engine(dir.path(), &config).await?;
+        assert_eq!(status_pass, TaskStatus::PRSubmitted);
         Ok(())
     }
 }

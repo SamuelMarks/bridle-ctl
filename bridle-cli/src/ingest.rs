@@ -1,13 +1,11 @@
-#![cfg(not(tarpaulin_include))]
-
 //! Ingests remote repositories into local DB and workspace.
 
+use crate::workspace::git_command;
 use bridle_sdk::BridleError;
 use bridle_sdk::models::{Organisation, Repository};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 /// GitHub API Response for Repository
 #[derive(Debug, Deserialize)]
@@ -28,12 +26,25 @@ pub struct GithubRepo {
     pub updated_at: String,
 }
 
-/// Ingests all repositories for an organization from GitHub.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
+/// Ingests all repositories for an organization from GitHub using default settings.
 pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, BridleError> {
+    let api_base =
+        std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let workspace_root = Path::new(&home).join(".bridle").join("workspace");
+    ingest_org_with_config(org, provider, db_url, &api_base, &workspace_root)
+}
+
+/// Ingests all repositories for an organization using explicit API base URL and workspace root.
+pub fn ingest_org_with_config(
+    org: &str,
+    provider: &str,
+    db_url: &str,
+    api_base: &str,
+    workspace_root: &Path,
+) -> Result<String, BridleError> {
     if provider != "github" {
-        return Err(BridleError::Generic(format!(
+        return Err(BridleError::Config(format!(
             "Unsupported provider: {}",
             provider
         )));
@@ -43,8 +54,6 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
         .user_agent("bridle-ctl")
         .build()?;
 
-    let api_base =
-        std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".to_string());
     let url = format!("{}/orgs/{}/repos?per_page=100", api_base, org);
     let mut repos = Vec::new();
     let mut page = 1;
@@ -54,7 +63,7 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
         let resp = client.get(&page_url).send()?;
 
         if !resp.status().is_success() {
-            return Err(BridleError::Generic(format!(
+            return Err(BridleError::Tool(format!(
                 "Failed to fetch repositories: {}",
                 resp.status()
             )));
@@ -80,18 +89,15 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
         page += 1;
     }
 
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    let workspace = Path::new(&home).join(".bridle").join("workspace").join(org);
+    let workspace = workspace_root.join(org);
     fs::create_dir_all(&workspace)?;
 
-    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
+    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)?;
 
     let now = chrono::Utc::now().naive_utc();
 
-    // We create a dummy organisation. In real implementation, we'd fetch org details.
     let new_org = Organisation {
-        id: 1, // Need to handle ID properly or rely on autoincrement. Let's assume 1 for now.
+        id: 1,
         name: org.to_string(),
         description: None,
         verified_domain: None,
@@ -100,10 +106,8 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
         updated_at: now,
     };
 
-    // Attempt to insert org, ignore error if it exists.
     let _ = bridle_sdk::db::insert_organisation(&mut conn, &new_org);
 
-    // We also need a dummy user for owner_id.
     let dummy_user = bridle_sdk::models::User {
         id: 1,
         username: "bridle_system".to_string(),
@@ -121,10 +125,7 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
         let repo_dir = workspace.join(&repo.name);
         if !repo_dir.exists() {
             println!("Cloning {}...", repo.name);
-            let status = Command::new("git")
-                .env_remove("GIT_DIR")
-                .env_remove("GIT_WORK_TREE")
-                .env_remove("GIT_INDEX_FILE")
+            let status = git_command()
                 .args(["clone", &repo.clone_url])
                 .current_dir(&workspace)
                 .status()?;
@@ -160,83 +161,72 @@ pub fn ingest_org(org: &str, provider: &str, db_url: &str) -> Result<String, Bri
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+
     #[test]
-    #[serial_test::serial]
-    fn test_ingest_org_success() -> Result<(), bridle_sdk::BridleError> {
+    fn test_ingest_org_success_and_error_branches() -> Result<(), BridleError> {
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
         let port = listener.local_addr()?.port();
 
-        std::thread::spawn(move || {
-            use std::io::{Read, Write};
-            for mut stream in listener.incoming().flatten() {
-                let mut buf = [0; 1024];
-                if let Ok(n) = stream.read(&mut buf) {
-                    let req = String::from_utf8_lossy(&buf[..n]);
-                    if req.contains("GET /orgs/testorg/repos?per_page=100&page=1 ") {
-                        let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n[{\"name\":\"repo1\",\"clone_url\":\"http://invalid\",\"description\":\"desc\",\"private\":false,\"fork\":false,\"archived\":false,\"updated_at\":\"2030-01-01T00:00:00Z\"}]";
-                        let _ = stream.write_all(response.as_bytes());
-                    } else if req.contains("GET /orgs/testorg/repos?per_page=100&page=2 ") {
-                        let response =
-                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n[]";
+        let handle = std::thread::spawn(move || {
+            for attempt in 0..5 {
+                if let Ok((mut stream, _)) = listener.accept() {
+                    let mut buf = [0; 1024];
+                    if let Ok(n) = stream.read(&mut buf) {
+                        let req = String::from_utf8_lossy(&buf[..n]);
+                        let response = if attempt == 4 {
+                            "HTTP/1.1 404 NOT FOUND\r\nContent-Length: 0\r\n\r\n"
+                        } else if req.contains("page=1 ") {
+                            r#"HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{"name":"repo1","clone_url":"http://127.0.0.1:1/invalid.git","description":"desc","private":false,"fork":false,"archived":false,"updated_at":"2030-01-01T00:00:00Z"},{"name":"forkrepo","clone_url":"http://127.0.0.1:1/fork.git","description":null,"private":false,"fork":true,"archived":false,"updated_at":"2030-01-01T00:00:00Z"}]"#
+                        } else {
+                            r#"HTTP/1.1 200 OK
+Content-Type: application/json
+
+[]"#
+                        };
                         let _ = stream.write_all(response.as_bytes());
                     }
                 }
             }
         });
 
-        let home = tempfile::tempdir()?;
-        unsafe {
-            std::env::set_var("GITHUB_API_URL", format!("http://127.0.0.1:{}", port));
-            std::env::set_var("HOME", home.path());
-        }
+        let ws_root = tempfile::tempdir()?;
+        let tf = tempfile::NamedTempFile::new()?;
+        let db_url = tf.path().to_str().unwrap_or(":memory:");
+        let api_base = format!("http://127.0.0.1:{}", port);
 
-        let db_url = format!(
-            "file:test_ingest_{}.db?mode=memory&cache=shared",
-            uuid::Uuid::new_v4()
-        );
+        let res = ingest_org_with_config("testorg", "github", db_url, &api_base, ws_root.path())?;
+        assert_eq!(res, "Ingested 1 repositories for testorg");
 
-        let res = ingest_org("testorg", "github", &db_url);
-        assert!(res.is_ok());
+        // Pre-create repo1 dir so second call exercises the "already exists" branch
+        std::fs::create_dir_all(ws_root.path().join("testorg").join("repo1"))?;
+        let res2 = ingest_org_with_config("testorg", "github", db_url, &api_base, ws_root.path())?;
+        assert_eq!(res2, "Ingested 1 repositories for testorg");
 
-        // Call again to test "Repository already exists" branch
-        let res2 = ingest_org("testorg", "github", &db_url);
-        assert!(res2.is_ok());
+        // 5th request returns 404 NOT FOUND
+        let err_res =
+            ingest_org_with_config("missing", "github", db_url, &api_base, ws_root.path());
+        assert!(matches!(err_res, Err(BridleError::Tool(_))));
 
-        unsafe {
-            std::env::remove_var("GITHUB_API_URL");
-            std::env::remove_var("HOME");
-        }
-        std::fs::remove_file(&db_url).ok();
-        Ok(())
-    }
-
-    use super::*;
-
-    #[test]
-    fn test_ingest_org_unsupported_provider() -> Result<(), bridle_sdk::BridleError> {
-        let res = ingest_org("testorg", "gitlab", "bridle.db");
-        if let Err(e) = res {
-            assert_eq!(e.to_string(), "Generic error: Unsupported provider: gitlab");
-        } else {
-            panic!("Expected error");
-        }
+        let _ = handle.join();
         Ok(())
     }
 
     #[test]
-    fn test_ingest_org_http_fail() -> Result<(), bridle_sdk::BridleError> {
-        // Just trigger reqwest. It will fail with 404 or similar, which returns Err
-        let res = ingest_org(
-            "invalid_org_1234567890_does_not_exist_test",
-            "github",
-            "bridle.db",
-        );
-        assert!(res.is_err());
-        Ok(())
+    fn test_ingest_org_unsupported_provider() {
+        let res = ingest_org("testorg", "gitlab", ":memory:");
+        assert!(matches!(
+            res,
+            Err(BridleError::Config(ref msg)) if msg == "Unsupported provider: gitlab"
+        ));
     }
 
     #[test]
-    fn test_ingest_github_repo_struct() -> Result<(), bridle_sdk::BridleError> {
+    fn test_ingest_github_repo_struct() -> Result<(), BridleError> {
         let json = r#"{"name": "test", "clone_url": "url", "private": false, "fork": false, "archived": false, "updated_at": "2026-04-08T00:00:00Z"}"#;
         let parsed: GithubRepo = serde_json::from_str(json)?;
         assert_eq!(parsed.name, "test");

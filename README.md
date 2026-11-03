@@ -45,10 +45,11 @@ Furthermore, `bridle-ctl` provides a completely offline, local "Git Forge" (via 
 
 The workspace is divided into several specialized crates and applications:
 
-- **`bridle-sdk`**: The core data access and execution library. Contains the dynamic Diesel schemas for SQLite and PostgreSQL, file locking mechanisms, encoding normalizers, and the FFI bridging logic that calls compiled tools.
-- **`bridle-cli`**: The primary user interface for administrators. Handles batch task execution, PR syncing, and running individual tools via a Terminal UI (TUI).
+- **`bridle-models`**: Shared domain models, request/response DTOs, and Diesel database schemas for both SQLite and PostgreSQL.
+- **`bridle-sdk`**: The core data access and execution library. Contains dynamic Diesel connection management (`DbConnection`), migrations, file locking mechanisms, encoding normalizers, path scoping, and the FFI bridging logic that calls compiled tools.
+- **`bridle-cli`**: The primary user interface for administrators. Handles local audits/fixes, organization ingestion, batch task execution, PR syncing, and tracking batch runs via a Terminal UI (TUI).
 - **`bridle-agent`**: The MCP Server and daemon loop. It acts as the "AI Engineer," constantly polling the local database for new Issues, cloning the local repository, executing FFI tools to fulfill the Issue, and submitting local PRs.
-- **`bridle-ui`**: A modern Angular 18+ application providing a visual dashboard to monitor AI agent activity, review pending PRs, and manually trigger batch operations.
+- **`bridle-ui`**: A modern Angular 22 application providing a visual dashboard to monitor AI agent activity, review pending PRs, and manually trigger batch operations.
 - **`bridle-rest` & `bridle-rpc`**: API gateways for external tools or scripts to interact with the local Git Forge and tool registry.
 
 For a deeper dive, see [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -62,10 +63,10 @@ To get started, you can run the agent loop, start the REST APIs, or execute a ba
 bridle agent
 
 # Run a batch fix across multiple repositories
-bridle batch-fix --org "my-org" --issue "Fix deprecated API" --tools "ffi_fixer" --db-url "postgres://user:pass@localhost/bridle"
+bridle batch-fix --org "my-org" --issue "Fix deprecated API" --tools "go-auto-err-handling" --db-url "postgres://user:pass@localhost/bridle"
 
 # Sync approved local PRs to GitHub (creates forks automatically)
-bridle sync-prs --org "my-org" --db-url "sqlite://bridle.db" --max-prs-per-hour 10
+bridle sync-prs --org "my-org" --fork-org "my-fork-org" --db-url "sqlite://bridle.db" --max-prs-per-hour 10
 ```
 
 For full usage instructions, including environment variables and batch configuration, see [USAGE.md](./USAGE.md).
@@ -74,23 +75,30 @@ For full usage instructions, including environment variables and batch configura
 
 The true power of `bridle-ctl` lies in its extensible toolchain. Instead of teaching an LLM how to perfectly rewrite a complex regex, you write a deterministic tool (in Rust, Go, C++, etc.), compile it to a shared library, and register it via FFI. The AI agent simply decides _when_ and _where_ to run the tool.
 
-With the new dynamic TOML plugin architecture, you can now add compiled FFI tools without recompiling the orchestrator. Simply drop a `.toml` configuration file mapping your tool's ABI functions into the `.bridle-plugins/` directory and enable it in `bridle-tools.toml`.
+With the dynamic TOML plugin architecture, you can add compiled FFI (`ffi` or `dlopen`), `subprocess`, or `jsonrpc` tools without recompiling the orchestrator. Simply drop a `.toml` configuration file into the `.bridle-plugins/` directory and enable it in `bridle-tools.toml`.
 
 For a step-by-step guide on creating, wrapping, and registering new tools, see [ADD_NEW_TOOLS.md](./ADD_NEW_TOOLS.md).
 
 ## 🧰 Built-in Tool Registry
 
-`bridle-ctl` ships with several built-in FFI wrappers and utilities:
+`bridle-ctl` ships with several built-in native and TOML-configured FFI/subprocess wrappers:
 
-| Tool Name                      | Description                                                      | Target Language |
-| :----------------------------- | :--------------------------------------------------------------- | :-------------- |
-| `go-auto-err-handling`         | Automatically injects `if err != nil { return err }` blocks.     | Go              |
-| `type-correct`                 | Resolves standard C/C++ type inconsistencies via AST parsing.    | C/C++           |
-| `lib2notebook2lib`             | Bi-directional sync between Python source and Jupyter notebooks. | Python          |
-| `py-grade-up`                  | Upgrades Python source code syntax to newer language features.   | Python          |
-| `cdd-extern-c`                 | Safely wraps headers in `extern "C"` blocks.                     | C/C++           |
-| `encoding-normalizer`          | Standardizes file encodings (UTF-8) and line endings (LF).       | Any             |
-| `rust-unwrap-to-question-mark` | Safely refactors `.unwrap()` calls to idiomatic `?` usage.       | Rust            |
+| Tool Name                      | Description                                                                | Target Language / Files |
+| :----------------------------- | :------------------------------------------------------------------------- | :---------------------- |
+| `go-auto-err-handling`         | Automatically injects `if err != nil { return err }` blocks.               | Go (`*.go`)             |
+| `type-correct`                 | Resolves standard C/C++ type inconsistencies via AST parsing.              | C/C++ (`*.c/cpp/h/hpp`) |
+| `cdd-extern-c`                 | Safely wraps headers in `extern "C"` blocks.                               | C/C++ (`*.c/cpp/h/hpp`) |
+| `cdd-msvc-port`                | Ports POSIX-specific constructs to MSVC-compatible ones.                   | C/C++ (`*.c/cpp/h/hpp`) |
+| `cdd-gnu-standardizer`         | Standardizes GNU extensions into cross-platform C/C++ constructs.          | C/C++ (`*.c/cpp/h/hpp`) |
+| `cdd-error-percolator`         | Automates C/C++ error propagation logic (percolation) through call stacks. | C/C++ (`*.c/cpp/h/hpp`) |
+| `cdd-safe-crt`                 | Migrates legacy C functions to Safe CRT (C Runtime) alternatives.          | C/C++ (`*.c/cpp/h/hpp`) |
+| `lib2notebook2lib`             | Bi-directional sync between Python source and Jupyter notebooks.           | Python (`*.py`, `*.ipynb`) |
+| `py-grade-up`                  | Upgrades Python source code syntax to newer language features.             | Python (`*.py`)         |
+| `rust-unwrap-to-question-mark` | Safely refactors `.unwrap()` calls to idiomatic `?` usage.                 | Rust (`*.rs`)           |
+| `gha-improver`                 | Improves GitHub Actions workflows.                                         | YAML (`.github/workflows/*.yml`) |
+| `encoding-normalizer`          | Normalizes file encodings and line endings.                                | Text (`*.txt`)          |
+| `file-lock-tester`             | Tests exclusive file mutations using OS-level file locks.                  | Text (`*.txt`)          |
+| `db-migrator-tester`           | Tests establishing DB connections and running migrations via the SDK.      | SQLite (`*.sqlite3`)    |
 
 ## 📖 Further Reading
 

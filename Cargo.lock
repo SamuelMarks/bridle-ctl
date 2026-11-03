@@ -442,8 +442,10 @@ dependencies = [
  "bridle-sdk",
  "chrono",
  "derive_more 1.0.0",
+ "serde",
  "serde_json",
  "serial_test",
+ "tempfile",
  "utoipa",
 ]
 
@@ -458,6 +460,7 @@ dependencies = [
  "derive_more 1.0.0",
  "jsonrpsee",
  "serial_test",
+ "tempfile",
  "tokio",
 ]
 
@@ -481,11 +484,14 @@ dependencies = [
  "globset",
  "indicatif",
  "jsonrpsee",
+ "libloading",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
  "serial_test",
  "tempfile",
+ "toml 1.1.2+spec-1.1.0",
  "tracing",
  "tracing-subscriber",
 ]

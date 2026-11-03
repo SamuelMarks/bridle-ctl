@@ -31,9 +31,9 @@ describe('AppLayoutComponent', () => {
 
   it('should render header with title', () => {
     const title = fixture.debugElement.query(
-      By.css('.Header-title'),
+      By.css('.Header-link'),
     ).nativeElement;
-    expect(title.textContent.trim()).toBe('Bridle');
+    expect(title.textContent.trim()).toBe('Bridle Control');
   });
 
   it('should render sidebar navigation', () => {

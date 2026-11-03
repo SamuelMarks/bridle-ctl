@@ -1,12 +1,12 @@
 //! Dynamic tool implementations
+use std::env;
 use std::ffi::{CStr, CString};
+use std::process::Command;
+use std::sync::Arc;
 
 use super::CodeTool;
 use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;
-
-use std::process::Command;
-use std::sync::Arc;
 
 /// A tool that executes a subprocess
 pub struct SubprocessTool {
@@ -32,7 +32,6 @@ pub struct SubprocessTool {
     venv_aware: bool,
 }
 
-#[cfg(not(tarpaulin_include))]
 impl SubprocessTool {
     /// Create a new SubprocessTool
     #[allow(clippy::too_many_arguments)]
@@ -44,7 +43,6 @@ impl SubprocessTool {
         author: Option<String>,
         url: Option<String>,
         license: Option<String>,
-
         command: String,
         env: std::collections::HashMap<String, String>,
         venv_aware: bool,
@@ -63,6 +61,19 @@ impl SubprocessTool {
         }
     }
 
+    /// Prepends `bin_dir` to `PATH` inside `envs`.
+    fn prepend_bin_to_path(
+        envs: &mut std::collections::HashMap<String, String>,
+        bin_dir: std::path::PathBuf,
+    ) {
+        let current_path = std::env::var("PATH").unwrap_or_default();
+        let new_path = std::env::join_paths(
+            std::iter::once(bin_dir).chain(std::env::split_paths(&current_path)),
+        )
+        .unwrap_or_default();
+        envs.insert("PATH".to_string(), new_path.to_string_lossy().to_string());
+    }
+
     /// Configures the command with arguments and environment variables.
     fn configure_command(
         &self,
@@ -70,30 +81,21 @@ impl SubprocessTool {
         args: &[String],
         dry_run: Option<bool>,
     ) -> Command {
+        #[cfg(windows)]
+        const VENV_BIN_SUBDIR: &str = "Scripts";
+        #[cfg(not(windows))]
+        const VENV_BIN_SUBDIR: &str = "bin";
+
         let mut cmd = Command::new(&self.command);
         let mut envs = self.env.clone();
 
         if self.venv_aware {
             if let Ok(venv) = std::env::var("VIRTUAL_ENV") {
                 let venv_path = std::path::PathBuf::from(venv);
-                let bin_dir = if cfg!(windows) {
-                    venv_path.join("Scripts")
-                } else {
-                    venv_path.join("bin")
-                };
-                if let Ok(path) = std::env::var("PATH") {
-                    let new_path = std::env::join_paths(
-                        std::iter::once(bin_dir).chain(std::env::split_paths(&path)),
-                    )
-                    .unwrap_or_default();
-                    envs.insert("PATH".to_string(), new_path.to_string_lossy().to_string());
-                } else {
-                    envs.insert("PATH".to_string(), bin_dir.display().to_string());
-                }
+                Self::prepend_bin_to_path(&mut envs, venv_path.join(VENV_BIN_SUBDIR));
             } else {
                 let mut local_venvs = vec![".venv".to_string(), "venv".to_string()];
 
-                // Also find versioned venv paths like .venv-3-11, .venv-uv-3-12, etc.
                 if let Ok(entries) = std::fs::read_dir(".") {
                     let prefixes = [
                         ".venv-uv-",
@@ -128,31 +130,11 @@ impl SubprocessTool {
                 for v in local_venvs.iter() {
                     let venv_path = std::path::Path::new(v);
                     if venv_path.exists() && venv_path.is_dir() {
-                        let bin_dir = if cfg!(windows) {
-                            venv_path.join("Scripts")
-                        } else {
-                            venv_path.join("bin")
-                        };
-                        if let Ok(path) = std::env::var("PATH") {
-                            let new_path = std::env::join_paths(
-                                std::iter::once(bin_dir).chain(std::env::split_paths(&path)),
-                            )
-                            .unwrap_or_default();
-                            envs.insert("PATH".to_string(), new_path.to_string_lossy().to_string());
-                        } else {
-                            envs.insert("PATH".to_string(), bin_dir.display().to_string());
-                        }
-                        envs.insert(
-                            "VIRTUAL_ENV".to_string(),
-                            venv_path
-                                .canonicalize()
-                                .unwrap_or_else(
-                                    #[cfg(not(tarpaulin_include))]
-                                    |_| venv_path.to_path_buf(),
-                                )
-                                .display()
-                                .to_string(),
-                        );
+                        Self::prepend_bin_to_path(&mut envs, venv_path.join(VENV_BIN_SUBDIR));
+                        let canonical = venv_path
+                            .canonicalize()
+                            .unwrap_or_else(|_| venv_path.to_path_buf());
+                        envs.insert("VIRTUAL_ENV".to_string(), canonical.display().to_string());
                         break;
                     }
                 }
@@ -169,7 +151,6 @@ impl SubprocessTool {
     }
 }
 
-#[cfg(not(tarpaulin_include))]
 impl CodeTool for SubprocessTool {
     fn name(&self) -> &str {
         &self.name
@@ -180,19 +161,15 @@ impl CodeTool for SubprocessTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
-    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
@@ -204,7 +181,7 @@ impl CodeTool for SubprocessTool {
         if output.status.success() {
             Ok(String::from_utf8(output.stdout)?.trim().to_string())
         } else {
-            Err(BridleError::Generic(
+            Err(BridleError::Tool(
                 String::from_utf8(output.stderr)?.trim().to_string(),
             ))
         }
@@ -222,7 +199,7 @@ impl CodeTool for SubprocessTool {
         if output.status.success() {
             Ok(String::from_utf8(output.stdout)?.trim().to_string())
         } else {
-            Err(BridleError::Generic(
+            Err(BridleError::Tool(
                 String::from_utf8(output.stderr)?.trim().to_string(),
             ))
         }
@@ -271,7 +248,6 @@ pub struct JsonRpcTool {
     endpoint: String,
 }
 
-#[cfg(not(tarpaulin_include))]
 impl JsonRpcTool {
     /// Create a new JsonRpcTool
     #[allow(clippy::too_many_arguments)]
@@ -309,13 +285,12 @@ impl JsonRpcTool {
         let res = client.post(&self.endpoint).json(&req).send()?;
         let rpc_res: JsonRpcResponse = res.json()?;
         if let Some(err) = rpc_res.error {
-            return Err(BridleError::Generic(err.to_string()));
+            return Err(BridleError::Tool(err.to_string()));
         }
         Ok(rpc_res.result.unwrap_or_default())
     }
 }
 
-#[cfg(not(tarpaulin_include))]
 impl CodeTool for JsonRpcTool {
     fn name(&self) -> &str {
         &self.name
@@ -326,19 +301,15 @@ impl CodeTool for JsonRpcTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
-    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
@@ -399,8 +370,6 @@ pub struct DlopenTool {
 unsafe impl Send for DlopenTool {}
 unsafe impl Sync for DlopenTool {}
 
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 impl DlopenTool {
     /// Create a new DlopenTool
     #[allow(clippy::too_many_arguments)]
@@ -412,12 +381,9 @@ impl DlopenTool {
         author: Option<String>,
         url: Option<String>,
         license: Option<String>,
-
         path: &str,
     ) -> Result<Self, BridleError> {
-        let lib = unsafe {
-            libloading::Library::new(path).map_err(|e| BridleError::Generic(e.to_string()))?
-        };
+        let lib = unsafe { libloading::Library::new(path)? };
         Ok(Self {
             name,
             description,
@@ -437,31 +403,20 @@ impl DlopenTool {
         args: &[String],
         dry_run: Option<bool>,
     ) -> Result<String, BridleError> {
-        let c_args: Vec<CString> = args
-            .iter()
-            .map(|s| {
-                CString::new(s.as_str()).unwrap_or_else(
-                    #[cfg(not(tarpaulin_include))]
-                    |_| CString::new("").unwrap_or_default(),
-                )
-            })
-            .collect();
+        let mut c_args = Vec::with_capacity(args.len());
+        for s in args {
+            c_args.push(CString::new(s.as_str())?);
+        }
 
         let c_args_ptrs: Vec<*const std::ffi::c_char> = c_args.iter().map(|c| c.as_ptr()).collect();
         let mut out_ptr: *mut std::ffi::c_char = std::ptr::null_mut();
 
         let res = unsafe {
             if let Some(dr) = dry_run {
-                let func: libloading::Symbol<FixFunc> = self
-                    .lib
-                    .get(func_name)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let func: libloading::Symbol<FixFunc> = self.lib.get(func_name)?;
                 func(c_args_ptrs.as_ptr(), c_args_ptrs.len(), dr, &mut out_ptr)
             } else {
-                let func: libloading::Symbol<AuditFunc> = self
-                    .lib
-                    .get(func_name)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let func: libloading::Symbol<AuditFunc> = self.lib.get(func_name)?;
                 func(c_args_ptrs.as_ptr(), c_args_ptrs.len(), &mut out_ptr)
             }
         };
@@ -475,7 +430,7 @@ impl DlopenTool {
         if res == 0 {
             Ok(out_str)
         } else {
-            Err(BridleError::Generic(format!(
+            Err(BridleError::Tool(format!(
                 "dlopen function returned error {}: {}",
                 res, out_str
             )))
@@ -483,8 +438,6 @@ impl DlopenTool {
     }
 }
 
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 impl CodeTool for DlopenTool {
     fn name(&self) -> &str {
         &self.name
@@ -495,19 +448,15 @@ impl CodeTool for DlopenTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
-    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
@@ -525,8 +474,6 @@ impl CodeTool for DlopenTool {
         self.call_c_func(b"tool_fix\0", args, Some(dry_run))
     }
 }
-
-use std::env;
 
 /// A tool that uses a statically linked FFI function
 pub struct FfiTool {
@@ -550,7 +497,6 @@ pub struct FfiTool {
     subcommand: Option<String>,
 }
 
-#[cfg(not(tarpaulin_include))]
 impl FfiTool {
     /// Create a new FfiTool
     #[allow(clippy::too_many_arguments)]
@@ -562,7 +508,6 @@ impl FfiTool {
         author: Option<String>,
         url: Option<String>,
         license: Option<String>,
-
         wrapper: String,
         subcommand: Option<String>,
     ) -> Self {
@@ -580,8 +525,6 @@ impl FfiTool {
     }
 }
 
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 impl CodeTool for FfiTool {
     fn name(&self) -> &str {
         &self.name
@@ -592,39 +535,33 @@ impl CodeTool for FfiTool {
     fn match_regex(&self) -> &str {
         &self.match_regex
     }
-    #[cfg(not(tarpaulin_include))]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn author(&self) -> Option<&str> {
         self.author.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn url(&self) -> Option<&str> {
         self.url.as_deref()
     }
-    #[cfg(not(tarpaulin_include))]
     fn license(&self) -> Option<&str> {
         self.license.as_deref()
     }
 
-    fn audit(&self, args: &[String], _scope: Option<&PathScope>) -> Result<String, BridleError> {
+    fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, BridleError> {
         let path_str = args.first().map(|s| s.as_str()).unwrap_or(".");
-        let c_path = CString::new(path_str)
-            .map_err(|_| BridleError::Generic("Invalid C string".to_string()))?;
+        let c_path = CString::new(path_str)?;
 
         match self.wrapper.as_str() {
             "type_correct" => {
                 if args.is_empty() {
-                    return Err(BridleError::Generic(
+                    return Err(BridleError::Tool(
                         "Missing target file argument".to_string(),
                     ));
                 }
-                let result = bridle_sdk::ffi::type_correct_audit_safe(&c_path, _scope)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let result = bridle_sdk::ffi::type_correct_audit_safe(&c_path, scope)?;
                 if result != 0 {
-                    return Err(BridleError::Generic(format!(
+                    return Err(BridleError::Tool(format!(
                         "Audit returned error code: {}",
                         result
                     )));
@@ -632,8 +569,7 @@ impl CodeTool for FfiTool {
                 Ok("type-correct audit executed successfully".into())
             }
             "go_auto_err" => {
-                let result = bridle_sdk::ffi::audit_go_errors(&c_path, _scope)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let result = bridle_sdk::ffi::audit_go_errors(&c_path, scope)?;
                 if result == 0 {
                     Ok(format!(
                         "go-auto-err-handling audit: No issues found for {}",
@@ -653,15 +589,14 @@ impl CodeTool for FfiTool {
                 if args.is_empty() {
                     return Ok("No file provided".to_string());
                 }
-                let res = bridle_sdk::ffi::convert_to_notebook(&c_path, false, false, _scope)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let res = bridle_sdk::ffi::convert_to_notebook(&c_path, false, false, scope)?;
                 if res == 0 {
                     Ok(format!(
                         "lib2notebook2lib audit executed successfully for {}",
                         args[0]
                     ))
                 } else {
-                    Err(BridleError::Generic(format!(
+                    Err(BridleError::Tool(format!(
                         "Audit failed with exit code: {}",
                         res
                     )))
@@ -669,23 +604,19 @@ impl CodeTool for FfiTool {
             }
             "cdd" => {
                 if args.is_empty() {
-                    return Err(BridleError::Generic(
+                    return Err(BridleError::Tool(
                         "Missing target file argument".to_string(),
                     ));
                 }
-                if _scope.is_some_and(|s| !s.is_allowed(path_str)) {
-                    return Err(BridleError::Tool("Path scope violation".to_string()));
-                }
                 let subcmd = self.subcommand.as_deref().unwrap_or("");
                 let result =
-                    bridle_sdk::ffi::cdd_transformer_safe(subcmd, path_str, true, false, _scope)
-                        .map_err(|e| BridleError::Generic(e.to_string()))?;
+                    bridle_sdk::ffi::cdd_transformer_safe(subcmd, path_str, true, false, scope)?;
                 if result != 0 {
-                    return Err(BridleError::Generic(format!("{} failed", self.name)));
+                    return Err(BridleError::Tool(format!("{} failed", self.name)));
                 }
                 Ok(format!("{} audit executed", self.name))
             }
-            _ => Err(BridleError::Generic(format!(
+            _ => Err(BridleError::Config(format!(
                 "Unknown wrapper: {}",
                 self.wrapper
             ))),
@@ -696,23 +627,21 @@ impl CodeTool for FfiTool {
         &self,
         args: &[String],
         dry_run: bool,
-        _scope: Option<&PathScope>,
+        scope: Option<&PathScope>,
     ) -> Result<String, BridleError> {
         let path_str = args.first().map(|s| s.as_str()).unwrap_or(".");
-        let c_path = CString::new(path_str)
-            .map_err(|_| BridleError::Generic("Invalid C string".to_string()))?;
+        let c_path = CString::new(path_str)?;
 
         match self.wrapper.as_str() {
             "type_correct" => {
                 if args.is_empty() {
-                    return Err(BridleError::Generic(
+                    return Err(BridleError::Tool(
                         "Missing target file argument".to_string(),
                     ));
                 }
-                let result = bridle_sdk::ffi::type_correct_fix_safe(&c_path, dry_run, _scope)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let result = bridle_sdk::ffi::type_correct_fix_safe(&c_path, dry_run, scope)?;
                 if result != 0 {
-                    return Err(BridleError::Generic(format!(
+                    return Err(BridleError::Tool(format!(
                         "Fix returned error code: {}",
                         result
                     )));
@@ -723,8 +652,7 @@ impl CodeTool for FfiTool {
                 Ok("type-correct fix applied".into())
             }
             "go_auto_err" => {
-                let result = bridle_sdk::ffi::fix_go_errors(&c_path, dry_run, _scope)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let result = bridle_sdk::ffi::fix_go_errors(&c_path, dry_run, scope)?;
                 let dry_prefix = if dry_run { "[DRY RUN] " } else { "" };
                 if result == 0 {
                     Ok(format!(
@@ -732,7 +660,7 @@ impl CodeTool for FfiTool {
                         dry_prefix, path_str
                     ))
                 } else {
-                    Err(BridleError::Generic(format!(
+                    Err(BridleError::Tool(format!(
                         "go-auto-err-handling fix failed for {}",
                         path_str
                     )))
@@ -748,8 +676,7 @@ impl CodeTool for FfiTool {
                 if args.is_empty() {
                     return Ok("No file provided".to_string());
                 }
-                let res = bridle_sdk::ffi::convert_to_notebook(&c_path, true, dry_run, _scope)
-                    .map_err(|e| BridleError::Generic(e.to_string()))?;
+                let res = bridle_sdk::ffi::convert_to_notebook(&c_path, true, dry_run, scope)?;
                 if res == 0 {
                     let dry_prefix = if dry_run { "[DRY RUN] " } else { "" };
                     Ok(format!(
@@ -757,7 +684,7 @@ impl CodeTool for FfiTool {
                         dry_prefix, args[0]
                     ))
                 } else {
-                    Err(BridleError::Generic(format!(
+                    Err(BridleError::Tool(format!(
                         "Fix failed with exit code: {}",
                         res
                     )))
@@ -765,19 +692,15 @@ impl CodeTool for FfiTool {
             }
             "cdd" => {
                 if args.is_empty() {
-                    return Err(BridleError::Generic(
+                    return Err(BridleError::Tool(
                         "Missing target file argument".to_string(),
                     ));
                 }
-                if _scope.is_some_and(|s| !s.is_allowed(path_str)) {
-                    return Err(BridleError::Tool("Path scope violation".to_string()));
-                }
                 let subcmd = self.subcommand.as_deref().unwrap_or("");
                 let result =
-                    bridle_sdk::ffi::cdd_transformer_safe(subcmd, path_str, false, dry_run, _scope)
-                        .map_err(|e| BridleError::Generic(e.to_string()))?;
+                    bridle_sdk::ffi::cdd_transformer_safe(subcmd, path_str, false, dry_run, scope)?;
                 if result != 0 {
-                    return Err(BridleError::Generic(format!("{} failed", self.name)));
+                    return Err(BridleError::Tool(format!("{} failed", self.name)));
                 }
                 if dry_run {
                     Ok(format!("[DRY RUN] {} fix planned", self.name))
@@ -785,78 +708,31 @@ impl CodeTool for FfiTool {
                     Ok(format!("{} fix applied", self.name))
                 }
             }
-            _ => Err(BridleError::Generic(format!(
+            _ => Err(BridleError::Config(format!(
                 "Unknown wrapper: {}",
                 self.wrapper
             ))),
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test_dynamic_tools_coverage() {
-        use super::*;
-        use crate::tools::CodeTool;
-        let sub = SubprocessTool::new(
-            "test".to_string(),
-            "desc".to_string(),
-            ".*".to_string(),
-            None,
-            None,
-            None,
-            None,
-            "invalid".to_string(),
-            std::collections::HashMap::new(),
-            false,
-        );
-        let _ = sub.name();
-        let _ = sub.description();
-        let _ = sub.match_regex();
-        let _ = sub.fix(&["/invalid".to_string()], true, None);
-        let _ = sub.audit(&["/invalid".to_string()], None);
-
-        let rpc = JsonRpcTool::new(
-            "test".to_string(),
-            "desc".to_string(),
-            ".*".to_string(),
-            None,
-            None,
-            None,
-            None,
-            "http://invalid".to_string(),
-        );
-        let _ = rpc.name();
-        let _ = rpc.fix(&["/invalid".to_string()], true, None);
-        let _ = rpc.audit(&["/invalid".to_string()], None);
-
-        if let Ok(ffi) = DlopenTool::new(
-            "test".to_string(),
-            "desc".to_string(),
-            ".*".to_string(),
-            None,
-            None,
-            None,
-            None,
-            "invalid.so",
-        ) {
-            let _ = ffi.name();
-            let _ = ffi.fix(&["/invalid".to_string()], true, None);
-            let _ = ffi.audit(&["/invalid".to_string()], None);
-        }
-    }
     use super::*;
+    use crate::tools::CodeTool;
+    use serial_test::serial;
 
     #[test]
-    fn test_subprocess_tool() -> Result<(), BridleError> {
+    #[serial]
+    fn test_subprocess_tool_metadata_and_venv() -> Result<(), BridleError> {
         let tool = SubprocessTool::new(
             "test".to_string(),
             "desc".to_string(),
             ".*".to_string(),
-            None,
-            None,
-            None,
-            None,
+            Some("1.0".to_string()),
+            Some("author".to_string()),
+            Some("http://url".to_string()),
+            Some("MIT".to_string()),
             "echo".to_string(),
             std::collections::HashMap::new(),
             true,
@@ -864,37 +740,113 @@ mod tests {
         assert_eq!(tool.name(), "test");
         assert_eq!(tool.description(), "desc");
         assert_eq!(tool.match_regex(), ".*");
+        assert_eq!(tool.version(), Some("1.0"));
+        assert_eq!(tool.author(), Some("author"));
+        assert_eq!(tool.url(), Some("http://url"));
+        assert_eq!(tool.license(), Some("MIT"));
 
-        let audit_res = tool.audit(&[], None)?;
-        assert_eq!(audit_res, "audit");
+        assert_eq!(tool.audit(&[], None)?, "audit");
+        assert_eq!(tool.fix(&[], false, None)?, "fix");
+        assert_eq!(tool.fix(&[], true, None)?, "fix --dry-run");
 
-        let fix_res = tool.fix(&[], false, None)?;
-        assert_eq!(fix_res, "fix");
+        unsafe {
+            env::set_var("VIRTUAL_ENV", "/tmp/fake_venv");
+        }
+        assert_eq!(tool.audit(&[], None)?, "audit");
+        unsafe {
+            env::remove_var("VIRTUAL_ENV");
+        }
 
-        let dry_res = tool.fix(&[], true, None)?;
-        assert_eq!(dry_res, "fix --dry-run");
-        Ok(())
-    }
+        let tmp_dir = tempfile::tempdir()?;
+        let orig_dir = env::current_dir()?;
+        env::set_current_dir(tmp_dir.path())?;
+        std::fs::create_dir_all(".venv-3-12/bin")?;
+        std::fs::create_dir_all(".venv/bin")?;
+        let _ = tool.audit(&[], None)?;
+        env::set_current_dir(orig_dir)?;
 
-    #[test]
-    fn test_jsonrpc_tool() {
-        let tool = JsonRpcTool::new(
-            "rpc".to_string(),
+        let fail_tool = SubprocessTool::new(
+            "fail".to_string(),
             "desc".to_string(),
             ".*".to_string(),
             None,
             None,
             None,
             None,
-            "http://localhost:0".to_string(),
+            "false".to_string(),
+            std::collections::HashMap::new(),
+            false,
         );
-        assert_eq!(tool.name(), "rpc");
-        let err = tool.audit(&[], None);
-        assert!(err.is_err());
+        assert!(matches!(
+            fail_tool.audit(&[], None),
+            Err(BridleError::Tool(_))
+        ));
+        assert!(matches!(
+            fail_tool.fix(&[], false, None),
+            Err(BridleError::Tool(_))
+        ));
+
+        Ok(())
     }
 
     #[test]
-    fn test_dlopen_tool() {
+    fn test_jsonrpc_tool_success_and_error() -> Result<(), BridleError> {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
+
+        let handle = std::thread::spawn(move || {
+            for i in 0..3 {
+                if let Ok((mut stream, _)) = listener.accept() {
+                    let mut buf = [0u8; 1024];
+                    let _ = stream.read(&mut buf);
+                    let body = if i < 2 {
+                        r#"{"jsonrpc":"2.0","result":"rpc_ok","id":1}"#
+                    } else {
+                        r#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"fail"},"id":1}"#
+                    };
+                    let resp = format!(
+                        "HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: {}
+
+{}",
+                        body.len(),
+                        body
+                    );
+                    let _ = stream.write_all(resp.as_bytes());
+                }
+            }
+        });
+
+        let tool = JsonRpcTool::new(
+            "rpc".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            Some("1.0".to_string()),
+            Some("author".to_string()),
+            Some("http://url".to_string()),
+            Some("MIT".to_string()),
+            format!("http://127.0.0.1:{}", port),
+        );
+        assert_eq!(tool.name(), "rpc");
+        assert_eq!(tool.description(), "desc");
+        assert_eq!(tool.match_regex(), ".*");
+        assert_eq!(tool.version(), Some("1.0"));
+        assert_eq!(tool.author(), Some("author"));
+        assert_eq!(tool.url(), Some("http://url"));
+        assert_eq!(tool.license(), Some("MIT"));
+
+        assert_eq!(tool.audit(&[], None)?, "rpc_ok");
+        assert_eq!(tool.fix(&[], true, None)?, "rpc_ok");
+        assert!(matches!(tool.audit(&[], None), Err(BridleError::Tool(_))));
+
+        let _ = handle.join();
+        Ok(())
+    }
+
+    #[test]
+    fn test_dlopen_tool() -> Result<(), BridleError> {
         let tool_err = DlopenTool::new(
             "dl".to_string(),
             "desc".to_string(),
@@ -905,6 +857,235 @@ mod tests {
             None,
             "nonexistent.so",
         );
-        assert!(tool_err.is_err());
+        assert!(matches!(tool_err, Err(BridleError::LibLoading(_))));
+
+        // Compile a tiny C shared library in a temp directory to test DlopenTool end-to-end
+        let tmp_dir = tempfile::tempdir()?;
+        let c_file = tmp_dir.path().join("plugin.c");
+        let lib_file = tmp_dir.path().join("libplugin.dylib");
+        std::fs::write(
+            &c_file,
+            r#"
+            int tool_audit(const char** args, unsigned long len, char** out) {
+                if (len == 0) { *out = "audit_ok"; return 0; }
+                *out = 0;
+                return 1;
+            }
+            int tool_fix(const char** args, unsigned long len, _Bool dry, char** out) {
+                *out = dry ? "fix_dry" : "fix_ok";
+                return 0;
+            }
+            "#,
+        )?;
+        let status = Command::new("cc")
+            .args([
+                "-dynamiclib",
+                c_file.to_str().unwrap_or(""),
+                "-o",
+                lib_file.to_str().unwrap_or(""),
+            ])
+            .status()?;
+        assert!(status.success());
+
+        let dl_tool = DlopenTool::new(
+            "dl".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            Some("1.0".to_string()),
+            Some("author".to_string()),
+            Some("http://url".to_string()),
+            Some("MIT".to_string()),
+            lib_file.to_str().unwrap_or(""),
+        )?;
+        assert_eq!(dl_tool.name(), "dl");
+        assert_eq!(dl_tool.description(), "desc");
+        assert_eq!(dl_tool.match_regex(), ".*");
+        assert_eq!(dl_tool.version(), Some("1.0"));
+        assert_eq!(dl_tool.author(), Some("author"));
+        assert_eq!(dl_tool.url(), Some("http://url"));
+        assert_eq!(dl_tool.license(), Some("MIT"));
+
+        assert_eq!(dl_tool.audit(&[], None)?, "audit_ok");
+        assert!(matches!(
+            dl_tool.audit(&["arg".to_string()], None),
+            Err(BridleError::Tool(_))
+        ));
+        assert_eq!(dl_tool.fix(&[], false, None)?, "fix_ok");
+        assert_eq!(dl_tool.fix(&[], true, None)?, "fix_dry");
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_ffi_tool_all_wrappers() -> Result<(), BridleError> {
+        let ffi_meta = FfiTool::new(
+            "meta".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            Some("1.0".to_string()),
+            Some("author".to_string()),
+            Some("http://url".to_string()),
+            Some("MIT".to_string()),
+            "unknown".to_string(),
+            None,
+        );
+        assert_eq!(ffi_meta.name(), "meta");
+        assert_eq!(ffi_meta.description(), "desc");
+        assert_eq!(ffi_meta.match_regex(), ".*");
+        assert_eq!(ffi_meta.version(), Some("1.0"));
+        assert_eq!(ffi_meta.author(), Some("author"));
+        assert_eq!(ffi_meta.url(), Some("http://url"));
+        assert_eq!(ffi_meta.license(), Some("MIT"));
+        assert!(matches!(
+            ffi_meta.audit(&[], None),
+            Err(BridleError::Config(_))
+        ));
+        assert!(matches!(
+            ffi_meta.fix(&[], false, None),
+            Err(BridleError::Config(_))
+        ));
+
+        let cdd_tool = FfiTool::new(
+            "cdd-test".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "cdd".to_string(),
+            Some("cdd-safe-crt".to_string()),
+        );
+        assert!(cdd_tool.audit(&[], None).is_err());
+        assert!(cdd_tool.fix(&[], false, None).is_err());
+
+        unsafe {
+            env::set_var("RUST_TEST_MODE", "1");
+        }
+        assert_eq!(
+            cdd_tool.audit(&["ok.c".to_string()], None)?,
+            "cdd-test audit executed"
+        );
+        assert!(cdd_tool.audit(&["fail.c".to_string()], None).is_err());
+        assert_eq!(
+            cdd_tool.fix(&["ok.c".to_string()], false, None)?,
+            "cdd-test fix applied"
+        );
+        assert_eq!(
+            cdd_tool.fix(&["ok.c".to_string()], true, None)?,
+            "[DRY RUN] cdd-test fix planned"
+        );
+        assert!(cdd_tool.fix(&["fail.c".to_string()], false, None).is_err());
+        unsafe {
+            env::remove_var("RUST_TEST_MODE");
+        }
+
+        let l2n_tool = FfiTool::new(
+            "l2n".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "lib2notebook".to_string(),
+            None,
+        );
+        assert_eq!(l2n_tool.audit(&[], None)?, "No file provided");
+        assert_eq!(l2n_tool.fix(&[], false, None)?, "No file provided");
+
+        unsafe {
+            env::set_var("LIB2NOTEBOOK2LIB_BIN", "true");
+        }
+        assert!(
+            l2n_tool
+                .audit(&["test.py".to_string()], None)?
+                .contains("executed successfully")
+        );
+        assert!(
+            l2n_tool
+                .fix(&["test.py".to_string()], false, None)?
+                .contains("applied successfully")
+        );
+        assert!(
+            l2n_tool
+                .fix(&["test.py".to_string()], true, None)?
+                .contains("[DRY RUN]")
+        );
+
+        unsafe {
+            env::set_var("LIB2NOTEBOOK2LIB_BIN", "false");
+        }
+        assert!(l2n_tool.audit(&["test.py".to_string()], None).is_err());
+        assert!(l2n_tool.fix(&["test.py".to_string()], false, None).is_err());
+        unsafe {
+            env::remove_var("LIB2NOTEBOOK2LIB_BIN");
+        }
+
+        let tc_tool = FfiTool::new(
+            "tc".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "type_correct".to_string(),
+            None,
+        );
+        let tmp_dir = tempfile::tempdir()?;
+        let valid_c = tmp_dir.path().join("valid.c");
+        std::fs::write(&valid_c, "int main() { return 0; }\n")?;
+        let valid_c_str = valid_c.to_string_lossy().to_string();
+        assert!(
+            tc_tool
+                .audit(std::slice::from_ref(&valid_c_str), None)
+                .is_ok()
+        );
+        assert!(
+            tc_tool
+                .fix(std::slice::from_ref(&valid_c_str), true, None)
+                .is_ok()
+        );
+        assert!(
+            tc_tool
+                .fix(std::slice::from_ref(&valid_c_str), false, None)
+                .is_ok()
+        );
+        assert!(
+            tc_tool
+                .fix(&["/nonexistent/bad.c".to_string()], false, None)
+                .is_err()
+        );
+
+        let go_tool = FfiTool::new(
+            "go".to_string(),
+            "desc".to_string(),
+            ".*".to_string(),
+            None,
+            None,
+            None,
+            None,
+            "go_auto_err".to_string(),
+            None,
+        );
+        let bad_go = tmp_dir.path().join("bad.go");
+        std::fs::write(
+            &bad_go,
+            "package main\nfunc fail() error { return nil }\nfunc main() { fail() }\n",
+        )?;
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&bad_go)?.permissions();
+        perms.set_mode(0o400);
+        std::fs::set_permissions(&bad_go, perms)?;
+        let bad_go_str = bad_go.to_string_lossy().to_string();
+        assert!(
+            go_tool
+                .fix(std::slice::from_ref(&bad_go_str), false, None)
+                .is_err()
+        );
+
+        Ok(())
     }
 }

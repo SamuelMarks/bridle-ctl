@@ -47,13 +47,13 @@ All roadmap items, past and future, are strictly aligned with these principles:
 - Implemented Upstream Fork detection and reuse logic on specified `fork_org`.
 - Built Remote Pull Request dispatching (`sync-prs`).
 - Enforced Global rate-limiting constraints for outbound PRs (e.g., max 10 PRs per hour).
-- Developed the Angular UI Dashboard (`bridle-ui`) with strict types, SignalStore, and E2E coverage.
+- Developed the Angular 22 UI Dashboard (`bridle-ui`) with strict types, reactive Signal stores (`JobsStore`, `PrsStore`), and Playwright E2E + Axe accessibility coverage.
 
 ### Phase 6: Quality Assurance & Extensibility
 
-- **Strict Quality Enforcement**: Banned `.unwrap()`, `anyhow`, and TS `any`/`unknown`/`never` from the entire codebase via robust CI/Lint rules.
-- **100% Coverage**: Mandated 100% unit test coverage and 100% documentation coverage in CI checks.
-- **Dynamic FFI Architecture**: Expanded the `bridle-tools.toml` architecture to configure FFI plugins dynamically (e.g. `.bridle-plugins/*.toml`) without recompiling the orchestrator.
+- **Strict Quality Enforcement**: Banned `.unwrap()`, `.expect()`, and `anyhow` in Rust (using a single `BridleError` enum with `derive_more`), and banned TS `any` and `never` across the frontend via strict CI/Lint rules.
+- **100% Coverage**: Mandated 100% unit test coverage (without `#[cfg(not(tarpaulin_include))]` exclusions) and 100% documentation coverage in CI checks.
+- **Dynamic FFI Architecture**: Expanded the `bridle-tools.toml` architecture to configure FFI, `dlopen`, `subprocess`, and `jsonrpc` plugins dynamically (e.g. `.bridle-plugins/*.toml`) without recompiling the orchestrator.
 
 ---
 

@@ -1,11 +1,9 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   input,
   forwardRef,
   Provider,
-  ChangeDetectorRef,
-  inject,
+  signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -25,7 +23,6 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
 @Component({
   selector: 'app-input',
   providers: [APP_INPUT_VALUE_ACCESSOR],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (label()) {
       <label class="input-label" [for]="inputId()">{{ label() }}</label>
@@ -34,20 +31,21 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
     @if (type() === 'textarea') {
       <textarea
         class="form-control"
+        [class.monospace]="monospace()"
         [id]="inputId()"
         [placeholder]="placeholder()"
-        [disabled]="isDisabled"
-        [value]="value"
+        [disabled]="isDisabled()"
+        [value]="value()"
         (input)="onInputChange($event)"
         (blur)="onTouched()"
-        rows="3"
+        [rows]="rows()"
       ></textarea>
     } @else if (type() === 'select') {
       <select
         class="form-select"
         [id]="inputId()"
-        [disabled]="isDisabled"
-        [value]="value"
+        [disabled]="isDisabled()"
+        [value]="value()"
         (change)="onSelectChange($event)"
         (blur)="onTouched()"
       >
@@ -58,11 +56,12 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
     } @else {
       <input
         class="form-control"
+        [class.monospace]="monospace()"
         [type]="type()"
         [id]="inputId()"
         [placeholder]="placeholder()"
-        [disabled]="isDisabled"
-        [value]="value"
+        [disabled]="isDisabled()"
+        [value]="value()"
         (input)="onInputChange($event)"
         (blur)="onTouched()"
       />
@@ -99,6 +98,10 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
       box-sizing: border-box;
     }
 
+    .form-control.monospace {
+      font-family: var(--font-mono);
+    }
+
     .form-control:focus,
     .form-select:focus {
       border-color: var(--color-accent-fg);
@@ -114,9 +117,6 @@ export const APP_INPUT_VALUE_ACCESSOR: Provider = {
   `,
 })
 export class AppInputComponent implements ControlValueAccessor {
-  /** Global counter for input ids */
-  static nextId = 0;
-
   /** Input type (text, password, textarea, select, etc) */
   type = input<string>('text');
 
@@ -132,11 +132,17 @@ export class AppInputComponent implements ControlValueAccessor {
   /** Options array, only used when type is 'select' */
   options = input<{ label: string; value: string }[]>([]);
 
-  /** Internal value of the input */
-  value = '';
+  /** Number of rows when type is 'textarea' */
+  rows = input<number>(3);
+
+  /** Whether to use a monospace font */
+  monospace = input<boolean>(false);
+
+  /** Internal reactive value of the input */
+  value = signal<string>('');
 
   /** Whether the input is disabled */
-  isDisabled = false;
+  isDisabled = signal<boolean>(false);
 
   /**
    * Called when value changes
@@ -147,16 +153,12 @@ export class AppInputComponent implements ControlValueAccessor {
   /** Called when the input is touched */
   onTouched(): void {}
 
-  /** Change detector reference */
-  private cdr = inject(ChangeDetectorRef);
-
   /**
    * Writes a new value to the element.
    * @param value The new value
    */
-  writeValue(value: string): void {
-    this.value = value || '';
-    this.cdr.markForCheck();
+  writeValue(value: string | number | null | undefined): void {
+    this.value.set(value !== null && value !== undefined ? String(value) : '');
   }
 
   /**
@@ -180,8 +182,7 @@ export class AppInputComponent implements ControlValueAccessor {
    * @param isDisabled Whether the control is disabled
    */
   setDisabledState(isDisabled: boolean): void {
-    this.isDisabled = isDisabled;
-    this.cdr.markForCheck();
+    this.isDisabled.set(isDisabled);
   }
 
   /**
@@ -190,7 +191,7 @@ export class AppInputComponent implements ControlValueAccessor {
    */
   onInputChange(event: Event): void {
     const val = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
-    this.value = val;
+    this.value.set(val);
     this.onChange(val);
   }
 
@@ -200,7 +201,7 @@ export class AppInputComponent implements ControlValueAccessor {
    */
   onSelectChange(event: Event): void {
     const val = (event.target as HTMLSelectElement).value;
-    this.value = val;
+    this.value.set(val);
     this.onChange(val);
   }
 }

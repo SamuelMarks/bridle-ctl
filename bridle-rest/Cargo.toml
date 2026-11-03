@@ -10,6 +10,7 @@ bridle-cli = { version = "0.1.0", path = "../bridle-cli" }
 bridle-sdk = { version = "0.1.0", path = "../bridle-sdk" }
 chrono = { workspace = true }
 derive_more = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 utoipa = { version = "5.1", features = ["actix_extras"] }
 
@@ -19,3 +20,4 @@ workspace = true
 
 [dev-dependencies]
 serial_test = "3.4.0"
+tempfile = { workspace = true }

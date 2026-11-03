@@ -1,21 +1,17 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  input,
-  output,
-} from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 /**
  * A standard modal component following GitHub Primer styling.
  */
 @Component({
   selector: 'app-modal',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isOpen()) {
       <div
         class="modal-backdrop"
-        tabindex="-1"
+        tabindex="0"
+        role="button"
+        aria-label="Close modal backdrop"
         (click)="closeOnBackdropClick() ? close.emit() : null"
         (keyup.escape)="close.emit()"
       >
@@ -24,9 +20,9 @@ import {
           role="dialog"
           aria-modal="true"
           [attr.aria-label]="title()"
-          tabindex="-1"
+          tabindex="0"
           (click)="$event.stopPropagation()"
-          (keyup.enter)="(null)"
+          (keydown)="$event.stopPropagation()"
         >
           <div class="Box-header modal-header">
             <h2 class="Box-title">{{ title() }}</h2>

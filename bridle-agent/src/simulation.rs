@@ -30,7 +30,7 @@ pub fn run_workflow_simulation(db_url: &str) -> Result<String, BridleError> {
 
     // 3. Mutate Code (dry-run to be safe)
     let req = ToolRunRequest {
-        pattern: Some(".*\\.rs$".to_string()),
+        pattern: Some(r".*\.rs$".to_string()),
         tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
         tool_args: None,
         dry_run: Some(true),

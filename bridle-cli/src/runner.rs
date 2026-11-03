@@ -1,12 +1,9 @@
-#![cfg(not(tarpaulin_include))]
-
 //! Logic for running codebase tools (audit and fix modes).
 
 use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
-use std::process::Command;
 use std::time::Duration;
 
 use ignore::WalkBuilder;
@@ -16,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::tools::{self, registry};
 use crate::tui;
+use crate::workspace::git_command;
 use bridle_sdk::BridleError;
 
 /// Defines the action to be performed by the runner.
@@ -44,10 +42,6 @@ struct Report {
 }
 
 /// Scans the current directory and matches files against tool regex patterns.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 fn detect_applicable_tools(tools: &[Box<dyn tools::CodeTool>]) -> Vec<String> {
     let mut applicable = HashSet::new();
     let mut regexes = Vec::new();
@@ -76,7 +70,6 @@ fn detect_applicable_tools(tools: &[Box<dyn tools::CodeTool>]) -> Vec<String> {
 }
 
 /// Interactive selection
-#[cfg(not(tarpaulin_include))]
 fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, BridleError> {
     let all_tools = registry::get_tools();
     let detected_names = detect_applicable_tools(&all_tools);
@@ -91,20 +84,11 @@ fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, BridleError>
         .filter(|t| detected_names.contains(&t.name().to_string()))
         .collect();
 
-    let selected_indices = if std::env::var("BRIDLE_TEST_MOCK_TUI").is_ok() {
-        vec![0] // Mock selection
-    } else {
-        tui::select_tools(&available_tools)?
-    };
+    let selected_indices = tui::select_tools(&available_tools)?;
 
-    // Need to extract the selected tools from the vector, taking ownership.
-    // We can do this by keeping the ones that were selected.
     let mut selected_tools = Vec::new();
-    // iterate backwards to safely remove from available_tools, or just use indices directly
     for index in selected_indices {
         if let Some(tool) = available_tools.get(index) {
-            // Need to reconstruct from registry to get owned boxes since we can't easily move out of the filtered vec dynamically without complicated ownership
-            // simpler: just re-fetch the ones we selected by name
             let name = tool.name().to_string();
             let all = registry::get_tools();
             if let Some(t) = all.into_iter().find(|t| t.name() == name) {
@@ -117,27 +101,29 @@ fn interactive_selection() -> Result<Vec<Box<dyn tools::CodeTool>>, BridleError>
 }
 
 /// Append to README
-#[cfg(not(tarpaulin_include))]
 fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), BridleError> {
     if Path::new("README.md").exists() {
         let mut file = OpenOptions::new().append(true).open("README.md")?;
 
         writeln!(
             file,
-            "\n## Latest {} Report\n```json\n{}\n```",
+            "
+## Latest {} Report
+```json
+{}
+```",
             action_name, json_report
         )?;
-        println!("\n📝 Appended report to README.md");
+        println!(
+            "
+📝 Appended report to README.md"
+        );
 
-        // Run git diff
-        println!("\n🔍 Running `git diff README.md` to detail changes:");
-        let output = Command::new("git")
-            .env_remove("GIT_DIR")
-            .env_remove("GIT_WORK_TREE")
-            .env_remove("GIT_INDEX_FILE")
-            .arg("diff")
-            .arg("README.md")
-            .output()?;
+        println!(
+            "
+🔍 Running `git diff README.md` to detail changes:"
+        );
+        let output = git_command().arg("diff").arg("README.md").output()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         if stdout.trim().is_empty() {
@@ -152,10 +138,6 @@ fn append_to_readme(action_name: &str, json_report: &str) -> Result<(), BridleEr
 }
 
 /// Runs the selected action (audit/fix) potentially filtering by pattern and specific tools.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Result<(), BridleError> {
     let action_name = match action {
         Action::Audit => "audit",
@@ -164,11 +146,7 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
 
     println!("🔍 Starting {}...", action_name);
 
-    let selected_tools_opt: Option<Vec<Box<dyn tools::CodeTool>>>;
-
-    // Determine tools
-    if let Some(pattern) = &request.pattern {
-        // Non-interactive mode (pattern)
+    let selected_tools = if let Some(pattern) = &request.pattern {
         let available_for_pattern = registry::get_tools_for_pattern(pattern);
         if available_for_pattern.is_empty() {
             println!("No tools found matching pattern: {}", pattern);
@@ -176,7 +154,6 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
         }
 
         if let Some(tools_list) = &request.tools {
-            // Filter by selected tools
             let tools_set: HashSet<&String> = tools_list.iter().collect();
             let filtered: Vec<_> = available_for_pattern
                 .into_iter()
@@ -187,42 +164,37 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
                 println!("None of the specified tools matched pattern: {}", pattern);
                 return Ok(());
             }
-            selected_tools_opt = Some(filtered);
+            filtered
         } else {
-            // Run all tools for that pattern
-            selected_tools_opt = Some(available_for_pattern);
+            available_for_pattern
         }
-    } else {
-        if let Some(tools_list) = &request.tools {
-            // Specified tools without target pattern
-            let all_tools = registry::get_tools();
-            let tools_set: HashSet<&String> = tools_list.iter().collect();
-            let filtered: Vec<_> = all_tools
-                .into_iter()
-                .filter(|t| tools_set.contains(&t.name().to_string()))
-                .collect();
+    } else if let Some(tools_list) = &request.tools {
+        let all_tools = registry::get_tools();
+        let tools_set: HashSet<&String> = tools_list.iter().collect();
+        let filtered: Vec<_> = all_tools
+            .into_iter()
+            .filter(|t| tools_set.contains(&t.name().to_string()))
+            .collect();
 
-            if filtered.is_empty() {
-                println!("None of the specified tools were found.");
-                return Ok(());
-            }
-            selected_tools_opt = Some(filtered);
-        } else {
-            // Interactive mode
-            selected_tools_opt = Some(interactive_selection()?);
-        }
-    }
-
-    let selected_tools = selected_tools_opt.unwrap_or_default();
-
-    {
-        if selected_tools.is_empty() {
-            println!("No tools selected.");
+        if filtered.is_empty() {
+            println!("None of the specified tools were found.");
             return Ok(());
         }
+        filtered
+    } else {
+        interactive_selection()?
+    };
+
+    if selected_tools.is_empty() {
+        println!("No tools selected.");
+        return Ok(());
     }
 
-    println!("\n🚀 Running selected tools...\n");
+    println!(
+        "
+🚀 Running selected tools...
+"
+    );
 
     let mut report = Report {
         action: action_name.to_string(),
@@ -243,10 +215,9 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
         );
         pb.set_message(format!("Running {}...", tool.name()));
 
-        // Simulate some time passing to show the spinner (could be removed in real app)
-        for _ in 0..10 {
+        for _ in 0..2 {
             pb.tick();
-            std::thread::sleep(Duration::from_millis(50));
+            std::thread::sleep(Duration::from_millis(1));
         }
 
         let empty_args = Vec::new();
@@ -276,7 +247,10 @@ pub fn run(action: Action, request: bridle_sdk::models::ToolRunRequest) -> Resul
     }
 
     let json_report = serde_json::to_string_pretty(&report)?;
-    println!("\n📊 JSON Format Report:");
+    println!(
+        "
+📊 JSON Format Report:"
+    );
     println!("{}", json_report);
 
     append_to_readme(action_name, &json_report)?;
@@ -290,29 +264,38 @@ mod tests {
     use bridle_sdk::models::ToolRunRequest;
 
     #[test]
-    fn test_detect_applicable_tools() -> Result<(), bridle_sdk::BridleError> {
+    #[serial_test::serial]
+    fn test_detect_applicable_tools_and_append_readme() -> Result<(), BridleError> {
         let tools = registry::get_tools();
         let tmp_dir = tempfile::tempdir()?;
-        let original_dir = std::env::current_dir().unwrap_or_default();
+        let original_dir = std::env::current_dir()?;
         std::env::set_current_dir(tmp_dir.path())?;
 
-        std::fs::write("dummy_test_detect.rs", "fn main() {}").unwrap_or_default();
+        // Empty directory: interactive_selection returns empty vec via run()
+        let empty_req = ToolRunRequest {
+            pattern: None,
+            tools: None,
+            tool_args: None,
+            dry_run: None,
+            action: None,
+        };
+        run(Action::Audit, empty_req)?;
+
+        let _ = git_command().arg("init").status();
+        let _ = git_command()
+            .args(["config", "user.name", "Test User"])
+            .status();
+        let _ = git_command()
+            .args(["config", "user.email", "test@example.com"])
+            .status();
+        std::fs::write("dummy_test_detect.rs", "fn main() {}")?;
+        std::fs::write("README.md", "# Test Readme\n")?;
         let applicable = detect_applicable_tools(&tools);
-        let _ = std::fs::remove_file("dummy_test_detect.rs");
-
-        let _ = std::env::set_current_dir(original_dir);
-
-        // Will always detect rust in this codebase
         assert!(applicable.contains(&"rust-unwrap-to-question-mark".to_string()));
-        Ok(())
-    }
 
-    #[test]
-    fn test_interactive_selection_mocked() -> Result<(), BridleError> {
         unsafe {
             std::env::set_var("BRIDLE_TEST_MOCK_TUI", "1");
         }
-
         let req = ToolRunRequest {
             pattern: None,
             tools: None,
@@ -320,13 +303,20 @@ mod tests {
             dry_run: None,
             action: None,
         };
-        // Run shouldn't fail if tools are detected in current dir, or if no tools detected it prints and returns Ok.
-        // Btw run interactive mode
+        run(Action::Audit, req.clone())?;
+        let _ = git_command().args(["add", "README.md"]).status();
+        let _ = git_command()
+            .args(["commit", "-m", "track readme"])
+            .status();
         run(Action::Audit, req)?;
-
         unsafe {
             std::env::remove_var("BRIDLE_TEST_MOCK_TUI");
         }
+
+        let readme = std::fs::read_to_string("README.md")?;
+        assert!(readme.contains("Latest audit Report"));
+
+        std::env::set_current_dir(original_dir)?;
         Ok(())
     }
 
@@ -345,9 +335,8 @@ mod tests {
 
     #[test]
     fn test_run_non_interactive_with_tools() -> Result<(), BridleError> {
-        // We provide a known mock tool from registry for go matching r".*\.go$"
         let req = ToolRunRequest {
-            pattern: Some(r".*\.go$".to_string()),
+            pattern: Some(r".*\.rs$".to_string()),
             tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
@@ -361,7 +350,10 @@ mod tests {
     fn test_run_non_interactive_with_tools_no_pattern() -> Result<(), BridleError> {
         let req = ToolRunRequest {
             pattern: None,
-            tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
+            tools: Some(vec![
+                "rust-unwrap-to-question-mark".to_string(),
+                "type-correct".to_string(),
+            ]),
             tool_args: None,
             dry_run: None,
             action: None,
@@ -386,7 +378,7 @@ mod tests {
     #[test]
     fn test_run_non_interactive_with_tools_dry_run() -> Result<(), BridleError> {
         let req = ToolRunRequest {
-            pattern: Some(r".*\.go$".to_string()),
+            pattern: Some(r".*\.rs$".to_string()),
             tools: Some(vec!["rust-unwrap-to-question-mark".to_string()]),
             tool_args: None,
             dry_run: None,
@@ -399,7 +391,7 @@ mod tests {
     #[test]
     fn test_run_non_interactive_all_tools() -> Result<(), BridleError> {
         let req = ToolRunRequest {
-            pattern: Some(r".*\.go$".to_string()),
+            pattern: Some(r".*\.rs$".to_string()),
             tools: None,
             tool_args: None,
             dry_run: None,

@@ -3,7 +3,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { LocalOpService } from './local-op.service';
 
 describe('LocalOpService', () => {
@@ -12,7 +12,7 @@ describe('LocalOpService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     service = TestBed.inject(LocalOpService);
     httpMock = TestBed.inject(HttpTestingController);

@@ -4,11 +4,12 @@
 
 The strength of `bridle-ctl` lies in deterministic codebase mutations. This document explains how to write a new tool, compile it, and integrate it into `bridle-ctl`.
 
-With recent additions, `bridle-ctl` now supports **four** primary ways of integrating a tool:
-1. Native Rust Implementations
-2. Dynamically loaded C/C++/Rust libraries (`dlopen`)
-3. Subprocess execution
-4. JSON-RPC via HTTP
+With recent additions, `bridle-ctl` supports **five** ways of integrating a tool:
+1. Native Rust Implementations (`CodeTool` trait)
+2. Statically-linked SDK FFI wrappers (`type = "ffi"`)
+3. Dynamically loaded C/C++/Rust libraries (`type = "dlopen"`)
+4. Subprocess execution (`type = "subprocess"`)
+5. JSON-RPC via HTTP (`type = "jsonrpc"`)
 
 ---
 
@@ -20,7 +21,7 @@ If you are writing the tool natively within the `bridle-ctl` workspace (e.g. in 
 
 ```rust
 use crate::tools::CodeTool;
-use crate::error::CliError;
+use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;
 
 pub struct MyNativeTool;
@@ -30,12 +31,17 @@ impl CodeTool for MyNativeTool {
     fn description(&self) -> &str { "Does a thing" }
     fn match_regex(&self) -> &str { r".*\.txt$" }
 
-    fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn audit(&self, args: &[String], scope: Option<&PathScope>) -> Result<String, BridleError> {
         // Implementation
         Ok("Found 1 issue".into())
     }
 
-    fn fix(&self, args: &[String], dry_run: bool, scope: Option<&PathScope>) -> Result<String, CliError> {
+    fn fix(
+        &self,
+        args: &[String],
+        dry_run: bool,
+        scope: Option<&PathScope>,
+    ) -> Result<String, BridleError> {
         // Implementation
         Ok("Fixed 1 issue".into())
     }
@@ -127,8 +133,8 @@ subcommand = "my_subcmd"
 
 ### Testing Requirements
 
-`bridle-ctl` enforces **100% Test Coverage** and **Strict Quality Standards**. 
+`bridle-ctl` enforces **100% Test Coverage**, **100% Documentation Coverage**, and **Strict Quality Standards**.
 1. If writing a native tool, add standard `#[test]` unit tests inside your module.
 2. Ensure you handle missing arguments, bad data, and correctly implement `dry_run`.
-3. Never use `.unwrap()`, `.expect()`, or `anyhow!`. Only return explicitly typed `CliError` instances utilizing `?`.
-4. Typescript frontend tools must avoid `any`, `unknown`, and `never`.
+3. Never use `.unwrap()`, `.expect()`, or `anyhow!`. Only return explicitly typed `BridleError` instances utilizing `?`.
+4. TypeScript frontend code must avoid `any` and `never` (preferring strict interfaces, `JsonValue`/`JsonObject`, or `unknown` with type guards).

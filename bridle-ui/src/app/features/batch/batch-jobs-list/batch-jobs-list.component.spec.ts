@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { BatchJobsListComponent } from './batch-jobs-list.component';
-import { BatchJobStatus } from '../../../core/models/models';
+import { BatchJob, BatchJobStatus } from '../../../core/models/models';
 import { By } from '@angular/platform-browser';
 
 @Component({
   template: `<app-batch-jobs-list
-    [jobs]="jobs"
-    (select)="onSelect($event)"
+    [jobs]="jobs()"
+    (selectJob)="onSelect($event)"
   ></app-batch-jobs-list>`,
   imports: [BatchJobsListComponent],
 })
 class TestHostComponent {
-  jobs = [
+  jobs = signal<BatchJob[]>([
     {
       id: '1234567890',
       target: 'org1/repo1',
@@ -25,11 +25,11 @@ class TestHostComponent {
       status: BatchJobStatus.FAILED,
       createdAt: '2023-01-02T00:00:00Z',
     },
-  ];
-  selectedId = '';
+  ]);
+  selectedId = signal('');
 
   onSelect(id: string) {
-    this.selectedId = id;
+    this.selectedId.set(id);
   }
 }
 
@@ -51,53 +51,46 @@ describe('BatchJobsListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render list with jobs', async () => {
-    // Wait for virtual scroll to measure and render
+  it('should render list with jobs and empty state', async () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    // Virtual scroll may still not render items in a hidden/detached Karma browser,
-    // so we can also check the component inputs directly.
     const listComponent = fixture.debugElement.query(
       By.directive(BatchJobsListComponent),
-    ).componentInstance;
+    ).componentInstance as BatchJobsListComponent;
     expect(listComponent.jobs().length).toBe(2);
 
-    // Since testing CDK virtual scroll rendering can be flaky without a real DOM,
-    // we just verify the jobs input is passed correctly.
+    component.jobs.set([]);
+    fixture.detectChanges();
+    const emptyState = fixture.debugElement.query(By.css('.empty-state'));
+    expect(emptyState).toBeTruthy();
   });
 
-  it('should emit select event on job id click', () => {
-    // Since items might not render, test the component logic directly
+  it('should emit selectJob event', () => {
     const listComponent = fixture.debugElement.query(
       By.directive(BatchJobsListComponent),
-    ).componentInstance;
-    spyOn(listComponent.select, 'emit');
+    ).componentInstance as BatchJobsListComponent;
+    listComponent.selectJob.emit(component.jobs()[0].id);
 
-    // Simulate what the template does when button is clicked
-    listComponent.select.emit(component.jobs[0].id);
-
-    expect(listComponent.select.emit).toHaveBeenCalledWith('1234567890');
+    expect(component.selectedId()).toBe('1234567890');
   });
 
   it('should return correct badge variants for status', () => {
     const listComponent = fixture.debugElement.query(
       By.directive(BatchJobsListComponent),
-    ).componentInstance;
+    ).componentInstance as BatchJobsListComponent;
 
-    expect(listComponent.getStatusVariant(BatchJobStatus.COMPLETED)).toBe(
+    expect(listComponent.getBadgeVariant(BatchJobStatus.COMPLETED)).toBe(
       'success',
     );
-    expect(listComponent.getStatusVariant(BatchJobStatus.FAILED)).toBe(
-      'danger',
-    );
-    expect(listComponent.getStatusVariant(BatchJobStatus.RUNNING)).toBe(
+    expect(listComponent.getBadgeVariant(BatchJobStatus.FAILED)).toBe('danger');
+    expect(listComponent.getBadgeVariant(BatchJobStatus.RUNNING)).toBe(
       'accent',
     );
-    expect(listComponent.getStatusVariant(BatchJobStatus.PENDING)).toBe(
+    expect(listComponent.getBadgeVariant(BatchJobStatus.PENDING)).toBe(
       'default',
     );
-    expect(listComponent.getStatusVariant(BatchJobStatus.INTERRUPTED)).toBe(
+    expect(listComponent.getBadgeVariant(BatchJobStatus.INTERRUPTED)).toBe(
       'default',
     );
   });

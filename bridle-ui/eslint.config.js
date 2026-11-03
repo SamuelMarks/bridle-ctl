@@ -42,18 +42,15 @@ module.exports = defineConfig([
       "@typescript-eslint/no-restricted-types": [
         "error",
         {
-          "types": {
-            "never": "Never use never.",
-            "unknown": "Never use unknown."
-          }
-        }
+          types: {
+            never: "Never use never.",
+          },
+        },
       ],
       "@typescript-eslint/no-empty-function": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@angular-eslint/no-output-native": "off",
-      "@angular-eslint/template/click-events-have-key-events": "off",
-      "@angular-eslint/template/interactive-supports-focus": "off",
-      "@angular-eslint/prefer-inject": "off",
+      "@angular-eslint/prefer-inject": "error",
     },
   },
   {

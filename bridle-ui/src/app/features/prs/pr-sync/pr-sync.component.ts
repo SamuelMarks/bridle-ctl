@@ -1,304 +1,264 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   inject,
   OnInit,
   computed,
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ScrollingModule } from '@angular/cdk/scrolling';
+import { PrsStore } from '../../../core/store/prs.store';
 import { OrgService } from '../../../core/services/org.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { Organization } from '../../../core/models/models';
 import { AppButtonComponent } from '../../../shared/ui/app-button/app-button.component';
 import { AppInputComponent } from '../../../shared/ui/app-input/app-input.component';
 import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.component';
-import { PrsStore } from '../../../core/store/prs.store';
-import { PullRequest } from '../../../core/models/models';
+import {
+  AppTableComponent,
+  AppTableColumnDirective,
+} from '../../../shared/ui/app-table/app-table.component';
 
 /**
- * Component for synchronizing pull requests.
- * Uses NgRx SignalStore to handle large volumes of PRs with CDK Virtual Scroll.
+ * Component for synchronizing local pull requests with upstream providers.
  */
 @Component({
   selector: 'app-pr-sync',
   imports: [
     ReactiveFormsModule,
-    ScrollingModule,
     AppButtonComponent,
     AppInputComponent,
-    AppBadgeComponent
-],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    AppBadgeComponent,
+    AppTableComponent,
+    AppTableColumnDirective,
+  ],
   template: `
-    <div class="container-lg">
-      <div class="mb-4">
-        <h1 class="mb-2">Pull Requests Synchronization</h1>
-        <p class="text-muted">
-          Review local pull requests and sync them to the upstream source
-          control provider.
-        </p>
+    <div class="pr-sync-container">
+      <div class="page-header">
+        <h1 class="h2">PR Synchronization</h1>
       </div>
 
-      <div class="Box p-3 mb-4">
-        <form
-          [formGroup]="form"
-          (ngSubmit)="onSync()"
-          class="d-flex align-items-end gap-3 form-row"
-        >
-          <div class="flex-1">
-            <app-input
-              formControlName="orgId"
-              label="Organization"
-              type="select"
-              [options]="orgOptions()"
-            ></app-input>
-          </div>
-
-          <div class="flex-1">
-            <app-input
-              formControlName="maxRate"
-              label="Max PRs per hour"
-              type="number"
-              placeholder="e.g. 5"
-            ></app-input>
-          </div>
-
-          <div>
-            <app-button
-              type="submit"
-              variant="primary"
-              [disabled]="
-                form.invalid ||
-                prsStore.isSyncing() ||
-                prsStore.prs().length === 0
-              "
-            >
-              {{ prsStore.isSyncing() ? 'Syncing...' : 'Sync to Upstream' }}
-            </app-button>
-          </div>
-        </form>
-      </div>
-
-      <div class="summary-stats mb-3">
-        <span class="mr-3"
-          ><strong>Total PRs:</strong> {{ prsStore.totalPrs() }}</span
-        >
-        <span class="mr-3"
-          ><strong>Local:</strong> {{ prsStore.localPrs().length }}</span
-        >
-        <span class="mr-3"
-          ><strong>Synced:</strong> {{ prsStore.syncedPrs().length }}</span
-        >
-        <span class="mr-3 text-danger"
-          ><strong>Conflicts:</strong> {{ prsStore.conflictPrs().length }}</span
-        >
-      </div>
-
-      <div class="list-container">
-        <div class="list-header">
-          <h2 class="m-0">Local PRs Pending Sync</h2>
+      <div class="Box mb-4">
+        <div class="Box-header">
+          <h2 class="Box-title">Sync Controls</h2>
         </div>
+        <div class="Box-body">
+          <form [formGroup]="form" (ngSubmit)="onSync()" class="sync-form">
+            <div class="form-row">
+              <app-input
+                type="select"
+                label="Select Organization"
+                [options]="orgOptions()"
+                formControlName="orgId"
+                class="flex-1"
+              ></app-input>
 
-        @if (prsStore.isLoading()) {
-          <div class="p-4 text-center text-muted">Loading Pull Requests...</div>
-        } @else if (prsStore.prs().length === 0) {
-          <div class="p-4 text-center text-muted">
-            No PRs found for the selected organization.
-          </div>
-        } @else {
-          <cdk-virtual-scroll-viewport itemSize="64" class="viewport">
-            <div
-              *cdkVirtualFor="let pr of prsStore.prs(); trackBy: trackById"
-              class="list-item"
-            >
-              <div class="item-info">
-                <span class="text-bold color-fg-default">
-                  #{{ pr.id.substring(0, 8) }} - {{ pr.title }}
-                </span>
-                <span class="text-muted text-small ml-2"
-                  >Repo: {{ pr.repoId }}</span
-                >
-              </div>
+              <app-input
+                type="number"
+                label="Max Rate (PRs / hour)"
+                placeholder="10"
+                formControlName="maxRate"
+                class="rate-input"
+              ></app-input>
 
-              <div class="item-meta">
-                <app-badge
-                  [variant]="
-                    pr.status === 'LOCAL'
-                      ? 'default'
-                      : pr.status === 'SYNCED'
-                        ? 'success'
-                        : 'danger'
-                  "
-                >
-                  {{ pr.status }}
-                </app-badge>
-              </div>
+              <app-input
+                type="text"
+                label="Fork to Org (Optional)"
+                placeholder="e.g. my-fork-org"
+                formControlName="forkOrg"
+                class="flex-1"
+              ></app-input>
             </div>
-          </cdk-virtual-scroll-viewport>
-        }
+
+            <div class="form-actions">
+              <app-button
+                type="submit"
+                variant="primary"
+                [disabled]="form.invalid || isSyncing()"
+              >
+                {{ isSyncing() ? 'Syncing PRs...' : 'Sync PRs Now' }}
+              </app-button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      <app-table
+        title="Pull Requests"
+        [data]="prs()"
+        emptyMessage="No pull requests found for the selected organization."
+      >
+        <ng-template appTableColumn title="ID" key="id" let-value="value">
+          <span class="font-mono">#{{ value }}</span>
+        </ng-template>
+        <ng-template appTableColumn title="Title" key="title" let-pr>
+          <strong>{{ pr.title }}</strong>
+        </ng-template>
+        <ng-template
+          appTableColumn
+          title="Repository"
+          key="repoId"
+          let-value="value"
+        >
+          <span class="text-muted">{{ value }}</span>
+        </ng-template>
+        <ng-template appTableColumn title="Status" key="status" let-pr>
+          <app-badge
+            [variant]="
+              pr.status === 'SYNCED'
+                ? 'success'
+                : pr.status === 'CONFLICT'
+                  ? 'danger'
+                  : 'accent'
+            "
+          >
+            {{ pr.status }}
+          </app-badge>
+        </ng-template>
+      </app-table>
     </div>
   `,
   styles: `
-    .mb-2 {
-      margin-bottom: 8px;
+    .pr-sync-container {
+      max-width: 1024px;
+      margin: 0 auto;
     }
-    .mb-3 {
-      margin-bottom: 16px;
+
+    .page-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-border-default);
     }
+
+    .h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+    }
+
     .mb-4 {
       margin-bottom: 24px;
     }
-    .m-0 {
-      margin: 0;
-    }
-    .p-3 {
-      padding: 16px;
-    }
-    .p-4 {
-      padding: 24px;
-    }
-    .mr-3 {
-      margin-right: 16px;
-    }
-    .ml-2 {
-      margin-left: 8px;
-    }
-    .text-center {
-      text-align: center;
-    }
-    .text-muted {
-      color: var(--color-fg-muted, #57606a);
-    }
-    .text-bold {
-      font-weight: 600;
-    }
-    .text-small {
-      font-size: 12px;
-    }
-    .text-danger {
-      color: var(--color-danger-fg, #cf222e);
-    }
-    .color-fg-default {
-      color: var(--color-fg-default, #24292f);
-    }
 
     .Box {
-      background-color: var(--color-canvas-default, #ffffff);
-      border: 1px solid var(--color-border-default, #d0d7de);
-      border-radius: 6px;
+      background-color: var(--color-canvas-default);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--border-radius-2);
+    }
+
+    .Box-header {
+      padding: 16px;
+      background-color: var(--color-canvas-subtle);
+      border-bottom: 1px solid var(--color-border-default);
+      border-top-left-radius: var(--border-radius-2);
+      border-top-right-radius: var(--border-radius-2);
+    }
+
+    .Box-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .Box-body {
+      padding: 16px;
+    }
+
+    .sync-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
     }
 
     .flex-1 {
       flex: 1;
     }
-    .gap-3 {
-      gap: 16px;
+
+    .rate-input {
+      width: 200px;
     }
-    .d-flex {
+
+    .form-actions {
       display: flex;
-    }
-    .align-items-end {
-      align-items: flex-end;
+      justify-content: flex-end;
     }
 
-    .summary-stats {
-      font-size: 14px;
-      color: var(--color-fg-default, #24292f);
+    .font-mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
     }
 
-    .list-container {
-      border: 1px solid var(--color-border-default, #d0d7de);
-      border-radius: 6px;
-      overflow: hidden;
-      background-color: var(--color-canvas-default, #ffffff);
-    }
-    .list-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--color-border-default, #d0d7de);
-      background-color: var(--color-canvas-subtle, #f6f8fa);
-    }
-
-    .viewport {
-      height: 600px;
-      width: 100%;
-    }
-
-    .list-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 16px;
-      height: 64px;
-      border-bottom: 1px solid var(--color-border-subtle, #ebf0f4);
-      box-sizing: border-box;
-    }
-    .list-item:hover {
-      background-color: var(--color-canvas-subtle, #f6f8fa);
-    }
-
-    @media (max-width: 768px) {
-      .form-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
+    .text-muted {
+      color: var(--color-fg-muted);
     }
   `,
 })
 export class PrSyncComponent implements OnInit {
-  /** FormBuilder instance */
+  /** Injected FormBuilder */
   private fb = inject(FormBuilder);
-  /** OrgService instance */
+  /** Injected PrsStore */
+  private prsStore = inject(PrsStore);
+  /** Injected OrgService */
   private orgService = inject(OrgService);
-  /** PrsStore instance */
-  prsStore = inject(PrsStore);
+  /** Injected NotificationService */
+  private notificationService = inject(NotificationService);
+  /** Injected DestroyRef */
+  private destroyRef = inject(DestroyRef);
 
-  /** Form model */
+  /** Signal of PRs */
+  prs = this.prsStore.prs;
+  /** Signal of syncing status */
+  isSyncing = this.prsStore.isSyncing;
+
+  /** Computed options for organization select */
+  orgOptions = computed(() => {
+    return this.orgService.orgs().map((o: Organization) => ({
+      label: o.name,
+      value: o.id,
+    }));
+  });
+
+  /** Reactive form group */
   form = this.fb.group({
     orgId: ['', Validators.required],
     maxRate: [10, [Validators.required, Validators.min(1)]],
+    forkOrg: [''],
   });
 
-  /** Computed options for the org select */
-  orgOptions = computed(() => {
-    const orgs = this.orgService.orgs();
-    return [
-      { label: '-- Select Organization --', value: '' },
-      ...orgs.map((o) => ({ label: o.name, value: o.id })),
-    ];
-  });
-
-  /** DestroyRef instance */
-  private destroyRef = inject(DestroyRef);
-
-  /** Initialize component */
+  /** Initializes component and sets up org listeners */
   ngOnInit(): void {
-    // Load orgs if not loaded
-    if (this.orgService.orgs().length === 0) {
-      this.orgService
-        .loadOrgs()
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe();
-    }
+    this.orgService.loadOrgs().subscribe({
+      next: (orgs: Organization[]) => {
+        if (orgs.length > 0 && !this.form.value.orgId) {
+          this.form.patchValue({ orgId: orgs[0].id });
+          this.loadPrs(orgs[0].id);
+        }
+      },
+      error: () =>
+        this.notificationService.error('Failed to load organizations'),
+    });
 
-    // Listen to orgId changes and load PRs via the store rxMethod
-    this.form
-      .get('orgId')
-      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+    this.form.controls.orgId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((orgId) => {
         if (orgId) {
-          this.prsStore.loadPrs(orgId);
+          this.loadPrs(orgId);
         }
       });
   }
 
   /**
-   * Track by function for virtual scroll list
+   * Loads PRs for the given organization.
+   * @param orgId The organization ID
    */
-  trackById(index: number, pr: PullRequest): string {
-    return pr.id;
+  loadPrs(orgId: string): void {
+    this.prsStore.loadPrs(orgId);
   }
 
   /** Handles the sync action */

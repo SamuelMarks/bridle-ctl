@@ -1,16 +1,10 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  inject,
-  ViewChild,
-  signal,
-} from '@angular/core';
-
+import { Component, inject, viewChild, signal } from '@angular/core';
 import {
   LocalOpService,
   OpResult,
 } from '../../../core/services/local-op.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { JsonObject } from '../../../core/models/models';
 import {
   AppTabsComponent,
   TabItem,
@@ -19,135 +13,131 @@ import { LocalAuditComponent } from '../local-audit/local-audit.component';
 import { LocalFixComponent } from '../local-fix/local-fix.component';
 
 /**
- * Main page component for local operations (Audit/Fix).
+ * Page component for executing local audit and fix operations.
  */
 @Component({
   selector: 'app-local-ops-page',
-  imports: [
-    AppTabsComponent,
-    LocalAuditComponent,
-    LocalFixComponent
-],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AppTabsComponent, LocalAuditComponent, LocalFixComponent],
   template: `
-    <div class="container-lg">
-      <div class="mb-4">
-        <h1 class="mb-2">Local Operations</h1>
-        <p class="text-muted">
-          Run audit and fix operations directly on the current workspace.
-        </p>
+    <div class="local-ops-container">
+      <div class="page-header">
+        <h1 class="h2">Local Operations</h1>
       </div>
 
-      <div class="mb-4">
-        <app-tabs
-          [tabs]="tabs"
-          [activeTabId]="activeTabId()"
-          (tabChange)="onTabChange($event)"
-        ></app-tabs>
-      </div>
-
-      <div class="operation-content">
-        @if (activeTabId() === 'audit') {
+      <app-tabs
+        [tabs]="tabs"
+        [activeTab]="activeTab()"
+        (tabChange)="onTabChange($event)"
+      >
+        @if (activeTab() === 'audit') {
           <app-local-audit (audit)="onAudit($event)"></app-local-audit>
         } @else {
           <app-local-fix (fix)="onFix($event)"></app-local-fix>
         }
-      </div>
+      </app-tabs>
     </div>
   `,
   styles: `
-    .mb-2 {
-      margin-bottom: 8px;
+    .local-ops-container {
+      max-width: 1024px;
+      margin: 0 auto;
     }
-    .mb-4 {
+
+    .page-header {
       margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-border-default);
     }
-    .text-muted {
-      color: var(--color-fg-muted);
+
+    .h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
     }
   `,
 })
 export class LocalOpsPageComponent {
-  /** Local ops service instance */
+  /** Injected LocalOpService */
   private localOpService = inject(LocalOpService);
-  /** Notification service instance */
+  /** Injected NotificationService */
   private notificationService = inject(NotificationService);
 
-  /** Reference to audit component */
-  @ViewChild(LocalAuditComponent) auditComponent!: LocalAuditComponent;
-  /** Reference to fix component */
-  @ViewChild(LocalFixComponent) fixComponent!: LocalFixComponent;
+  /** Signal query for LocalAuditComponent */
+  readonly auditComponent = viewChild(LocalAuditComponent);
 
-  /** Tabs for the page */
+  /** Signal query for LocalFixComponent */
+  readonly fixComponent = viewChild(LocalFixComponent);
+
+  /** Available tabs */
   tabs: TabItem[] = [
-    { id: 'audit', label: 'Audit' },
-    { id: 'fix', label: 'Fix' },
+    { id: 'audit', label: 'Audit Codebase' },
+    { id: 'fix', label: 'Fix Issues' },
   ];
 
   /** Currently active tab */
-  activeTabId = signal<string>('audit');
+  activeTab = signal('audit');
 
   /**
-   * Handles tab changes.
-   * @param tabId The selected tab ID
+   * Handles tab change.
+   * @param tabId The newly selected tab ID
    */
   onTabChange(tabId: string): void {
-    this.activeTabId.set(tabId);
+    this.activeTab.set(tabId);
     this.localOpService.clearResult();
-
-    // Clear results from components
-    if (this.auditComponent) this.auditComponent.setResult(null);
-    if (this.fixComponent) this.fixComponent.setResult(null);
   }
 
   /**
-   * Handles audit form submission.
+   * Handles running an audit.
+   * @param data The audit parameters
+   * @param data.pattern The target regex pattern
+   * @param data.tools The tools to run
+   * @param data.args The tool arguments
    */
-  onAudit(payload: {
+  onAudit(data: {
     pattern: string;
     tools: string[];
-    args: Record<string, string | number | boolean | object | null | undefined>;
+    args: JsonObject;
   }): void {
-    this.auditComponent.setOperating(true);
-    this.localOpService
-      .audit(payload.pattern, payload.tools, payload.args)
-      .subscribe({
-        next: (res: OpResult) => {
-          this.auditComponent.setResult(res);
-          this.auditComponent.setOperating(false);
-        },
-        error: () => {
-          this.notificationService.error('Audit operation failed');
-          this.auditComponent.setOperating(false);
-        },
-      });
+    this.auditComponent()?.setOperating(true);
+    this.localOpService.audit(data.pattern, data.tools, data.args).subscribe({
+      next: (res: OpResult) => {
+        this.auditComponent()?.setResult(res);
+        this.auditComponent()?.setOperating(false);
+        this.notificationService.success('Audit completed');
+      },
+      error: () => {
+        this.notificationService.error('Audit failed');
+        this.auditComponent()?.setOperating(false);
+      },
+    });
   }
 
   /**
-   * Handles fix form submission.
+   * Handles running a fix.
+   * @param data The fix parameters
+   * @param data.pattern The target regex pattern
+   * @param data.tools The tools to run
+   * @param data.args The tool arguments
+   * @param data.dryRun Whether to run in dry-run mode
    */
-  onFix(payload: {
+  onFix(data: {
     pattern: string;
     tools: string[];
-    args: Record<string, string | number | boolean | object | null | undefined>;
+    args: JsonObject;
     dryRun: boolean;
   }): void {
-    this.fixComponent.setOperating(true);
+    this.fixComponent()?.setOperating(true);
     this.localOpService
-      .fix(payload.pattern, payload.tools, payload.args, payload.dryRun)
+      .fix(data.pattern, data.tools, data.args, data.dryRun)
       .subscribe({
         next: (res: OpResult) => {
-          this.fixComponent.setResult(res);
-          this.fixComponent.setOperating(false);
-          if (payload.dryRun) {
-            this.notificationService.info('Dry run completed');
-          } else {
-            this.notificationService.success('Fix operation completed');
-          }
+          this.fixComponent()?.setResult(res);
+          this.fixComponent()?.setOperating(false);
+          this.notificationService.success('Fix operation completed');
         },
         error: () => {
           this.notificationService.error('Fix operation failed');
-          this.fixComponent.setOperating(false);
+          this.fixComponent()?.setOperating(false);
         },
       });
   }

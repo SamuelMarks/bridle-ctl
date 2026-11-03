@@ -65,13 +65,15 @@ describe('LocalFixComponent', () => {
     });
   });
 
-  it('should fallback to dryRun true if null', () => {
+  it('should fallback to dryRun true if null and handle invalid form', () => {
     spyOn(component.fix, 'emit');
+    component.onSubmit();
+    expect(component.fix.emit).not.toHaveBeenCalled();
 
     component.form.setValue({
       pattern: 'TODO',
-      tools: '',
-      args: '{}',
+      tools: null,
+      args: null,
       dryRun: null,
     });
 

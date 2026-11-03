@@ -10,79 +10,88 @@
 
 The workspace is organized into discrete, highly cohesive crates and applications.
 
-### 1. SDK (`bridle-sdk`)
+### 1. Models (`bridle-models`)
+
+The shared domain model and schema layer.
+
+- **Git Forge Models**: Defines the structs and Diesel schemas for local `Users`, `Organisations`, `Repositories`, `Teams`, `Branches`, `BranchProtectionRules`, `Keys`, `Follows`, `Stars`, `OrgMemberships`, `RepoCollaborators`, `Milestones`, `Labels`, `Issues`, `IssueLabels`, `PullRequests`, `PullRequestReviews`, `Releases`, `Webhooks`, `Commits`, `Trees`, `Blobs`, `BatchJobs`, and `BatchTasks`.
+- **Request Payloads**: Houses shared operational request structs (`ToolRunRequest`, `BatchRunRequest`, `BatchFixRequest`, `SyncPrsRequest`).
+
+### 2. SDK (`bridle-sdk`)
 
 The foundational data and execution layer.
 
-- **Database Abstraction**: Utilizes Diesel ORM to support dynamic database connections. Based on the connection URI (`postgres://` vs `sqlite://`), it automatically applies the correct migrations and executes dialect-specific queries.
-- **Git Forge Models**: Defines the schema for local `Users`, `Organizations`, `Repositories`, `Issues`, `PullRequests`, `Commits`, and `Blobs`.
-- **FFI Tool Registry**: The `ffi.rs` module loads compiled shared libraries (`.so`, `.dylib`, `.dll`) and defines the `extern "C"` blocks required to invoke deterministic tools.
-- **Concurrency Control**: Implements `file_lock.rs` for granular, thread-safe, and process-safe file locking to prevent race conditions when multiple agents attempt to modify the same repository tree.
+- **Database Abstraction**: Utilizes Diesel ORM (`db.rs`, `batch_db.rs`) to support dynamic database connections (`DbConnection::Sqlite` and `DbConnection::Pg`). Based on the connection URI (`postgres://` vs SQLite path), it automatically applies embedded migrations and executes dialect-specific queries.
+- **Unified Error Handling**: Defines a strongly-typed `BridleError` enum (`error.rs`) powered by `derive_more`, implementing both Actix-Web `ResponseError` and JSON-RPC error conversions.
+- **FFI Tool Bindings**: The `ffi.rs` module wraps statically linked C/C++/Go libraries (`type-correct`, `go-auto-err-handling`, `cdd-c` CST transformers) and `lib2notebook2lib` behind safe Rust functions with RAII argument cleanup (`RawCArgv`) and `PathScope` enforcement (`path_scope.rs`).
+- **Concurrency & Encoding**: Implements `file_lock.rs` (`ExclusiveFileLock` RAII guard) for granular, process-safe exclusive file mutations and `encoding.rs` for encoding-preserving text reads/writes (UTF-8, UTF-8 BOM, UTF-16LE/BE, Windows-1252) and line-ending normalization.
 
-### 2. CLI (`bridle-cli`)
+### 3. CLI (`bridle-cli`)
 
-The operator's command-line interface, orchestrating two core, automated workflows.
+The operator's command-line interface, orchestrating local tool execution (`runner.rs`, `tools/`) and two core automated workflows.
 
-#### Workflow 1: Codebase Mutation Pipeline (`batch_pipeline.rs`, `batch_fix.rs`)
+#### Workflow 1: Codebase Mutation Pipeline (`batch_pipeline.rs`, `batch_fix.rs`, `batch_executor.rs`)
 
-0. **Specify Target**: Set the target GitHub org (e.g., `example-org`).
-1. **Clone**: Clone all non-readonly, non-fork repositories updated in the past year.
+0. **Specify Target**: Set the target GitHub org (e.g., `example-org`) and ingest repositories (`ingest.rs`).
+1. **Clone**: Clone all non-readonly, non-fork repositories updated in the past year (`workspace.rs`).
 2. **Build Preparation**: Build the code with custom Dockerfiles dynamically generated via [mkconf](https://github.com/SamuelMarks/mkconf).
 3. **Execution**: If the build succeeds, execute the tool (e.g., `go-auto-err-handling` on a Go project).
 4. **Validation**: If both build and tool succeed (resulting in changed code, e.g., `*.go` files).
 5. **Candidate Promotion**: Mark it as a successful patch and queue it as a candidate for sending an upstream PR.
 
-#### Workflow 2: Upstream Synchronization (`sync_prs.rs`)
+#### Workflow 2: Upstream Synchronization (`sync_prs.rs`, `forge_mutator.rs`)
 
 0. **Queue Processing**: Pull from the queue of successful candidates meant for the target org.
 1. **PR Templating**: Interpolate details into the repo's PR template or create one from scratch if absent.
 2. **Fork Management**: Fork the repo (if needed) or reuse an existing fork (on a specified `fork_org`).
 3. **Send PR**: Push branches and send the Pull Request while enforcing strict global rate limits (e.g., max 10 PRs an hour) to prevent API bans.
 
-- **Interactive TUI**: Uses libraries like `ratatui` or `dialoguer` to allow human operators to step through tool executions interactively.
+- **Interactive TUI**: Uses `ratatui` and `crossterm` (`tui.rs`) to display real-time batch job progress and task statuses.
 
-### 3. AI Agent (`bridle-agent`)
+### 4. AI Agent (`bridle-agent`)
 
 The Model Context Protocol (MCP) server and autonomous daemon.
 
-- **Simulation Loop**: Continuously polls the local database for open `Issues` assigned to the AI.
-- **Execution Pipeline**: When an issue is detected, the agent clones the local repo, analyzes the request, decides which FFI tools to invoke, runs them, commits the deterministic changes, and opens a local PR.
-- **Multi-Agent Simulation**: Capable of simulating different roles (Engineer, Reviewer, PM) natively without network access.
+- **Simulation Loop**: Continuously polls the local database (`agent_loop.rs`) for open `Issues` assigned to the AI, selects tools/patterns from the issue metadata, applies fixes, opens local PRs, and marks resolved issues as `"closed"`.
+- **Execution Pipeline**: Clones or inspects the target repository, invokes deterministic tools via `bridle-cli`, commits changes, and records local PRs.
+- **Multi-Agent Simulation**: Capable of simulating different roles (Engineer, Reviewer, PM) natively without network access (`simulation.rs`, `team_simulation.rs`).
 
-### 4. API Services (`bridle-rest` & `bridle-rpc`)
+### 5. API Services (`bridle-rest` & `bridle-rpc`)
 
 Gateways for external integration.
 
-- **REST API (`actix-web`)**: Exposes standard HTTP endpoints for creating issues, viewing PRs, and triggering syncs. Serves as the backend for `bridle-ui`.
+- **REST API (`actix-web`)**: Exposes HTTP endpoints for CRUD operations on all Git Forge entities as well as `/api/*` dashboard routes (`/api/orgs`, `/api/batch/*`, `/api/prs/*`, `/api/local/*`, `/api/dev/*`). Serves as the backend for `bridle-ui`.
 - **JSON-RPC (`jsonrpsee`)**: A high-performance RPC layer specifically tailored for internal agent-to-agent or script-to-agent communication.
 
-### 5. Frontend Dashboard (`bridle-ui`)
+### 6. Frontend Dashboard (`bridle-ui`)
 
-An Angular 18+ web application.
+An Angular 22 web application.
 
-- **State Management**: Built with NgRx SignalStore for reactive, signal-based state.
-- **Visualizations**: Displays pipeline progress, upstream sync queues, rate limiting status, and diff visualizations for local PRs.
+- **State Management**: Built with native Angular Signals (`signal()`, `computed()`) inside injectable stores (`JobsStore`, `PrsStore`) backed by stateless HTTP data-access services.
+- **Visualizations**: Displays system health, organization/repository ingestion, local audit/fix operations, batch pipeline progress, and upstream PR sync controls.
 
 ---
 
-## 🧬 The FFI Integration Paradigm
+## 🧬 The FFI & Dynamic Plugin Paradigm
 
 The core philosophy of `bridle-ctl` is that **LLMs should not rewrite code using raw strings or simple regex**.
 
-Instead, tools are written in languages suited for AST manipulation (C++, Rust, Go), compiled, and exposed via a strict C Application Binary Interface (ABI).
+Instead, tools are written in languages suited for AST/CST manipulation (C, C++, Rust, Go, Python), compiled or packaged, and exposed via `CodeTool` implementations configured in `bridle-tools.toml` and `.bridle-plugins/*.toml`.
 
-### The C ABI Contract
+### Supported C ABI Contracts
 
-Tools expose two primary functions:
+1. **Statically-Linked SDK FFI (`bridle-sdk/src/ffi.rs`)**:
+   - Single-file audit/fix functions (`type_correct_audit(target_path)`, `type_correct_fix(target_path, dry_run)`, `GoAutoErrAudit(target_path)`, `GoAutoErrFix(target_path, dry_run)`).
+   - Multi-argument CST transformers (`cli_cst_transformer_main(argc, argv)`) invoked via RAII `RawCArgv`.
+2. **Dynamically Loaded Shared Libraries (`dlopen` in `bridle-cli/src/tools/dynamic.rs`)**:
+   - `int tool_audit(const char** args_ptr, size_t args_len, char** out_ptr)`
+   - `int tool_fix(const char** args_ptr, size_t args_len, bool dry_run, char** out_ptr)`
 
-1. `audit(const char* file_path)`: Returns a JSON string or struct indicating _if_ the tool should be run and _where_.
-2. `fix(const char* file_path, const char* args)`: Executes the deterministic change and returns a success boolean or error string.
+By forcing agents to use this deterministic tool boundary:
 
-By forcing agents to use this FFI boundary:
-
-- Context windows are kept incredibly small (the agent only needs to output: `run_tool("type-correct", "src/main.c")`).
-- Syntax errors introduced by LLM hallucinations are reduced to zero.
-- The same tool can be used interactively by a human via `bridle-cli`, or autonomously by the agent.
+- Context windows are kept small (the agent only needs to specify the tool and target pattern/file).
+- Syntax errors introduced by LLM hallucinations are eliminated.
+- The same tool can be used interactively by a human via `bridle-cli`, via REST/RPC, or autonomously by `bridle-agent`.
 
 ---
 

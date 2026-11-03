@@ -45,14 +45,14 @@ describe('OrgListComponent', () => {
   });
 
   it('should emit select event on name click', () => {
-    const link = fixture.debugElement.query(By.css('.text-bold')).nativeElement;
+    const link = fixture.debugElement.query(By.css('.org-link')).nativeElement;
     link.click();
     expect(component.selectedId).toBe('1');
   });
 
   it('should emit select event on action click', () => {
     const action = fixture.debugElement.query(
-      By.css('.text-muted'),
+      By.css('.btn-link'),
     ).nativeElement;
     action.click();
     expect(component.selectedId).toBe('1');

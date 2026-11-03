@@ -6,10 +6,10 @@ While the CLI and Agent operate primarily in the terminal and background, the UI
 
 ## 🚀 Technology Stack
 
-- **Framework:** Angular v18+ (Standalone Components, Strict Typing)
-- **State Management:** NgRx SignalStore (for highly reactive, boilerplate-free state)
+- **Framework:** Angular v22 (Standalone Components, Strict Typing, Signals)
+- **State Management:** Native Angular Signal Stores (`JobsStore`, `PrsStore`) for reactive, boilerplate-free state
 - **Styling:** Vanilla CSS (GitHub Primer aesthetics for a familiar developer experience)
-- **E2E Testing:** Playwright
+- **E2E Testing:** Playwright + `@axe-core/playwright` (WCAG AA accessibility)
 - **Unit Testing:** Karma / Jasmine
 
 ## 🛠️ Getting Started
@@ -25,7 +25,7 @@ npm run start
 
 Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
 
-_(Note: The UI expects the `bridle-rest` API to be running on port 8080. Start it via `bridle rest --port 8080` in a separate terminal)._
+_(Note: The UI expects the `bridle-rest` API to be running on port 8080. Start it via `bridle rest` in a separate terminal)._
 
 ### Build for Production
 
@@ -62,11 +62,11 @@ npx playwright test --ui
 
 When contributing to `bridle-ui`, please adhere to the following:
 
-- **100% Coverage:** 100% unit test coverage and 100% JSDoc documentation coverage are required and enforced in CI.
-- **Strict TypeScript:** No `any`, `unknown`, or `never` bypasses. Define strict interfaces for all API payloads.
+- **100% Coverage:** 100% unit test coverage (statements, branches, functions, lines) and 100% Compodoc/JSDoc documentation coverage are required and enforced in CI.
+- **Strict TypeScript:** No `any` or `never` bypasses (use `unknown` with type guards or `JsonValue`/`JsonObject` when necessary). Define strict interfaces for all API payloads.
 - **Modern Angular Features:**
   - Use `inject()` exclusively instead of constructor injection.
-  - Utilize the new `input()` and `output()` signal APIs.
-  - All components MUST enforce `ChangeDetectionStrategy.OnPush`.
-- **Formatting & Linting:** Run `npm run lint` before committing to catch stylistic, documentation, and logical errors.
+  - Utilize `input()`, `output()`, `viewChild()`, and `contentChildren()` signal APIs.
+  - Import standalone pipes/directives directly rather than `CommonModule`.
+- **Formatting & Linting:** Run `npm run lint` before committing to catch stylistic, documentation, accessibility, and logical errors.
 - **CSS:** Avoid heavy frameworks. We use Vanilla CSS styled to match the standard Git Forge experience.

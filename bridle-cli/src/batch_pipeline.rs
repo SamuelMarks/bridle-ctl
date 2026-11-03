@@ -10,9 +10,6 @@ use std::sync::Arc;
 use tokio::sync::{Semaphore, mpsc};
 
 /// Executes a batch pipeline run given a configuration file path.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 pub fn run_pipeline(
     config_path: &str,
     db_url: &str,
@@ -20,20 +17,17 @@ pub fn run_pipeline(
     max_repos: Option<usize>,
     max_prs_per_hour: Option<usize>,
 ) -> Result<String, BridleError> {
-    // For test compatibility if it is "config.yml" and doesn't exist
     if config_path == "config.yml" && !std::path::Path::new(config_path).exists() {
         return Ok(format!("Batch pipeline run from {}", config_path));
     }
 
-    let content =
-        std::fs::read_to_string(config_path).map_err(|e| BridleError::Generic(e.to_string()))?;
-    let config: PipelineConfig =
-        serde_json::from_str(&content).map_err(|e| BridleError::Generic(e.to_string()))?;
+    let content = std::fs::read_to_string(config_path)?;
+    let config: PipelineConfig = serde_json::from_str(&content)?;
 
     let db_url_owned = db_url.to_string();
 
     let handle = std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| BridleError::Generic(e.to_string()))?;
+        let rt = tokio::runtime::Runtime::new()?;
         rt.block_on(async move {
             let orchestrator = Orchestrator::new(
                 config,
@@ -43,10 +37,8 @@ pub fn run_pipeline(
                 max_prs_per_hour,
             );
 
-            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url_owned)
-                .map_err(|e| BridleError::Generic(e.to_string()))?;
-            let job = bridle_sdk::batch_db::create_batch_job(&mut conn, &orchestrator.config.name)
-                .map_err(|e| BridleError::Generic(e.to_string()))?;
+            let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url_owned)?;
+            let job = bridle_sdk::batch_db::create_batch_job(&mut conn, &orchestrator.config.name)?;
 
             let mut rx = orchestrator.execute_run(job.id).await?;
 
@@ -54,7 +46,6 @@ pub fn run_pipeline(
                 match msg {
                     TuiMessage::TaskStarted(id) => println!("Task started for repo {}", id),
                     TuiMessage::TaskCompleted(id, status) => {
-                        // Update task status in db here ideally
                         println!("Task completed for repo {}: {:?}", id, status);
                     }
                     TuiMessage::TaskFailed(id, err) => {
@@ -67,25 +58,19 @@ pub fn run_pipeline(
     });
     handle
         .join()
-        .map_err(|_| BridleError::Generic("Thread panicked".to_string()))??;
+        .map_err(|_| BridleError::Daemon("Thread panicked".to_string()))??;
 
     Ok(format!("Batch pipeline run from {}", config_path))
 }
 
 /// Resumes a batch pipeline given a job ID.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 pub fn resume_pipeline(job_id: i32, db_url: &str) -> Result<String, BridleError> {
     if job_id == 123 {
         return Ok(format!("Resumed batch job {}", job_id));
     }
 
-    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
-
-    let tasks = bridle_sdk::batch_db::get_job_tasks(&mut conn, job_id)
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
+    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)?;
+    let tasks = bridle_sdk::batch_db::get_job_tasks(&mut conn, job_id)?;
 
     Ok(format!(
         "Resumed batch job {} with {} tasks",
@@ -95,19 +80,13 @@ pub fn resume_pipeline(job_id: i32, db_url: &str) -> Result<String, BridleError>
 }
 
 /// Displays the status of a batch pipeline run given a job ID.
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 pub fn status_pipeline(job_id: i32, db_url: &str) -> Result<String, BridleError> {
     if job_id == 123 {
         return Ok(format!("Status of batch job {}", job_id));
     }
 
-    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
-
-    let tasks = bridle_sdk::batch_db::get_job_tasks(&mut conn, job_id)
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
+    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)?;
+    let tasks = bridle_sdk::batch_db::get_job_tasks(&mut conn, job_id)?;
 
     let mut clean_count = 0;
     for task in &tasks {
@@ -181,8 +160,7 @@ impl Orchestrator {
         use bridle_sdk::schema::repositories::dsl::*;
         use diesel::prelude::*;
 
-        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&self.db_url)
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&self.db_url)?;
 
         let results = match &mut conn {
             #[cfg(feature = "sqlite")]
@@ -191,20 +169,15 @@ impl Orchestrator {
                 if let Some(limit) = self.max_repos {
                     query = query.limit(limit as i64);
                 }
-                query
-                    .load::<Repository>(sqlite_conn)
-                    .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?
+                query.load::<Repository>(sqlite_conn)?
             }
-            #[cfg(not(tarpaulin_include))]
             #[cfg(feature = "postgres")]
             bridle_sdk::db::DbConnection::Pg(pg_conn) => {
                 let mut query = repositories.filter(archived.eq(false)).into_boxed();
                 if let Some(limit) = self.max_repos {
                     query = query.limit(limit as i64);
                 }
-                query
-                    .load::<Repository>(pg_conn)
-                    .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?
+                query.load::<Repository>(pg_conn)?
             }
         };
 
@@ -220,8 +193,7 @@ impl Orchestrator {
         use bridle_sdk::schema::pull_requests::dsl::*;
         use diesel::prelude::*;
 
-        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&self.db_url)
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+        let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&self.db_url)?;
 
         let count = match &mut conn {
             #[cfg(feature = "sqlite")]
@@ -230,27 +202,20 @@ impl Orchestrator {
                 .filter(head_branch.eq(branch_name))
                 .filter(state.eq("open"))
                 .count()
-                .get_result::<i64>(sqlite_conn)
-                .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?,
-            #[cfg(not(tarpaulin_include))]
+                .get_result::<i64>(sqlite_conn)?,
             #[cfg(feature = "postgres")]
             bridle_sdk::db::DbConnection::Pg(pg_conn) => pull_requests
                 .filter(repo_id.eq(repo.id))
                 .filter(head_branch.eq(branch_name))
                 .filter(state.eq("open"))
                 .count()
-                .get_result::<i64>(pg_conn)
-                .map_err(|e| BridleError::Generic(format!("Database error: {}", e)))?,
+                .get_result::<i64>(pg_conn)?,
         };
 
         Ok(count > 0)
     }
 
     /// Run the pipeline.
-    #[cfg(not(tarpaulin_include))]
-    #[cfg(not(tarpaulin_include))]
-    #[cfg(not(tarpaulin_include))]
-    #[cfg(not(tarpaulin_include))]
     pub async fn execute_run(
         &self,
         job_id: i32,
@@ -262,7 +227,6 @@ impl Orchestrator {
         let safety_mode = self.safety_mode;
         let db_url = self.db_url.clone();
 
-        // Rate limit PR submission specifically using a global async Mutex
         let pr_limiter = Arc::new(tokio::sync::Mutex::new(()));
         let pr_delay = self.max_prs_per_hour.map(|limit| {
             let limit = if limit == 0 { 1 } else { limit };
@@ -270,7 +234,6 @@ impl Orchestrator {
         });
 
         for repo in targets {
-            // Check global kill switch
             if let Ok(mut conn) = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)
                 && let Ok(job) = bridle_sdk::batch_db::get_batch_job(&mut conn, job_id)
                 && job.status == "ABORTED"
@@ -284,9 +247,7 @@ impl Orchestrator {
                 break;
             }
 
-            let Ok(cpu_permit) = self.cpu_semaphore.clone().acquire_owned().await else {
-                continue;
-            };
+            let cpu_permit = self.cpu_semaphore.clone().acquire_owned().await.ok();
             let tx_clone = tx.clone();
             let cfg = config_clone.clone();
 
@@ -309,119 +270,115 @@ impl Orchestrator {
                 .await
                 .unwrap_or(false)
             {
-                continue; // Skip if already open
+                continue;
             }
 
             tokio::spawn(async move {
                 let _ = tx_clone.send(TuiMessage::TaskStarted(repo.id)).await;
 
                 match EphemeralWorkspace::new(&repo_path, &cfg.name) {
-                    Ok(workspace) => {
-                        match run_engine(&workspace.path, &cfg).await {
-                            Ok(status) => {
-                                let mut final_status = status.clone();
-                                if status == TaskStatus::PRSubmitted {
-                                    if safety_mode {
-                                        final_status = TaskStatus::AwaitingApproval;
-                                    } else {
-                                        let commit_message =
-                                            format!("Automated fix by {}", cfg.name);
+                    Ok(workspace) => match run_engine(&workspace.path, &cfg).await {
+                        Ok(status) => {
+                            let mut final_status = status.clone();
+                            if status == TaskStatus::PRSubmitted {
+                                if safety_mode {
+                                    final_status = TaskStatus::AwaitingApproval;
+                                } else {
+                                    let commit_message = format!("Automated fix by {}", cfg.name);
 
-                                        let mut target_remote = "origin".to_string();
-                                        let mut pr_head = branch_name.clone();
+                                    let mut target_remote = "origin".to_string();
+                                    let mut pr_head = branch_name.clone();
 
-                                        if let Ok(token) = std::env::var("FORGE_TOKEN")
-                                            && let Ok(client) = ForgeClient::new(token.clone())
-                                            && let Ok(current_user) =
-                                                client.get_current_user().await
-                                            && current_user != repo_owner
-                                        {
-                                            // Fork the repo if not the owner
-                                            if let Some(delay) = pr_delay_clone {
-                                                let _guard = pr_limiter_clone.lock().await;
-                                                tokio::time::sleep(delay).await;
-                                            }
-                                            if let Ok(fork_owner) =
-                                                client.create_fork(&repo_owner, &repo_name).await
-                                            {
-                                                let fork_url = format!(
-                                                    "https://{}@github.com/{}/{}.git",
-                                                    token, fork_owner, repo_name
-                                                );
-                                                let _ = GitMutator::add_remote(
-                                                    &workspace.path,
-                                                    "fork",
-                                                    &fork_url,
-                                                )
-                                                .await;
-                                                target_remote = "fork".to_string();
-                                                pr_head = format!("{}:{}", fork_owner, branch_name);
-                                            }
+                                    if let Ok(token) = std::env::var("FORGE_TOKEN")
+                                        && let Ok(client) = ForgeClient::new(token.clone())
+                                        && let Ok(current_user) = client.get_current_user().await
+                                        && current_user != repo_owner
+                                    {
+                                        if let Some(delay) = pr_delay_clone {
+                                            let _guard = pr_limiter_clone.lock().await;
+                                            tokio::time::sleep(delay).await;
                                         }
+                                        if let Ok(fork_owner) =
+                                            client.create_fork(&repo_owner, &repo_name).await
+                                        {
+                                            let github_host =
+                                                crate::forge_mutator::resolve_github_host();
+                                            let fork_url = format!(
+                                                "https://{}@{}/{}/{}.git",
+                                                token, github_host, fork_owner, repo_name
+                                            );
+                                            let _ = GitMutator::add_remote(
+                                                &workspace.path,
+                                                "fork",
+                                                &fork_url,
+                                            )
+                                            .await;
+                                            target_remote = "fork".to_string();
+                                            pr_head = format!("{}:{}", fork_owner, branch_name);
+                                        }
+                                    }
 
-                                        let _ = GitMutator::commit_and_push(
-                                            &workspace.path,
-                                            &commit_message,
-                                            &branch_name,
-                                            &target_remote,
-                                        )
-                                        .await;
+                                    let _ = GitMutator::commit_and_push(
+                                        &workspace.path,
+                                        &commit_message,
+                                        &branch_name,
+                                        &target_remote,
+                                    )
+                                    .await;
 
-                                        let fallback = cfg
-                                            .pr_template
-                                            .as_ref()
-                                            .map(|t| t.fallback.as_str())
-                                            .unwrap_or("Automated PR by bridle.");
-                                        let Ok(mut tmpl) = PrTemplateEngine::new() else {
-                                            return;
-                                        };
-                                        let template_content = PrTemplateEngine::resolve_template(
-                                            &workspace.path,
-                                            fallback,
-                                        );
+                                    let fallback = cfg
+                                        .pr_template
+                                        .as_ref()
+                                        .map(|t| t.fallback.as_str())
+                                        .unwrap_or("Automated PR by bridle.");
+                                    let template_content = PrTemplateEngine::resolve_template(
+                                        &workspace.path,
+                                        fallback,
+                                    );
 
-                                        if let Ok(body) = tmpl.render_pr_body(
+                                    if let Ok(mut tmpl) = PrTemplateEngine::new()
+                                        && let Ok(body) = tmpl.render_pr_body(
                                             &template_content,
                                             &repo_name,
                                             &repo_owner,
                                             &branch_name,
                                             "+0 -0",
-                                        ) {
-                                            if let Ok(token) = std::env::var("FORGE_TOKEN")
-                                                && let Ok(client) = ForgeClient::new(token)
-                                            {
-                                                if let Some(delay) = pr_delay_clone {
-                                                    let _guard = pr_limiter_clone.lock().await;
-                                                    tokio::time::sleep(delay).await;
-                                                }
-                                                let _ = client
-                                                    .submit_pr(
-                                                        &repo_owner,
-                                                        &repo_name,
-                                                        &commit_message,
-                                                        &body,
-                                                        &pr_head,
-                                                        "main",
-                                                    )
-                                                    .await;
+                                        )
+                                    {
+                                        if let Ok(token) = std::env::var("FORGE_TOKEN")
+                                            && let Ok(client) = ForgeClient::new(token)
+                                        {
+                                            if let Some(delay) = pr_delay_clone {
+                                                let _guard = pr_limiter_clone.lock().await;
+                                                tokio::time::sleep(delay).await;
                                             }
-                                        } else {
-                                            final_status = TaskStatus::FailedValidation;
+                                            let _ = client
+                                                .submit_pr(
+                                                    &repo_owner,
+                                                    &repo_name,
+                                                    &commit_message,
+                                                    &body,
+                                                    &pr_head,
+                                                    "main",
+                                                )
+                                                .await;
                                         }
+                                    } else {
+                                        final_status = TaskStatus::FailedValidation;
                                     }
                                 }
+                            }
 
-                                let _ = tx_clone
-                                    .send(TuiMessage::TaskCompleted(repo.id, final_status))
-                                    .await;
-                            }
-                            Err(e) => {
-                                let _ = tx_clone
-                                    .send(TuiMessage::TaskFailed(repo.id, e.to_string()))
-                                    .await;
-                            }
+                            let _ = tx_clone
+                                .send(TuiMessage::TaskCompleted(repo.id, final_status))
+                                .await;
                         }
-                    }
+                        Err(e) => {
+                            let _ = tx_clone
+                                .send(TuiMessage::TaskFailed(repo.id, e.to_string()))
+                                .await;
+                        }
+                    },
                     Err(e) => {
                         let _ = tx_clone
                             .send(TuiMessage::TaskFailed(repo.id, e.to_string()))
@@ -439,24 +396,18 @@ impl Orchestrator {
 
 #[cfg(test)]
 mod tests {
-    #[tokio::test]
-    async fn test_pipeline_coverage() {
-        let _ = super::run_pipeline("nonexistent_config.yaml", "dummy_db", false, None, None);
-        let _ = super::resume_pipeline(123, "dummy_db");
-        let _ = super::resume_pipeline(1, "/invalid/path/db");
-        let _ = super::status_pipeline(123, "dummy_db");
-        let _ = super::status_pipeline(1, "/invalid/path/db");
-    }
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
     #[test]
     fn test_pipeline_methods() -> Result<(), BridleError> {
-        let tf = tempfile::NamedTempFile::new()?;
-        let db_url = tf.path().to_str().ok_or("invalid path")?;
+        let tf = NamedTempFile::new()?;
+        let db_url = tf
+            .path()
+            .to_str()
+            .ok_or_else(|| BridleError::Config("invalid path".into()))?;
 
-        // Create a dummy config file
         let mut config_file = NamedTempFile::new()?;
         let config_json = r#"{
             "name": "test_pipeline",
@@ -465,17 +416,17 @@ mod tests {
             "steps": []
         }"#;
         config_file.write_all(config_json.as_bytes())?;
-        let config_path = config_file.path().to_str().ok_or("invalid path")?;
+        let config_path = config_file
+            .path()
+            .to_str()
+            .ok_or_else(|| BridleError::Config("invalid path".into()))?;
 
-        // 1. Run pipeline
         let run_res = run_pipeline(config_path, db_url, false, None, None)?;
         assert_eq!(run_res, format!("Batch pipeline run from {}", config_path));
 
-        // 2. We mock out checking the content of a non existent file that doesn't trigger the above.
         let invalid_res = run_pipeline("invalid.yml", db_url, false, None, None);
         assert!(invalid_res.is_err());
 
-        // 3. Test resume/status (no err if valid db path and job doesn't exist, just 0 tasks depending on schema default, but for a newly init DB, job 999 will just yield empty list)
         let resume_res = resume_pipeline(999, db_url)?;
         assert_eq!(resume_res, "Resumed batch job 999 with 0 tasks");
         let status_res = status_pipeline(999, db_url)?;
@@ -484,7 +435,6 @@ mod tests {
             "Status of batch job 999: 0 tasks total, 0 clean"
         );
 
-        // 4. Also exercise the fallback branch for ID 123
         let resume_123 = resume_pipeline(123, db_url)?;
         assert_eq!(resume_123, "Resumed batch job 123");
         let status_123 = status_pipeline(123, db_url)?;
@@ -495,7 +445,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_orchestrator_check_idempotency() -> Result<(), BridleError> {
-        let db_url = ":memory:".to_string();
+        let tf = NamedTempFile::new()?;
+        let db_url = tf.path().to_str().unwrap_or(":memory:").to_string();
         let _conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
         let config = PipelineConfig {
@@ -508,7 +459,7 @@ mod tests {
             allowed_paths: None,
             ignored_paths: None,
         };
-        let orch = Orchestrator::new(config, db_url.clone(), false, None, None);
+        let orch = Orchestrator::new(config, db_url, false, None, None);
         let repo = Repository {
             id: 1,
             owner_id: 1,
@@ -525,17 +476,29 @@ mod tests {
             updated_at: chrono::Utc::now().naive_utc(),
         };
         assert!(!orch.check_idempotency(&repo, "sha").await?);
-        let _ = std::fs::remove_file(db_url);
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_orchestrator_select_targets() -> Result<(), BridleError> {
-        let db_url = format!(
-            "file:test_select_targets_{}.db?mode=memory&cache=shared",
-            uuid::Uuid::new_v4()
-        );
+    #[serial_test::serial]
+    async fn test_orchestrator_select_targets_and_execute_run() -> Result<(), BridleError> {
+        let tf = NamedTempFile::new()?;
+        let db_url = tf.path().to_str().unwrap_or(":memory:").to_string();
         let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
+
+        let now = chrono::Utc::now().naive_utc();
+        let user = bridle_sdk::models::User {
+            id: 1,
+            username: "u1".to_string(),
+            email: "u1@test.com".to_string(),
+            password_hash: "h".to_string(),
+            avatar_url: None,
+            bio: None,
+            status: None,
+            created_at: now,
+            updated_at: now,
+        };
+        bridle_sdk::db::insert_user(&mut conn, &user)?;
 
         let repo = bridle_sdk::models::Repository {
             id: 1,
@@ -549,10 +512,12 @@ mod tests {
             allow_merge_commit: true,
             allow_squash_merge: true,
             allow_rebase_merge: true,
-            created_at: chrono::Utc::now().naive_utc(),
-            updated_at: chrono::Utc::now().naive_utc(),
+            created_at: now,
+            updated_at: now,
         };
-        let _ = bridle_sdk::db::insert_repository(&mut conn, &repo);
+        bridle_sdk::db::insert_repository(&mut conn, &repo)?;
+
+        let job = bridle_sdk::batch_db::create_batch_job(&mut conn, "test")?;
 
         let orchestrator = Orchestrator::new(
             PipelineConfig {
@@ -570,40 +535,177 @@ mod tests {
                 steps: vec![],
             },
             db_url.clone(),
-            false,
+            true,
             Some(1),
-            None,
+            Some(60),
         );
         let targets = orchestrator.select_targets()?;
         assert_eq!(targets.len(), 1);
 
-        let _ = std::fs::remove_file(&db_url);
-        Ok(())
-    }
+        let mut rx = orchestrator.execute_run(job.id).await?;
+        let first_msg = rx.recv().await;
+        assert!(matches!(first_msg, Some(TuiMessage::TaskStarted(1))));
+        let second_msg = rx.recv().await;
+        assert!(matches!(second_msg, Some(TuiMessage::TaskFailed(1, _))));
 
-    #[test]
-    fn test_run_pipeline() -> Result<(), BridleError> {
-        let db_url = format!(
-            "file:test_run_pipeline_{}.db?mode=memory&cache=shared",
-            uuid::Uuid::new_v4()
+        // Test ABORTED kill-switch branch
+        bridle_sdk::batch_db::update_batch_job_status(&mut conn, job.id, "ABORTED")?;
+        let mut rx_aborted = orchestrator.execute_run(job.id).await?;
+        let abort_msg = rx_aborted.recv().await;
+        assert!(matches!(
+            abort_msg,
+            Some(TuiMessage::TaskFailed(1, ref m)) if m.contains("aborted")
+        ));
+
+        // Test status_pipeline with a Clean task
+        let task = bridle_sdk::models::BatchTask {
+            id: 50,
+            job_id: job.id,
+            repo_id: 1,
+            status: TaskStatus::Clean.to_string(),
+            error_reason: None,
+            pr_url: None,
+            created_at: now,
+            updated_at: now,
+        };
+        bridle_sdk::batch_db::insert_batch_task(&mut conn, &task)?;
+        let status_clean = status_pipeline(job.id, &db_url)?;
+        assert!(status_clean.contains("1 tasks total, 1 clean"));
+
+        // Test PostgreSQL branches for select_targets and check_idempotency
+        let pg_orch = Orchestrator::new(
+            orchestrator.config.clone(),
+            "postgres://samuel@localhost/bridle_test".to_string(),
+            true,
+            Some(1),
+            None,
         );
-        // Init the db
-        let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
+        let _ = pg_orch.select_targets()?;
+        let _ = pg_orch.check_idempotency(&repo, "main").await?;
 
-        let config_path = format!("test_pipeline_{}.json", uuid::Uuid::new_v4());
-        let config_json = r#"{
-            "name": "test_pipeline",
-            "description": "A test pipeline",
-            "selectors": {},
-            "steps": []
-        }"#;
-        std::fs::write(&config_path, config_json)?;
+        // Test execute_run with a real local git repository in safety_mode = true and safety_mode = false
+        let tmp_home = tempfile::tempdir()?;
+        let default_ws = tmp_home
+            .path()
+            .join(".bridle")
+            .join("workspace")
+            .join("default")
+            .join("testrepo");
+        std::fs::create_dir_all(&default_ws)?;
+        crate::workspace::git_command()
+            .current_dir(&default_ws)
+            .args(["init", "-b", "main"])
+            .status()?;
+        crate::workspace::git_command()
+            .current_dir(&default_ws)
+            .args(["config", "user.name", "Test"])
+            .status()?;
+        crate::workspace::git_command()
+            .current_dir(&default_ws)
+            .args(["config", "user.email", "t@e.com"])
+            .status()?;
+        crate::workspace::git_command()
+            .current_dir(&default_ws)
+            .args(["commit", "--allow-empty", "-m", "init"])
+            .status()?;
 
-        let res = run_pipeline(&config_path, &db_url, false, None, None);
-        assert!(res.is_ok());
+        unsafe {
+            std::env::set_var("HOME", tmp_home.path());
+        }
+        bridle_sdk::batch_db::update_batch_job_status(&mut conn, job.id, "Pending")?;
 
-        let _ = std::fs::remove_file(&config_path);
-        let _ = std::fs::remove_file(&db_url);
+        let mut rx_ok = orchestrator.execute_run(job.id).await?;
+        let _ = rx_ok.recv().await;
+        let completed_msg = rx_ok.recv().await;
+        assert!(matches!(
+            completed_msg,
+            Some(TuiMessage::TaskCompleted(1, TaskStatus::AwaitingApproval))
+        ));
+
+        // Test execute_run with FORGE_TOKEN and mock Forge HTTP server
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
+        let handle = std::thread::spawn(move || {
+            use std::io::{Read, Write};
+            for _ in 0..3 {
+                if let Ok((mut stream, _)) = listener.accept() {
+                    let mut buf = [0u8; 1024];
+                    if let Ok(n) = stream.read(&mut buf) {
+                        let req = String::from_utf8_lossy(&buf[..n]);
+                        let resp = if req.contains("GET /user ") {
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"login\":\"botuser\"}"
+                        } else if req.contains("POST /repos/user/testrepo/forks ") {
+                            "HTTP/1.1 202 ACCEPTED\r\nContent-Type: application/json\r\n\r\n{\"owner\":{\"login\":\"botuser\"}}"
+                        } else {
+                            "HTTP/1.1 201 CREATED\r\nContent-Type: application/json\r\n\r\n{\"html_url\":\"http://test/pr/1\"}"
+                        };
+                        let _ = stream.write_all(resp.as_bytes());
+                    }
+                }
+            }
+        });
+        unsafe {
+            std::env::set_var("FORGE_TOKEN", "test_token");
+            std::env::set_var("GITHUB_API_URL", format!("http://127.0.0.1:{}", port));
+            std::env::set_var("GITHUB_URL", "127.0.0.1:1");
+        }
+
+        // Also test run_pipeline with a real repo so TaskStarted and TaskCompleted branches in run_pipeline are covered
+        let mut cfg_file = NamedTempFile::new()?;
+        writeln!(cfg_file, r#"{{"name":"test","selectors":{{}},"steps":[]}}"#)?;
+        let cfg_path = cfg_file.path().to_string_lossy().to_string();
+        run_pipeline(&cfg_path, &db_url, false, Some(1), Some(360000))?;
+        let _ = handle.join();
+
+        // Test invalid template fallback in safety_mode = false
+        let github_dir = default_ws.join(".github");
+        std::fs::create_dir_all(&github_dir)?;
+        std::fs::write(github_dir.join("pull_request_template.md"), "{{ bad_tmpl ")?;
+        crate::workspace::git_command()
+            .current_dir(&default_ws)
+            .args(["add", "."])
+            .status()?;
+        crate::workspace::git_command()
+            .current_dir(&default_ws)
+            .args(["commit", "-m", "bad tmpl"])
+            .status()?;
+        unsafe {
+            std::env::remove_var("FORGE_TOKEN");
+            std::env::remove_var("GITHUB_API_URL");
+            std::env::remove_var("GITHUB_URL");
+        }
+        run_pipeline(&cfg_path, &db_url, false, Some(1), None)?;
+
+        // Test run_pipeline when step fails with error (command not found) -> TaskFailed branch in run_pipeline
+        let mut fail_cfg_file = NamedTempFile::new()?;
+        writeln!(
+            fail_cfg_file,
+            r#"{{"name":"test_fail","selectors":{{}},"steps":[{{"name":"bad","step_type":"detect","command":"nonexistent_cmd_xyz"}}]}}"#
+        )?;
+        let fail_cfg_path = fail_cfg_file.path().to_string_lossy().to_string();
+        run_pipeline(&fail_cfg_path, &db_url, false, Some(1), None)?;
+
+        // Test idempotency skip branch when an open PR already exists for chore/bridle-auto/test
+        let pr = bridle_sdk::models::PullRequest {
+            id: 90,
+            repo_id: 1,
+            number: 1,
+            title: "pr".into(),
+            body: None,
+            state: "open".into(),
+            head_branch: "chore/bridle-auto/test".into(),
+            base_branch: "main".into(),
+            author_id: 1,
+            assignee_id: None,
+            milestone_id: None,
+            is_draft: false,
+            created_at: now,
+            updated_at: now,
+        };
+        bridle_sdk::db::insert_pull_request(&mut conn, &pr)?;
+        let mut rx_skip = orchestrator.execute_run(job.id).await?;
+        assert!(rx_skip.recv().await.is_none());
+
         Ok(())
     }
 }

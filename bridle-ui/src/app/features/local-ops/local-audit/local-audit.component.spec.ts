@@ -48,12 +48,30 @@ describe('LocalAuditComponent', () => {
 
     component.form.setValue({
       pattern: 'FIXME',
-      tools: '',
+      tools: null,
       args: '{invalid json}',
     });
 
     component.onSubmit();
 
+    expect(component.audit.emit).toHaveBeenCalledWith({
+      pattern: 'FIXME',
+      tools: [],
+      args: {},
+    });
+  });
+
+  it('should handle null args and not emit when form is invalid', () => {
+    spyOn(component.audit, 'emit');
+    component.onSubmit();
+    expect(component.audit.emit).not.toHaveBeenCalled();
+
+    component.form.setValue({
+      pattern: 'FIXME',
+      tools: '',
+      args: null,
+    });
+    component.onSubmit();
     expect(component.audit.emit).toHaveBeenCalledWith({
       pattern: 'FIXME',
       tools: [],

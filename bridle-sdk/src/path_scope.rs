@@ -18,21 +18,17 @@ impl PathScope {
     pub fn new(allowed_globs: &[String], ignored_globs: &[String]) -> Result<Self, BridleError> {
         let mut allowed_builder = GlobSetBuilder::new();
         for g in allowed_globs {
-            let glob = Glob::new(g).map_err(|e| BridleError::Config(e.to_string()))?;
+            let glob = Glob::new(g)?;
             allowed_builder.add(glob);
         }
-        let allowed = allowed_builder
-            .build()
-            .map_err(|e| BridleError::Config(e.to_string()))?;
+        let allowed = allowed_builder.build()?;
 
         let mut ignored_builder = GlobSetBuilder::new();
         for g in ignored_globs {
-            let glob = Glob::new(g).map_err(|e| BridleError::Config(e.to_string()))?;
+            let glob = Glob::new(g)?;
             ignored_builder.add(glob);
         }
-        let ignored = ignored_builder
-            .build()
-            .map_err(|e| BridleError::Config(e.to_string()))?;
+        let ignored = ignored_builder.build()?;
 
         Ok(Self { allowed, ignored })
     }
@@ -100,6 +96,9 @@ mod tests {
     #[test]
     fn test_invalid_glob() {
         let err = PathScope::new(&["[invalid".to_string()], &[]);
-        assert!(err.is_err());
+        assert!(matches!(err, Err(BridleError::Glob(_))));
+
+        let err2 = PathScope::new(&[], &["[invalid".to_string()]);
+        assert!(matches!(err2, Err(BridleError::Glob(_))));
     }
 }

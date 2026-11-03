@@ -1,5 +1,4 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
-
+import { Component, input } from '@angular/core';
 import { Repository } from '../../../core/models/models';
 import {
   AppTableComponent,
@@ -7,79 +6,54 @@ import {
 } from '../../../shared/ui/app-table/app-table.component';
 
 /**
- * Component to display a list of repositories.
+ * Component displaying a table of repositories for a selected organization.
  */
 @Component({
   selector: 'app-repo-list',
   imports: [AppTableComponent, AppTableColumnDirective],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-table
       [title]="'Repositories for ' + orgName()"
       [data]="repos()"
-      emptyMessage="No repositories found."
+      emptyMessage="No repositories found for this organization."
     >
-      <ng-template appTableColumn title="Repository Name" let-repo>
-        <div class="d-flex flex-column">
-          <span class="text-bold color-fg-default">{{ repo.name }}</span>
-          @if (repo.description) {
-            <span class="text-muted text-small mt-1">{{
-              repo.description
-            }}</span>
-          }
+      <ng-template appTableColumn title="Repository" key="name" let-repo>
+        <div class="repo-name">
+          <svg
+            aria-hidden="true"
+            height="16"
+            viewBox="0 0 16 16"
+            version="1.1"
+            width="16"
+            class="octicon octicon-repo text-muted mr-2"
+          >
+            <path
+              d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"
+            ></path>
+          </svg>
+          <strong>{{ repo.name }}</strong>
         </div>
       </ng-template>
-
-      <ng-template appTableColumn title="Link" let-repo>
-        @if (repo.url) {
-          <a
-            [href]="repo.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-muted text-small"
-          >
-            <svg
-              aria-hidden="true"
-              height="16"
-              viewBox="0 0 16 16"
-              version="1.1"
-              width="16"
-              class="octicon octicon-link-external"
-            >
-              <path
-                d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.75.75 0 0 1-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"
-              ></path>
-            </svg>
-            Open
-          </a>
-        }
+      <ng-template
+        appTableColumn
+        title="Description"
+        key="description"
+        let-value="value"
+      >
+        <span class="text-muted">{{ value || 'No description' }}</span>
       </ng-template>
     </app-table>
   `,
   styles: `
-    .text-bold {
-      font-weight: 600;
-    }
-    .color-fg-default {
-      color: var(--color-fg-default);
+    .repo-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .text-muted {
       color: var(--color-fg-muted);
-      text-decoration: none;
-    }
-    .text-muted:hover {
-      color: var(--color-accent-fg);
-      text-decoration: underline;
-    }
-    .text-small {
-      font-size: 12px;
-    }
-    .mt-1 {
-      margin-top: 4px;
     }
     .octicon {
-      vertical-align: text-bottom;
-      margin-right: 4px;
       fill: currentColor;
     }
   `,

@@ -27,18 +27,11 @@ pub fn create_batch_job(
                 .first::<BatchJob>(c)
                 .map_err(BridleError::Database)
         }
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => {
-            diesel::insert_into(batch_jobs::table)
-                .values(&new_job)
-                .execute(_c)
-                .map_err(BridleError::Database)?;
-            batch_jobs::table
-                .order(batch_jobs::id.desc())
-                .first::<BatchJob>(_c)
-                .map_err(BridleError::Database)
-        }
+        DbConnection::Pg(c) => diesel::insert_into(batch_jobs::table)
+            .values(&new_job)
+            .get_result::<BatchJob>(c)
+            .map_err(BridleError::Database),
     }
 }
 
@@ -50,11 +43,10 @@ pub fn get_batch_job(conn: &mut DbConnection, job_id: i32) -> Result<BatchJob, B
             .find(job_id)
             .first::<BatchJob>(c)
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => batch_jobs::table
+        DbConnection::Pg(c) => batch_jobs::table
             .find(job_id)
-            .first::<BatchJob>(_c)
+            .first::<BatchJob>(c)
             .map_err(BridleError::Database),
     }
 }
@@ -70,12 +62,11 @@ pub fn insert_batch_job(conn: &mut DbConnection, job: &BatchJob) -> Result<Batch
                 .map_err(BridleError::Database)?;
             Ok(job.clone())
         }
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => {
+        DbConnection::Pg(c) => {
             diesel::insert_into(batch_jobs::table)
                 .values(job)
-                .execute(_c)
+                .execute(c)
                 .map_err(BridleError::Database)?;
             Ok(job.clone())
         }
@@ -98,9 +89,8 @@ pub fn update_batch_job_status(
                 batch_jobs::table.find(job_id).first::<BatchJob>(c)
             })
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => _c
+        DbConnection::Pg(c) => c
             .transaction(|c| {
                 diesel::update(batch_jobs::table.find(job_id))
                     .set((batch_jobs::status.eq(new_status),))
@@ -119,11 +109,10 @@ pub fn get_batch_task(conn: &mut DbConnection, task_id: i32) -> Result<BatchTask
             .find(task_id)
             .first::<BatchTask>(c)
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => batch_tasks::table
+        DbConnection::Pg(c) => batch_tasks::table
             .find(task_id)
-            .first::<BatchTask>(_c)
+            .first::<BatchTask>(c)
             .map_err(BridleError::Database),
     }
 }
@@ -142,12 +131,11 @@ pub fn insert_batch_task(
                 .map_err(BridleError::Database)?;
             Ok(task.clone())
         }
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => {
+        DbConnection::Pg(c) => {
             diesel::insert_into(batch_tasks::table)
                 .values(task)
-                .execute(_c)
+                .execute(c)
                 .map_err(BridleError::Database)?;
             Ok(task.clone())
         }
@@ -175,9 +163,8 @@ pub fn update_task_status(
                 batch_tasks::table.find(task_id).first::<BatchTask>(c)
             })
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => _c
+        DbConnection::Pg(c) => c
             .transaction(|c| {
                 diesel::update(batch_tasks::table.find(task_id))
                     .set((
@@ -200,11 +187,10 @@ pub fn get_job_tasks(conn: &mut DbConnection, job_id: i32) -> Result<Vec<BatchTa
             .filter(batch_tasks::job_id.eq(job_id))
             .load::<BatchTask>(c)
             .map_err(BridleError::Database),
-        #[cfg(not(tarpaulin_include))]
         #[cfg(feature = "postgres")]
-        DbConnection::Pg(_c) => batch_tasks::table
+        DbConnection::Pg(c) => batch_tasks::table
             .filter(batch_tasks::job_id.eq(job_id))
-            .load::<BatchTask>(_c)
+            .load::<BatchTask>(c)
             .map_err(BridleError::Database),
     }
 }
@@ -292,11 +278,11 @@ mod extra_tests {
     fn test_insert_and_get() -> Result<(), crate::BridleError> {
         let mut conn = establish_connection_and_run_migrations(":memory:")?;
 
-        // Use create_batch_job just to get a valid inserted job
         let job = create_batch_job(&mut conn, "test")?;
 
         let fetched = get_batch_job(&mut conn, job.id)?;
         assert_eq!(fetched.id, job.id);
+        assert_eq!(fetched.pipeline_name, "test");
 
         let missing = get_batch_job(&mut conn, 9999);
         assert!(missing.is_err());
@@ -321,6 +307,8 @@ mod extra_tests {
 
                 let fetched_t = get_batch_task(&mut conn, inserted_task.id)?;
                 assert_eq!(fetched_t.id, inserted_task.id);
+                assert_eq!(fetched_t.job_id, job.id);
+                assert_eq!(fetched_t.repo_id, 1);
             }
             _ => unreachable!(),
         }
@@ -328,7 +316,6 @@ mod extra_tests {
         let missing_task = get_batch_task(&mut conn, 9999);
         assert!(missing_task.is_err());
 
-        // Also let's test insert_batch_job directly
         let mut job2 = job.clone();
         job2.id = 9999;
         let inserted2 = insert_batch_job(&mut conn, &job2)?;
@@ -336,7 +323,6 @@ mod extra_tests {
         let dup = insert_batch_job(&mut conn, &job2);
         assert!(dup.is_err());
 
-        // Also test insert_batch_task directly
         let task = BatchTask {
             id: 9999,
             job_id: job.id,
@@ -349,6 +335,7 @@ mod extra_tests {
         };
         let inserted_task = insert_batch_task(&mut conn, &task)?;
         assert_eq!(inserted_task.id, 9999);
+        assert_eq!(inserted_task.repo_id, 2);
         let dup_task = insert_batch_task(&mut conn, &task);
         assert!(dup_task.is_err());
 
@@ -356,68 +343,95 @@ mod extra_tests {
     }
 
     #[test]
-    fn test_pg_stubs() -> Result<(), crate::BridleError> {
-        let url = crate::db::database_url();
-        if url.starts_with("postgres") {
-            let mut conn = establish_connection_and_run_migrations(&url)?;
-            let job = create_batch_job(&mut conn, "test")?;
-            get_batch_job(&mut conn, job.id)?;
-            let mut job2 = job.clone();
-            job2.id = job.id + 1000;
-            insert_batch_job(&mut conn, &job2)?;
-            update_batch_job_status(&mut conn, job.id, "ABORTED")?;
+    fn test_pg_batch_operations() -> Result<(), crate::BridleError> {
+        let url = "postgres://samuel@localhost/bridle_test".to_string();
 
-            let unique_suffix = job.id + 1000;
-            crate::db::insert_user(
-                &mut conn,
-                &crate::models::User {
-                    id: unique_suffix,
-                    username: format!("test_user_{}", unique_suffix),
-                    email: format!("test{}@test.com", unique_suffix),
-                    password_hash: "hash".to_string(),
-                    avatar_url: None,
-                    bio: None,
-                    status: None,
-                    created_at: chrono::Utc::now().naive_utc(),
-                    updated_at: chrono::Utc::now().naive_utc(),
-                },
-            )?;
+        let mut conn = establish_connection_and_run_migrations(&url)?;
+        let job = create_batch_job(&mut conn, "test_pg_pipeline")?;
+        let fetched_job = get_batch_job(&mut conn, job.id)?;
+        assert_eq!(fetched_job.id, job.id);
+        assert_eq!(fetched_job.pipeline_name, "test_pg_pipeline");
 
-            crate::db::insert_repository(
-                &mut conn,
-                &crate::models::Repository {
-                    id: unique_suffix,
-                    owner_id: unique_suffix,
-                    owner_type: "user".to_string(),
-                    name: format!("testrepo_{}", unique_suffix),
-                    description: None,
-                    is_private: false,
-                    is_fork: false,
-                    archived: false,
-                    allow_merge_commit: true,
-                    allow_squash_merge: true,
-                    allow_rebase_merge: true,
-                    created_at: chrono::Utc::now().naive_utc(),
-                    updated_at: chrono::Utc::now().naive_utc(),
-                },
-            )?;
+        let unique_suffix: i32 = (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .subsec_nanos() as i32)
+            .abs()
+            .saturating_add(10_000);
 
-            let task = BatchTask {
+        let mut job2 = job.clone();
+        job2.id = unique_suffix;
+        let inserted_job2 = insert_batch_job(&mut conn, &job2)?;
+        assert_eq!(inserted_job2.id, unique_suffix);
+
+        let updated_job = update_batch_job_status(&mut conn, job.id, "ABORTED")?;
+        assert_eq!(updated_job.status, "ABORTED");
+
+        crate::db::insert_user(
+            &mut conn,
+            &crate::models::User {
                 id: unique_suffix,
-                job_id: job.id,
-                repo_id: unique_suffix,
-                status: "Pending".to_string(),
-                error_reason: None,
-                pr_url: None,
+                username: format!("test_user_{}", unique_suffix),
+                email: format!("test{}@test.com", unique_suffix),
+                password_hash: "hash".to_string(),
+                avatar_url: None,
+                bio: None,
+                status: None,
                 created_at: chrono::Utc::now().naive_utc(),
                 updated_at: chrono::Utc::now().naive_utc(),
-            };
+            },
+        )?;
 
-            let task = insert_batch_task(&mut conn, &task)?;
-            get_batch_task(&mut conn, task.id)?;
-            update_task_status(&mut conn, task.id, TaskStatus::Clean, None)?;
-            get_job_tasks(&mut conn, job.id)?;
-        }
+        crate::db::insert_repository(
+            &mut conn,
+            &crate::models::Repository {
+                id: unique_suffix,
+                owner_id: unique_suffix,
+                owner_type: "user".to_string(),
+                name: format!("testrepo_{}", unique_suffix),
+                description: None,
+                is_private: false,
+                is_fork: false,
+                archived: false,
+                allow_merge_commit: true,
+                allow_squash_merge: true,
+                allow_rebase_merge: true,
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: chrono::Utc::now().naive_utc(),
+            },
+        )?;
+
+        let task = BatchTask {
+            id: unique_suffix,
+            job_id: job.id,
+            repo_id: unique_suffix,
+            status: "Pending".to_string(),
+            error_reason: None,
+            pr_url: None,
+            created_at: chrono::Utc::now().naive_utc(),
+            updated_at: chrono::Utc::now().naive_utc(),
+        };
+
+        let inserted_task = insert_batch_task(&mut conn, &task)?;
+        assert_eq!(inserted_task.id, unique_suffix);
+
+        let fetched_task = get_batch_task(&mut conn, inserted_task.id)?;
+        assert_eq!(fetched_task.id, inserted_task.id);
+        assert_eq!(fetched_task.status, "Pending");
+
+        let updated_task = update_task_status(
+            &mut conn,
+            inserted_task.id,
+            TaskStatus::Clean,
+            Some("ok".to_string()),
+        )?;
+        assert_eq!(updated_task.status, "Clean");
+        assert_eq!(updated_task.error_reason.as_deref(), Some("ok"));
+
+        let tasks = get_job_tasks(&mut conn, job.id)?;
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, inserted_task.id);
+
         Ok(())
     }
 }

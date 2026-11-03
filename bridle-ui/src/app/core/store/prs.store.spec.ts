@@ -40,25 +40,11 @@ describe('PrsStore', () => {
   });
 
   it('should calculate total, synced, local, and conflict PRs', () => {
-    // We cannot mock internal state directly without using patchState, but patchState works on the store.
-    // However, since it's a signal store, we could trigger loadPrs to set state.
     const prs: PullRequest[] = [
-      {
-        id: '1',
-        status: 'SYNCED',
-      } as object as import('../../core/models/models').PullRequest,
-      {
-        id: '2',
-        status: 'LOCAL',
-      } as object as import('../../core/models/models').PullRequest,
-      {
-        id: '3',
-        status: 'CONFLICT',
-      } as object as import('../../core/models/models').PullRequest,
-      {
-        id: '4',
-        status: 'SYNCED',
-      } as object as import('../../core/models/models').PullRequest,
+      { id: '1', title: 'PR 1', repoId: 'r1', status: 'SYNCED' },
+      { id: '2', title: 'PR 2', repoId: 'r1', status: 'LOCAL' },
+      { id: '3', title: 'PR 3', repoId: 'r1', status: 'CONFLICT' },
+      { id: '4', title: 'PR 4', repoId: 'r1', status: 'SYNCED' },
     ];
 
     prServiceSpy.loadPrs.and.returnValue(of(prs));
@@ -72,7 +58,7 @@ describe('PrsStore', () => {
 
   it('should load PRs successfully', () => {
     const prs: PullRequest[] = [
-      { id: '1' } as object as import('../../core/models/models').PullRequest,
+      { id: '1', title: 'PR 1', repoId: 'r1', status: 'LOCAL' },
     ];
     prServiceSpy.loadPrs.and.returnValue(of(prs));
 
@@ -111,10 +97,9 @@ describe('PrsStore', () => {
 
   it('should sync PRs successfully and reload if active org matches', () => {
     prServiceSpy.syncPrs.and.returnValue(of({ syncedCount: 5 }));
-    // Setup initial state with an active org ID
     prServiceSpy.loadPrs.and.returnValue(of([]));
-    store.loadPrs('org-1'); // Sets activeOrgId to 'org-1'
-    prServiceSpy.loadPrs.calls.reset(); // clear calls
+    store.loadPrs('org-1');
+    prServiceSpy.loadPrs.calls.reset();
 
     store.syncPrs({ orgId: 'org-1', maxRate: 10 });
 
@@ -123,14 +108,14 @@ describe('PrsStore', () => {
     expect(notificationServiceSpy.success).toHaveBeenCalledWith(
       'Successfully synced 5 PRs.',
     );
-    expect(prServiceSpy.loadPrs).toHaveBeenCalledWith('org-1'); // Reloads
+    expect(prServiceSpy.loadPrs).toHaveBeenCalledWith('org-1');
   });
 
   it('should sync PRs successfully but not reload if active org does not match', () => {
     prServiceSpy.syncPrs.and.returnValue(of({ syncedCount: 2 }));
     prServiceSpy.loadPrs.and.returnValue(of([]));
-    store.loadPrs('org-2'); // Sets activeOrgId to 'org-2'
-    prServiceSpy.loadPrs.calls.reset(); // clear calls
+    store.loadPrs('org-2');
+    prServiceSpy.loadPrs.calls.reset();
 
     store.syncPrs({ orgId: 'org-1', maxRate: 10 });
 
@@ -139,7 +124,7 @@ describe('PrsStore', () => {
     expect(notificationServiceSpy.success).toHaveBeenCalledWith(
       'Successfully synced 2 PRs.',
     );
-    expect(prServiceSpy.loadPrs).not.toHaveBeenCalled(); // No reload
+    expect(prServiceSpy.loadPrs).not.toHaveBeenCalled();
   });
 
   it('should handle error when syncing PRs', () => {

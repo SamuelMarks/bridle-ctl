@@ -1,27 +1,9 @@
-import { WritableSignal } from '@angular/core';
-import {
-  Organization,
-  Repository,
-  PullRequest,
-  BatchJob,
-  SystemHealth,
-} from '../../../core/models/models';
-
-interface MockOrgService {
-  orgs: WritableSignal<Organization[]>;
-  repos: WritableSignal<Repository[]>;
-  isLoading: WritableSignal<boolean>;
-  loadOrgs: jasmine.Spy;
-  ingestOrg: jasmine.Spy;
-  loadRepos: jasmine.Spy;
-}
-
-interface MockPrService {
-  prs: WritableSignal<PullRequest[]>;
-  isSyncing: WritableSignal<boolean>;
-  loadPrs: jasmine.Spy;
-  syncPrs: jasmine.Spy;
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule } from '@angular/forms';
+import { of, throwError } from 'rxjs';
+import { DevToolsComponent } from './dev-tools.component';
+import { ApiService } from '../../../core/services/api.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 interface MockNotificationService {
   success: jasmine.Spy;
@@ -29,44 +11,9 @@ interface MockNotificationService {
   info: jasmine.Spy;
 }
 
-interface MockSystemStateService {
-  health: WritableSignal<SystemHealth>;
-  isLoading: WritableSignal<boolean>;
-  checkHealth: jasmine.Spy;
-}
-
-interface MockBatchService {
-  createBatchFix: jasmine.Spy;
-  runPipeline: jasmine.Spy;
-  resumeJob: jasmine.Spy;
-}
-
 interface MockApiService {
   post: jasmine.Spy;
 }
-
-interface MockLocalOpService {
-  audit: jasmine.Spy;
-  fix: jasmine.Spy;
-  clearResult: jasmine.Spy;
-}
-
-interface MockJobsStore {
-  jobs: WritableSignal<BatchJob[]>;
-  activeJob: WritableSignal<BatchJob | null>;
-  isLoading: WritableSignal<boolean>;
-  loadJobs: jasmine.Spy;
-  addJob: jasmine.Spy;
-  setActiveJob: jasmine.Spy;
-}
-
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DevToolsComponent } from './dev-tools.component';
-import { ApiService } from '../../../core/services/api.service';
-import { NotificationService } from '../../../core/services/notification.service';
-import { ReactiveFormsModule } from '@angular/forms';
-import { of, throwError } from 'rxjs';
-import { By } from '@angular/platform-browser';
 
 describe('DevToolsComponent', () => {
   let component: DevToolsComponent;
@@ -82,7 +29,8 @@ describe('DevToolsComponent', () => {
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),
-    } as object as MockNotificationService;
+      info: jasmine.createSpy('info'),
+    };
 
     await TestBed.configureTestingModule({
       imports: [DevToolsComponent, ReactiveFormsModule],
@@ -102,31 +50,28 @@ describe('DevToolsComponent', () => {
   });
 
   it('should perform math addition', () => {
-    component.addForm.setValue({ left: 10, right: 32 });
+    component.addForm.setValue({ a: 10, b: 32 });
     component.onAdd();
 
     expect(mockApiService.post).toHaveBeenCalledWith('/dev/add', {
-      left: 10,
-      right: 32,
+      a: 10,
+      b: 32,
     });
     expect(component.addResult()).toBe(42);
   });
 
   it('should handle math addition error', () => {
     mockApiService.post.and.returnValue(throwError(() => new Error('err')));
-    component.addForm.setValue({ left: 10, right: 32 });
+    component.addForm.setValue({ a: 10, b: 32 });
     component.onAdd();
 
     expect(mockNotificationService.error).toHaveBeenCalledWith(
-      'Math operation failed',
+      'Calculation failed',
     );
   });
 
   it('should not add if form is invalid', () => {
-    component.addForm.setValue({ left: null, right: null } as object as {
-      left: number | null;
-      right: number | null;
-    });
+    component.addForm.controls.a.setValue(null);
     component.onAdd();
     expect(mockApiService.post).not.toHaveBeenCalled();
   });
@@ -135,7 +80,7 @@ describe('DevToolsComponent', () => {
     mockApiService.post.and.returnValue(of({ success: true }));
 
     component.dbForm.setValue({
-      action: 'test_action',
+      action: 'get_user',
       id: '123',
       payload: '{"key":"value"}',
     });
@@ -143,19 +88,19 @@ describe('DevToolsComponent', () => {
     component.onDbExec();
 
     expect(mockApiService.post).toHaveBeenCalledWith('/dev/db', {
-      action: 'test_action',
+      action: 'get_user',
       id: '123',
       payload: { key: 'value' },
     });
     expect(component.dbResult()).toEqual({ success: true });
     expect(mockNotificationService.success).toHaveBeenCalledWith(
-      'Command executed successfully',
+      'Command executed',
     );
   });
 
   it('should handle invalid JSON payload', () => {
     component.dbForm.setValue({
-      action: 'test_action',
+      action: 'get_user',
       id: '',
       payload: '{invalid',
     });
@@ -172,7 +117,7 @@ describe('DevToolsComponent', () => {
     mockApiService.post.and.returnValue(throwError(() => new Error('Db err')));
 
     component.dbForm.setValue({
-      action: 'test_action',
+      action: 'get_user',
       id: '',
       payload: '',
     });

@@ -1,11 +1,11 @@
-import { WritableSignal } from '@angular/core';
-import {
-  Organization,
-  Repository,
-  PullRequest,
-  BatchJob,
-  SystemHealth,
-} from '../../../core/models/models';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { WritableSignal, signal } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { of, throwError } from 'rxjs';
+import { OrgsPageComponent } from './orgs-page.component';
+import { OrgService } from '../../../core/services/org.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { Organization, Repository } from '../../../core/models/models';
 
 interface MockOrgService {
   orgs: WritableSignal<Organization[]>;
@@ -16,57 +16,11 @@ interface MockOrgService {
   loadRepos: jasmine.Spy;
 }
 
-interface MockPrService {
-  prs: WritableSignal<PullRequest[]>;
-  isSyncing: WritableSignal<boolean>;
-  loadPrs: jasmine.Spy;
-  syncPrs: jasmine.Spy;
-}
-
 interface MockNotificationService {
   success: jasmine.Spy;
   error: jasmine.Spy;
   info: jasmine.Spy;
 }
-
-interface MockSystemStateService {
-  health: WritableSignal<SystemHealth>;
-  isLoading: WritableSignal<boolean>;
-  checkHealth: jasmine.Spy;
-}
-
-interface MockBatchService {
-  createBatchFix: jasmine.Spy;
-  runPipeline: jasmine.Spy;
-  resumeJob: jasmine.Spy;
-}
-
-interface MockApiService {
-  post: jasmine.Spy;
-}
-
-interface MockLocalOpService {
-  audit: jasmine.Spy;
-  fix: jasmine.Spy;
-  clearResult: jasmine.Spy;
-}
-
-interface MockJobsStore {
-  jobs: WritableSignal<BatchJob[]>;
-  activeJob: WritableSignal<BatchJob | null>;
-  isLoading: WritableSignal<boolean>;
-  loadJobs: jasmine.Spy;
-  addJob: jasmine.Spy;
-  setActiveJob: jasmine.Spy;
-}
-
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { OrgsPageComponent } from './orgs-page.component';
-import { OrgService } from '../../../core/services/org.service';
-import { NotificationService } from '../../../core/services/notification.service';
-import { signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
-import { By } from '@angular/platform-browser';
 
 describe('OrgsPageComponent', () => {
   let component: OrgsPageComponent;
@@ -87,7 +41,8 @@ describe('OrgsPageComponent', () => {
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),
-    } as object as MockNotificationService;
+      info: jasmine.createSpy('info'),
+    };
 
     await TestBed.configureTestingModule({
       imports: [OrgsPageComponent],
@@ -121,7 +76,7 @@ describe('OrgsPageComponent', () => {
   });
 
   it('should ingest org and show success notification', () => {
-    component.onIngest({ name: 'test', provider: 'github', dbUrl: 'url' });
+    component.onIngestOrg({ name: 'test', provider: 'github', dbUrl: 'url' });
     expect(mockOrgService.ingestOrg).toHaveBeenCalledWith(
       'test',
       'github',
@@ -136,7 +91,7 @@ describe('OrgsPageComponent', () => {
     mockOrgService.ingestOrg.and.returnValue(
       throwError(() => new Error('error')),
     );
-    component.onIngest({ name: 'test', provider: 'github', dbUrl: 'url' });
+    component.onIngestOrg({ name: 'test', provider: 'github', dbUrl: 'url' });
     expect(mockNotificationService.error).toHaveBeenCalledWith(
       'Failed to ingest organization test',
     );
@@ -156,10 +111,9 @@ describe('OrgsPageComponent', () => {
     expect(mockNotificationService.error).toHaveBeenCalledWith(
       'Failed to load repositories',
     );
-    expect(component.isLoadingRepos()).toBeFalse();
   });
 
-  it('should return correct org name', () => {
+  it('should return correct org name from computed signal', () => {
     expect(component.selectedOrgName()).toBe('');
 
     component.selectedOrgId.set('1');
@@ -169,12 +123,9 @@ describe('OrgsPageComponent', () => {
     expect(component.selectedOrgName()).toBe('');
   });
 
-  it('should render blankslate initially', () => {
-    const blankslate = fixture.debugElement.query(By.css('.blankslate'));
-    expect(blankslate).toBeTruthy();
-  });
-
   it('should render repo list when org is selected', () => {
+    expect(fixture.debugElement.query(By.css('app-repo-list'))).toBeNull();
+
     component.selectedOrgId.set('1');
     fixture.detectChanges();
 

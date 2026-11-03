@@ -59,4 +59,4 @@ docs: docs_rust docs_angular
 
 precommit:
 	@echo "Running pre-commit hook..."
-	./.git/hooks/pre-commit
+	BRIDLE_ALLOW_GITHUB_MUTATION="0" GITHUB_API_URL="http://127.0.0.1:1" GITHUB_URL="127.0.0.1:1" ./.git/hooks/pre-commit

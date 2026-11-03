@@ -1,38 +1,16 @@
-import { WritableSignal } from '@angular/core';
-import {
-  Organization,
-  Repository,
-  PullRequest,
-  BatchJob,
-  SystemHealth,
-} from '../../../core/models/models';
-
-interface MockOrgService {
-  orgs: WritableSignal<Organization[]>;
-  repos: WritableSignal<Repository[]>;
-  isLoading: WritableSignal<boolean>;
-  loadOrgs: jasmine.Spy;
-  ingestOrg: jasmine.Spy;
-  loadRepos: jasmine.Spy;
-}
-
-interface MockPrService {
-  prs: WritableSignal<PullRequest[]>;
-  isSyncing: WritableSignal<boolean>;
-  loadPrs: jasmine.Spy;
-  syncPrs: jasmine.Spy;
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { WritableSignal, signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
+import { BatchActionsPageComponent } from './batch-actions-page.component';
+import { BatchService } from '../../../core/services/batch.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { JobsStore } from '../../../core/store/jobs.store';
+import { BatchJob, BatchJobStatus } from '../../../core/models/models';
 
 interface MockNotificationService {
   success: jasmine.Spy;
   error: jasmine.Spy;
   info: jasmine.Spy;
-}
-
-interface MockSystemStateService {
-  health: WritableSignal<SystemHealth>;
-  isLoading: WritableSignal<boolean>;
-  checkHealth: jasmine.Spy;
 }
 
 interface MockBatchService {
@@ -41,33 +19,13 @@ interface MockBatchService {
   resumeJob: jasmine.Spy;
 }
 
-interface MockApiService {
-  post: jasmine.Spy;
-}
-
-interface MockLocalOpService {
-  audit: jasmine.Spy;
-  fix: jasmine.Spy;
-  clearResult: jasmine.Spy;
-}
-
 interface MockJobsStore {
-  filteredJobs: WritableSignal<BatchJob[]>;
   jobs: WritableSignal<BatchJob[]>;
   activeJob: WritableSignal<BatchJob | null>;
   isLoading: WritableSignal<boolean>;
   loadJobs: jasmine.Spy;
-  addJob: jasmine.Spy;
   setActiveJob: jasmine.Spy;
 }
-
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { BatchActionsPageComponent } from './batch-actions-page.component';
-import { BatchService } from '../../../core/services/batch.service';
-import { NotificationService } from '../../../core/services/notification.service';
-import { JobsStore } from '../../../core/store/jobs.store';
-import { of, throwError } from 'rxjs';
-import { signal } from '@angular/core';
 
 describe('BatchActionsPageComponent', () => {
   let component: BatchActionsPageComponent;
@@ -90,16 +48,20 @@ describe('BatchActionsPageComponent', () => {
     mockNotificationService = {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),
-    } as object as MockNotificationService;
+      info: jasmine.createSpy('info'),
+    };
 
     mockJobsStore = {
       jobs: signal([]),
-      activeJob: signal(null),
+      activeJob: signal({
+        id: '123',
+        target: 'org',
+        status: BatchJobStatus.INTERRUPTED,
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
       isLoading: signal(false),
-      filteredJobs: signal([]),
       loadJobs: jasmine.createSpy('loadJobs'),
       setActiveJob: jasmine.createSpy('setActiveJob'),
-      addJob: jasmine.createSpy('addJob'),
     };
 
     await TestBed.configureTestingModule({
@@ -121,31 +83,23 @@ describe('BatchActionsPageComponent', () => {
   });
 
   it('should load jobs on init', () => {
-    expect(mockJobsStore['loadJobs']).toHaveBeenCalled();
+    expect(mockJobsStore.loadJobs).toHaveBeenCalled();
   });
 
   it('should change tabs', () => {
-    expect(component.activeTabId()).toBe('fix');
-    component.onTabChange('run');
-    expect(component.activeTabId()).toBe('run');
+    expect(component.activeTab()).toBe('fix');
+    component.activeTab.set('pipeline');
+    fixture.detectChanges();
+    expect(component.activeTab()).toBe('pipeline');
   });
 
-  it('should create batch fix', () => {
-    component.fixFormComponent = {
-      form: {} as object as import('@angular/forms').FormGroup,
-      fb: {} as object as import('@angular/forms').FormBuilder,
-      createBatchFix:
-        {} as object as import('@angular/core').EventEmitter<object>,
-      isSubmitting:
-        {} as object as import('@angular/core').InputSignal<boolean>,
-      setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as import('../batch-fix-form/batch-fix-form.component').BatchFixFormComponent;
-    component.onCreateBatchFix({
-      target: 'org',
+  it('should create batch fix job', () => {
+    component.onCreateFixJob({
+      orgId: 'org',
       title: 't',
       description: 'd',
       pattern: 'p',
-      tools: [],
+      tools: ['eslint'],
       args: {},
       safety_mode: true,
       max_repos: 10,
@@ -156,60 +110,43 @@ describe('BatchActionsPageComponent', () => {
       't',
       'd',
       'p',
-      [],
+      ['eslint'],
       {},
       true,
       10,
       5,
     );
     expect(mockNotificationService.success).toHaveBeenCalledWith(
-      'Job 123 queued successfully',
+      'Batch fix job created',
     );
-    expect(mockJobsStore['addJob']).toHaveBeenCalledWith({ id: '123' });
-    expect(mockJobsStore['setActiveJob']).toHaveBeenCalledWith('123');
+    expect(mockJobsStore.loadJobs).toHaveBeenCalled();
   });
 
   it('should handle create batch fix error', () => {
-    component.fixFormComponent = {
-      form: {} as object as import('@angular/forms').FormGroup,
-      fb: {} as object as import('@angular/forms').FormBuilder,
-      createBatchFix:
-        {} as object as import('@angular/core').EventEmitter<object>,
-      isSubmitting:
-        {} as object as import('@angular/core').InputSignal<boolean>,
-      setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as import('../batch-fix-form/batch-fix-form.component').BatchFixFormComponent;
     mockBatchService.createBatchFix.and.returnValue(
       throwError(() => new Error('err')),
     );
 
-    component.onCreateBatchFix({
-      target: 'org',
+    component.onCreateFixJob({
+      orgId: 'org',
       title: 't',
       description: 'd',
       pattern: 'p',
       tools: [],
       args: {},
       safety_mode: true,
-      max_repos: 10,
-      max_prs_per_hour: 5,
     });
     expect(mockNotificationService.error).toHaveBeenCalledWith(
-      'Failed to queue batch fix',
+      'Failed to create batch fix job',
     );
   });
 
   it('should run pipeline', () => {
-    component.runFormComponent = {
-      form: {} as object as import('@angular/forms').FormGroup,
-      fb: {} as object as import('@angular/forms').FormBuilder,
-      runPipeline: {} as object as import('@angular/core').EventEmitter<object>,
-      isSubmitting:
-        {} as object as import('@angular/core').InputSignal<boolean>,
-      setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as import('../batch-run-form/batch-run-form.component').BatchRunFormComponent;
+    component.activeTab.set('pipeline');
+    fixture.detectChanges();
+
     component.onRunPipeline({
-      config: 'yaml',
+      configYaml: 'yaml',
       safety_mode: true,
       max_repos: 10,
       max_prs_per_hour: 5,
@@ -221,30 +158,22 @@ describe('BatchActionsPageComponent', () => {
       5,
     );
     expect(mockNotificationService.success).toHaveBeenCalledWith(
-      'Pipeline job 456 started',
+      'Pipeline started',
     );
-    expect(mockJobsStore['addJob']).toHaveBeenCalledWith({ id: '456' });
-    expect(mockJobsStore['setActiveJob']).toHaveBeenCalledWith('456');
+    expect(mockJobsStore.loadJobs).toHaveBeenCalled();
   });
 
   it('should handle run pipeline error', () => {
-    component.runFormComponent = {
-      form: {} as object as import('@angular/forms').FormGroup,
-      fb: {} as object as import('@angular/forms').FormBuilder,
-      runPipeline: {} as object as import('@angular/core').EventEmitter<object>,
-      isSubmitting:
-        {} as object as import('@angular/core').InputSignal<boolean>,
-      setSubmitting: jasmine.createSpy('setSubmitting'),
-    } as object as import('../batch-run-form/batch-run-form.component').BatchRunFormComponent;
+    component.activeTab.set('pipeline');
+    fixture.detectChanges();
+
     mockBatchService.runPipeline.and.returnValue(
       throwError(() => new Error('err')),
     );
 
     component.onRunPipeline({
-      config: 'yaml',
+      configYaml: 'yaml',
       safety_mode: true,
-      max_repos: 10,
-      max_prs_per_hour: 5,
     });
     expect(mockNotificationService.error).toHaveBeenCalledWith(
       'Failed to start pipeline',
@@ -253,16 +182,16 @@ describe('BatchActionsPageComponent', () => {
 
   it('should select job', () => {
     component.onSelectJob('123');
-    expect(mockJobsStore['setActiveJob']).toHaveBeenCalledWith('123');
+    expect(mockJobsStore.setActiveJob).toHaveBeenCalledWith('123');
   });
 
   it('should resume job', () => {
     component.onResumeJob('123');
     expect(mockBatchService.resumeJob).toHaveBeenCalledWith('123');
     expect(mockNotificationService.success).toHaveBeenCalledWith(
-      'Job resumed successfully',
+      'Job 123 resumed',
     );
-    expect(mockJobsStore['loadJobs']).toHaveBeenCalled();
+    expect(mockJobsStore.loadJobs).toHaveBeenCalled();
   });
 
   it('should handle resume job error', () => {
@@ -277,6 +206,6 @@ describe('BatchActionsPageComponent', () => {
 
   it('should close job detail', () => {
     component.onCloseJobDetail();
-    expect(mockJobsStore['setActiveJob']).toHaveBeenCalledWith(null);
+    expect(mockJobsStore.setActiveJob).toHaveBeenCalledWith(null);
   });
 });

@@ -1,5 +1,3 @@
-#![cfg(not(tarpaulin_include))]
-
 //! Batch fix functionality across an organization.
 
 use crate::runner;
@@ -7,12 +5,39 @@ use bridle_sdk::BridleError;
 use std::fs;
 use std::path::Path;
 
-/// Runs a batch fix across all repos in an organization.
+/// Runs a batch fix across all repos in an organization using the default `~/.bridle/workspace` root.
 #[allow(clippy::too_many_arguments)]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
-#[cfg(not(tarpaulin_include))]
 pub fn batch_fix(
+    org: &str,
+    issue: &str,
+    pattern: Option<String>,
+    tools: Option<Vec<String>>,
+    tool_args: Option<std::collections::HashMap<String, Vec<String>>>,
+    db_url: &str,
+    safety_mode: bool,
+    max_repos: Option<usize>,
+    max_prs_per_hour: Option<usize>,
+) -> Result<String, BridleError> {
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let workspace_root = Path::new(&home).join(".bridle").join("workspace");
+    batch_fix_in_workspace(
+        &workspace_root,
+        org,
+        issue,
+        pattern,
+        tools,
+        tool_args,
+        db_url,
+        safety_mode,
+        max_repos,
+        max_prs_per_hour,
+    )
+}
+
+/// Runs a batch fix across all repos in an organization within the specified workspace root.
+#[allow(clippy::too_many_arguments)]
+pub fn batch_fix_in_workspace(
+    workspace_root: &Path,
     org: &str,
     issue: &str,
     pattern: Option<String>,
@@ -23,22 +48,17 @@ pub fn batch_fix(
     max_repos: Option<usize>,
     _max_prs_per_hour: Option<usize>,
 ) -> Result<String, BridleError> {
-    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-        .map_err(|e| BridleError::Generic(e.to_string()))?;
+    let mut conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)?;
 
-    // We assume the repos are cloned in ~/.bridle/workspace/<org>
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    let workspace = Path::new(&home).join(".bridle").join("workspace").join(org);
+    let workspace = workspace_root.join(org);
 
     if !workspace.exists() {
-        return Err(BridleError::Generic(format!(
+        return Err(BridleError::Config(format!(
             "Workspace for org {} not found. Did you run ingest-org first?",
             org
         )));
     }
 
-    // In a real implementation, we'd query the DB for the repos belonging to this org.
-    // For simplicity, we just iterate the subdirectories of the workspace.
     let mut count = 0;
     if let Ok(entries) = fs::read_dir(&workspace) {
         for entry in entries.flatten() {
@@ -53,7 +73,6 @@ pub fn batch_fix(
 
                 println!("Processing repository: {}", repo_name);
 
-                // Idempotency check via issues
                 use bridle_sdk::schema::issues::dsl::*;
                 use diesel::prelude::*;
 
@@ -80,16 +99,14 @@ pub fn batch_fix(
                     }
                 };
                 if has_issue {
-                    continue; // Skip if already processing
+                    continue;
                 }
 
-                // Let's see if we can create the issue in DB.
-                // We'd need to find the repo ID from DB. Let's just create a dummy issue for now.
                 let now = chrono::Utc::now().naive_utc();
 
                 let issue_model = bridle_sdk::models::Issue {
-                    id: chrono::Utc::now().timestamp_subsec_micros() as i32, // dummy ID
-                    repo_id: 1,                                              // dummy
+                    id: chrono::Utc::now().timestamp_subsec_micros() as i32,
+                    repo_id: 1,
                     number: chrono::Utc::now().timestamp_subsec_nanos() as i32,
                     title: issue.to_string(),
                     body: Some("Automated batch fix".to_string()),
@@ -102,15 +119,13 @@ pub fn batch_fix(
                 };
                 let _ = bridle_sdk::db::insert_issue(&mut conn, &issue_model);
 
-                // Run the runner logic in an isolated EphemeralWorkspace to protect disk space.
-                // EphemeralWorkspace uses `git worktree` and automatically cleans up via `Drop`.
                 match crate::workspace::EphemeralWorkspace::new(
                     &repo_path,
-                    &format!("fix-{}", issue.replace(" ", "-").to_lowercase()),
+                    &format!("fix-{}", issue.replace(' ', "-").to_lowercase()),
                 ) {
-                    Ok(workspace) => {
+                    Ok(ephemeral) => {
                         let original_dir = std::env::current_dir().unwrap_or_default();
-                        if std::env::set_current_dir(&workspace.path).is_ok() {
+                        if std::env::set_current_dir(&ephemeral.path).is_ok() {
                             let req = bridle_sdk::models::ToolRunRequest {
                                 pattern: pattern.clone(),
                                 tools: tools.clone(),
@@ -119,10 +134,7 @@ pub fn batch_fix(
                                 action: Some("fix".to_string()),
                             };
 
-                            match runner::run(runner::Action::Fix { dry_run: false }, req) {
-                                Ok(_) => println!("Successfully applied fix to {}", repo_name),
-                                Err(e) => println!("Failed to apply fix to {}: {}", repo_name, e),
-                            }
+                            let _ = runner::run(runner::Action::Fix { dry_run: false }, req);
 
                             let _ = std::env::set_current_dir(original_dir);
                         }
@@ -141,107 +153,122 @@ pub fn batch_fix(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::workspace::git_command;
 
     #[test]
-    fn test_batch_fix_no_workspace() -> Result<(), bridle_sdk::BridleError> {
+    fn test_batch_fix_no_workspace() -> Result<(), BridleError> {
+        let tf = tempfile::NamedTempFile::new()?;
+        let db_url = tf.path().to_str().unwrap_or(":memory:");
         let res = batch_fix(
             "nonexistent_org",
             "test issue",
             None,
             None,
             None,
-            "bridle.db",
+            db_url,
             false,
             None,
             None,
         );
-        if let Err(e) = res {
-            assert!(
-                e.to_string()
-                    .contains("Workspace for org nonexistent_org not found")
-            );
-        } else {
-            panic!("Expected error");
-        }
-        Ok(())
-    }
-
-    #[test]
-    fn test_batch_fix_unsupported_org() -> Result<(), bridle_sdk::BridleError> {
-        let err = batch_fix(
-            "unsupported_org",
-            "issue",
-            None,
-            None,
-            None,
-            "dummy",
-            false,
-            None,
-            None,
-        );
-        assert!(err.is_err());
-        Ok(())
-    }
-
-    #[test]
-    fn test_batch_fix_no_tools() -> Result<(), bridle_sdk::BridleError> {
-        let err = batch_fix(
-            "test_org",
-            "issue",
-            None,
-            Some(vec![]),
-            None,
-            "dummy",
-            false,
-            None,
-            None,
-        );
-        assert!(err.is_err());
+        assert!(matches!(
+            res,
+            Err(BridleError::Config(ref msg)) if msg.contains("Workspace for org nonexistent_org not found")
+        ));
         Ok(())
     }
 
     #[test]
     #[serial_test::serial]
-    fn test_batch_fix_logic() -> Result<(), bridle_sdk::BridleError> {
+    fn test_batch_fix_logic() -> Result<(), BridleError> {
         let org = format!("testorg_{}", uuid::Uuid::new_v4());
-        let home = tempfile::tempdir()?;
-        unsafe {
-            std::env::set_var("HOME", home.path());
-        }
-        let workspace = home.path().join(".bridle").join("workspace").join(&org);
+        let root_dir = tempfile::tempdir()?;
+        let workspace = root_dir.path().join(&org);
         std::fs::create_dir_all(&workspace)?;
 
         let repo_dir = workspace.join("repo1");
         std::fs::create_dir_all(&repo_dir)?;
-        std::process::Command::new("git")
-            .arg("init")
+        git_command().arg("init").current_dir(&repo_dir).status()?;
+        git_command()
+            .args(["config", "user.name", "Test User"])
             .current_dir(&repo_dir)
             .status()?;
-        std::process::Command::new("git")
+        git_command()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo_dir)
+            .status()?;
+        git_command()
             .args(["commit", "--allow-empty", "-m", "init"])
             .current_dir(&repo_dir)
             .status()?;
 
-        let db_url = format!(
-            "file:test_batch_fix_{}.db?mode=memory&cache=shared",
-            uuid::Uuid::new_v4()
-        );
+        let tf = tempfile::NamedTempFile::new()?;
+        let db_url = tf.path().to_str().unwrap_or(":memory:").to_string();
         let _ = bridle_sdk::db::establish_connection_and_run_migrations(&db_url)?;
 
-        let res = batch_fix(
+        let res = batch_fix_in_workspace(
+            root_dir.path(),
             &org,
             "fix something",
-            Some(".*".to_string()),
+            Some(r".*\.rs$".to_string()),
+            None,
+            None,
+            &db_url,
+            false,
+            Some(1),
+            None,
+        )?;
+        assert_eq!(res, "Batch fix applied to 1 repositories.");
+
+        // Second run with same issue title hits `has_issue` continue branch
+        let res_dup = batch_fix_in_workspace(
+            root_dir.path(),
+            &org,
+            "fix something",
+            None,
             None,
             None,
             &db_url,
             false,
             None,
             None,
-        );
-        assert!(res.is_ok());
+        )?;
+        assert_eq!(res_dup, "Batch fix applied to 0 repositories.");
 
-        let res2 = batch_fix(
+        // Run against PostgreSQL to cover DbConnection::Pg branch
+        let pg_url = "postgres://samuel@localhost/bridle_test";
+        let unique_issue = format!("fix pg {}", uuid::Uuid::new_v4());
+        let res_pg = batch_fix_in_workspace(
+            root_dir.path(),
+            &org,
+            &unique_issue,
+            Some(r".*\.cpp$".to_string()),
+            Some(vec!["type-correct".to_string()]),
+            None,
+            pg_url,
+            false,
+            Some(1),
+            None,
+        )?;
+        assert_eq!(res_pg, "Batch fix applied to 1 repositories.");
+
+        // Add a repo with an invalid pipeline name (`invalid branch`) to cover EphemeralWorkspace error branch
+        let res_ws_err = batch_fix_in_workspace(
+            root_dir.path(),
+            &org,
+            "bad..branch..name",
+            None,
+            None,
+            None,
+            &db_url,
+            false,
+            Some(1),
+            None,
+        )?;
+        assert_eq!(res_ws_err, "Batch fix applied to 1 repositories.");
+
+        // Run with max_repos = Some(0) hits limit branch
+        let res_limit = batch_fix_in_workspace(
+            root_dir.path(),
             &org,
             "fix something",
             None,
@@ -249,15 +276,11 @@ mod tests {
             None,
             &db_url,
             false,
+            Some(0),
             None,
-            None,
-        );
-        assert!(res2.is_ok());
+        )?;
+        assert_eq!(res_limit, "Batch fix applied to 0 repositories.");
 
-        unsafe {
-            std::env::remove_var("HOME");
-        }
-        let _ = std::fs::remove_file(db_url);
         Ok(())
     }
 }

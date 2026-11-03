@@ -47,7 +47,7 @@ impl PrTemplateEngine {
     ) -> Result<String, BridleError> {
         self.tera
             .add_raw_template("pr_body", template_content)
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+            .map_err(|e| BridleError::Config(e.to_string()))?;
 
         let mut context = Context::new();
         context.insert(
@@ -60,11 +60,9 @@ impl PrTemplateEngine {
         context.insert("branch_name", branch_name);
         context.insert("diff_stats", diff_stats);
 
-        // Expose steps output could be added here
-
         self.tera
             .render("pr_body", &context)
-            .map_err(|e| BridleError::Generic(e.to_string()))
+            .map_err(|e| BridleError::Config(e.to_string()))
     }
 }
 

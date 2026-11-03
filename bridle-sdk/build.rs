@@ -149,7 +149,7 @@ fn main() -> Result<(), String> {
 
     // --- cdd-c ---
     let cdd_local = Path::new(&manifest_dir).join("../../cdd-c");
-    let cdd_repo = if std::env::var("USE_LOCAL_CDD").is_ok() && cdd_local.exists() {
+    let cdd_repo = if cdd_local.exists() {
         cdd_local
     } else {
         let git_dir = out_path.join("cdd-c");
@@ -173,15 +173,33 @@ fn main() -> Result<(), String> {
 
     println!("cargo:rerun-if-changed={}", cdd_repo.display());
 
+    let cdd_build_dir = out_path.join("cdd-build");
+    let _ = std::fs::create_dir_all(&cdd_build_dir);
     let cdd_dst = cmake::Config::new(&cdd_repo)
+        .out_dir(&cdd_build_dir)
         .define("C_CDD_BUILD_TESTS", "OFF")
+        .define("BUILD_TESTING", "OFF")
         .define("BUILD_SHARED_LIBS", "OFF")
         .define("C_CDD_USE_LIBCURL", "OFF")
         .cflag("-Wno-int-conversion")
         .cflag("-Wno-implicit-function-declaration")
         .profile("Release")
+        .build_target("c_cdd")
         .build();
 
+    println!(
+        "cargo:rustc-link-search=native={}/build/lib",
+        cdd_dst.display()
+    );
+    println!("cargo:rustc-link-search=native={}/build", cdd_dst.display());
+    println!(
+        "cargo:rustc-link-search=native={}/build/_deps/c_str_span-build/lib",
+        cdd_dst.display()
+    );
+    println!(
+        "cargo:rustc-link-search=native={}/build/_deps/c89stringutils-build/lib",
+        cdd_dst.display()
+    );
     println!("cargo:rustc-link-search=native={}/lib", cdd_dst.display());
     println!("cargo:rustc-link-lib=static=c_cdd");
     // Link cdd-c dependencies

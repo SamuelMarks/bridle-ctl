@@ -1,14 +1,12 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   input,
-  ContentChildren,
-  QueryList,
+  contentChildren,
   Directive,
   TemplateRef,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 
 /**
  * Column definition for AppTable.
@@ -31,8 +29,7 @@ export class AppTableColumnDirective {
  */
 @Component({
   selector: 'app-table',
-  imports: [CommonModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [NgTemplateOutlet],
   template: `
     <div class="Box">
       @if (title()) {
@@ -44,7 +41,7 @@ export class AppTableColumnDirective {
         <table class="table">
           <thead>
             <tr>
-              @for (col of columns; track col.title()) {
+              @for (col of columns(); track col.title()) {
                 <th>{{ col.title() }}</th>
               }
             </tr>
@@ -52,7 +49,7 @@ export class AppTableColumnDirective {
           <tbody>
             @for (row of data(); track trackByFn()(row)) {
               <tr>
-                @for (col of columns; track col.title()) {
+                @for (col of columns(); track col.title()) {
                   <td>
                     <ng-container
                       *ngTemplateOutlet="
@@ -70,7 +67,7 @@ export class AppTableColumnDirective {
             @if (data().length === 0 && emptyMessage()) {
               <tr>
                 <td
-                  [attr.colspan]="columns.length"
+                  [attr.colspan]="columns().length"
                   class="text-center text-muted p-3"
                 >
                   {{ emptyMessage() }}
@@ -171,9 +168,8 @@ export class AppTableComponent<T extends object = object> {
   /** Message to show when data is empty */
   emptyMessage = input<string>('No items found.');
 
-  /** List of column directives */
-  @ContentChildren(AppTableColumnDirective)
-  columns!: QueryList<AppTableColumnDirective>;
+  /** Signal list of projected column directives */
+  readonly columns = contentChildren(AppTableColumnDirective);
 
   /**
    * Helper to safely get a cell value

@@ -1,4 +1,19 @@
 /**
+ * JSON primitive value types.
+ */
+export type JsonPrimitive = string | number | boolean | null | undefined;
+
+/**
+ * Recursive JSON value type.
+ */
+export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+
+/**
+ * Dictionary of JSON key-value pairs for tool arguments and payloads.
+ */
+export type JsonObject = Record<string, JsonPrimitive | object>;
+
+/**
  * Organization model representing a group of repositories.
  */
 export interface Organization {

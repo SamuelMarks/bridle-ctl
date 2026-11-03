@@ -92,8 +92,7 @@ impl CoreConfig {
             return Ok(Self::default());
         }
         let content = fs::read_to_string(path)?;
-        let config: Self =
-            toml::from_str(&content).map_err(|e| BridleError::Generic(e.to_string()))?;
+        let config: Self = toml::from_str(&content)?;
         Ok(config)
     }
 }
@@ -102,8 +101,7 @@ impl PluginDef {
     /// Loads a plugin definition from a given file path.
     pub fn load(path: &str) -> Result<Self, BridleError> {
         let content = fs::read_to_string(path)?;
-        let def: Self =
-            toml::from_str(&content).map_err(|e| BridleError::Generic(e.to_string()))?;
+        let def: Self = toml::from_str(&content)?;
         Ok(def)
     }
 }
@@ -115,7 +113,10 @@ mod tests {
 
     #[test]
     fn test_core_config_load() -> Result<(), BridleError> {
-        let dir = tempfile::tempdir().map_err(|e| BridleError::Generic(e.to_string()))?;
+        let missing = CoreConfig::load("/nonexistent/bridle-tools.toml")?;
+        assert!(missing.plugins.is_empty());
+
+        let dir = tempfile::tempdir()?;
         let path = dir.path().join("test_core_config.toml");
         let config_toml = r#"
         [plugins]
@@ -134,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_plugin_def_load() -> Result<(), BridleError> {
-        let dir = tempfile::tempdir().map_err(|e| BridleError::Generic(e.to_string()))?;
+        let dir = tempfile::tempdir()?;
         let path = dir.path().join("test_plugin_def.toml");
         let config_toml = r#"
         description = "Test tool"
@@ -146,11 +147,10 @@ mod tests {
         let def = PluginDef::load(path.to_str().unwrap_or(""))?;
         assert_eq!(def.description, "Test tool");
         assert_eq!(def.match_regex, ".*");
-        if let DynamicToolConfig::Subprocess { command, .. } = def.dynamic {
-            assert_eq!(command, "echo");
-        } else {
-            return Err(BridleError::Generic("Expected subprocess tool".to_string()));
-        }
+        assert!(matches!(
+            def.dynamic,
+            DynamicToolConfig::Subprocess { ref command, .. } if command == "echo"
+        ));
         Ok(())
     }
 }

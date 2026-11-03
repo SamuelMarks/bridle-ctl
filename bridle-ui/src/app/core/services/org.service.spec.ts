@@ -4,7 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { OrgService } from './org.service';
 
 describe('OrgService', () => {
@@ -13,7 +13,7 @@ describe('OrgService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     service = TestBed.inject(OrgService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -28,7 +28,9 @@ describe('OrgService', () => {
   });
 
   it('should load orgs', () => {
-    const mockOrgs: object[] = [{ id: '1', name: 'org1', provider: 'github' }];
+    const mockOrgs: Organization[] = [
+      { id: '1', name: 'org1', provider: 'github' },
+    ];
 
     service.loadOrgs().subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -37,22 +39,19 @@ describe('OrgService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockOrgs);
 
-    expect(service.orgs()).toEqual(mockOrgs as object as Organization[]);
+    expect(service.orgs()).toEqual(mockOrgs);
     expect(service.isLoading()).toBeFalse();
   });
 
   it('should handle load orgs error', () => {
     service.loadOrgs().subscribe({ error: () => {} });
 
-    // First attempt
     const req1 = httpMock.expectOne('/api/orgs');
     req1.flush('Error', { status: 500, statusText: 'Server Error' });
 
-    // Retry 1
     const req2 = httpMock.expectOne('/api/orgs');
     req2.flush('Error', { status: 500, statusText: 'Server Error' });
 
-    // Retry 2
     const req3 = httpMock.expectOne('/api/orgs');
     req3.flush('Error', { status: 500, statusText: 'Server Error' });
 
@@ -60,7 +59,7 @@ describe('OrgService', () => {
   });
 
   it('should ingest org', () => {
-    const mockOrg: object = { id: 'new', name: 'org2', provider: 'gh' };
+    const mockOrg: Organization = { id: 'new', name: 'org2', provider: 'gh' };
 
     service.ingestOrg('org2', 'gh', 'dburl').subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -74,7 +73,7 @@ describe('OrgService', () => {
     });
     req.flush(mockOrg);
 
-    expect(service.orgs()).toEqual([mockOrg] as object as Organization[]);
+    expect(service.orgs()).toEqual([mockOrg]);
     expect(service.isLoading()).toBeFalse();
   });
 
@@ -88,7 +87,7 @@ describe('OrgService', () => {
   });
 
   it('should load repos', () => {
-    const mockRepos: object[] = [{ id: 'r1', name: 'repo1', orgId: '1' }];
+    const mockRepos: Repository[] = [{ id: 'r1', name: 'repo1', orgId: '1' }];
 
     service.loadRepos('org1').subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -97,7 +96,7 @@ describe('OrgService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockRepos);
 
-    expect(service.repos()).toEqual(mockRepos as object as Repository[]);
+    expect(service.repos()).toEqual(mockRepos);
     expect(service.isLoading()).toBeFalse();
   });
 

@@ -1,17 +1,17 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 /**
  * A standard button component following GitHub Primer styling.
  */
 @Component({
   selector: 'app-button',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button
-      [class]="'btn btn-' + variant()"
-      [disabled]="disabled()"
       [type]="type()"
+      [disabled]="disabled()"
       [attr.aria-disabled]="disabled()"
+      class="btn"
+      [class]="'btn-' + variant()"
     >
       <ng-content></ng-content>
     </button>
@@ -28,57 +28,64 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       vertical-align: middle;
       cursor: pointer;
       user-select: none;
-      border: 1px solid;
-      border-radius: var(--border-radius-1);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--border-radius);
       appearance: none;
+      transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
+      transition-property: color, background-color, box-shadow, border-color;
     }
 
     .btn:disabled {
-      cursor: not-allowed;
+      cursor: default;
       opacity: 0.6;
+      pointer-events: none;
     }
 
     .btn-secondary {
-      color: var(--color-btn-text);
-      background-color: var(--color-btn-bg);
-      border-color: var(--color-btn-border);
+      color: var(--color-fg-default);
+      background-color: var(--color-canvas-subtle);
+      border-color: var(--color-border-default);
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-secondary:hover:not(:disabled) {
-      background-color: var(--color-btn-hover-bg);
-      border-color: var(--color-btn-hover-border);
+      background-color: #f3f4f6;
+      border-color: var(--color-border-default);
     }
 
     .btn-primary {
-      color: var(--color-btn-primary-text);
-      background-color: var(--color-btn-primary-bg);
-      border-color: var(--color-btn-primary-border);
+      color: #ffffff;
+      background-color: var(--color-btn-primary-bg, #1a7f37);
+      border-color: rgba(31, 35, 40, 0.15);
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-primary:hover:not(:disabled) {
-      background-color: var(--color-btn-primary-hover-bg);
+      background-color: var(--color-btn-primary-hover-bg, #116023);
     }
 
     .btn-danger {
-      color: var(--color-btn-danger-text);
-      background-color: var(--color-btn-danger-bg);
-      border-color: var(--color-btn-border);
+      color: var(--color-danger-fg);
+      background-color: var(--color-canvas-subtle);
+      border-color: var(--color-border-default);
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-danger:hover:not(:disabled) {
-      color: var(--color-btn-danger-hover-text);
-      background-color: var(--color-btn-danger-hover-bg);
-      border-color: var(--color-btn-danger-hover-bg);
+      color: #ffffff;
+      background-color: var(--color-danger-fg);
+      border-color: rgba(31, 35, 40, 0.15);
     }
 
     .btn-invisible {
       color: var(--color-accent-fg);
       background-color: transparent;
       border-color: transparent;
+      box-shadow: none;
     }
 
     .btn-invisible:hover:not(:disabled) {
-      color: var(--color-accent-emphasis);
+      background-color: var(--color-canvas-subtle);
     }
   `,
 })

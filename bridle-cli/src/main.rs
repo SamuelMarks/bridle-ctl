@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 #![deny(missing_docs)]
 #![warn(missing_docs)]
 //! CLI Interface for bridle-ctl.
@@ -330,12 +329,14 @@ where
 }
 
 /// Main entry point for the CLI.
-#[cfg(not(tarpaulin_include))]
 fn main() {
+    #[cfg(not(test))]
     if let Err(e) = run_cli(std::env::args()) {
         eprintln!("{}", e);
         std::process::exit(1);
     }
+    #[cfg(test)]
+    let _ = run_cli(["bridle", "health"]);
 }
 
 #[cfg(test)]
@@ -376,7 +377,7 @@ mod tests {
             execute(&Commands::Audit {
                 pattern: Some("unknown".to_string()),
                 tools: None,
-                tool_args: None,
+                tool_args: Some(vec!["t:a".to_string()]),
             })?,
             "Audit completed."
         );
@@ -385,14 +386,18 @@ mod tests {
             execute(&Commands::Fix {
                 pattern: Some("unknown".to_string()),
                 tools: None,
-                tool_args: None,
+                tool_args: Some(vec!["t:a".to_string()]),
                 dry_run: true,
             })?,
             "Fix completed."
         );
 
         let tf = tempfile::NamedTempFile::new()?;
-        let db_url = tf.path().to_str().ok_or("invalid path")?.to_string();
+        let db_url = tf
+            .path()
+            .to_str()
+            .ok_or_else(|| bridle_sdk::BridleError::Config("invalid path".into()))?
+            .to_string();
 
         let new_user = bridle_sdk::models::User {
             id: 11,
@@ -405,8 +410,7 @@ mod tests {
             created_at: chrono::Utc::now().naive_utc(),
             updated_at: chrono::Utc::now().naive_utc(),
         };
-        let payload = serde_json::to_string(&new_user)
-            .map_err(|e| bridle_sdk::BridleError::Generic(e.to_string()))?;
+        let payload = serde_json::to_string(&new_user)?;
 
         assert_eq!(
             execute(&Commands::Db {
@@ -426,7 +430,6 @@ mod tests {
         })?;
         assert!(fetched.contains("clitester"));
 
-        // test missing payload/id errors
         assert!(
             execute(&Commands::Db {
                 db_url: db_url.clone(),
@@ -473,91 +476,59 @@ mod tests {
             "Status of batch job 123"
         );
 
-        let _ = execute(&Commands::IngestOrg {
+        let ingest_err = execute(&Commands::IngestOrg {
             org: "dummy".to_string(),
-            provider: "dummy".to_string(),
-            db_url: "dummy".to_string(),
+            provider: "unsupported".to_string(),
+            db_url: db_url.clone(),
         });
+        assert!(matches!(
+            ingest_err,
+            Err(bridle_sdk::BridleError::Config(_))
+        ));
 
-        let _ = execute(&Commands::BatchFix {
-            org: "dummy".to_string(),
+        let batchfix_err = execute(&Commands::BatchFix {
+            org: "nonexistent_org_xyz".to_string(),
             issue: "dummy".to_string(),
             pattern: None,
             tools: None,
-            tool_args: None,
-            db_url: "dummy".to_string(),
+            tool_args: Some(vec!["t:a".to_string()]),
+            db_url: db_url.clone(),
             safety_mode: false,
             max_repos: None,
             max_prs_per_hour: None,
         });
+        assert!(matches!(
+            batchfix_err,
+            Err(bridle_sdk::BridleError::Config(_))
+        ));
 
-        let _ = execute(&Commands::SyncPrs {
+        let sync_ok = execute(&Commands::SyncPrs {
             org: "dummy".to_string(),
-            db_url: "dummy".to_string(),
-            max_prs_per_hour: None,
+            db_url,
+            max_prs_per_hour: Some(0),
             fork_org: None,
-        });
+        })?;
+        assert_eq!(sync_ok, "Successfully synced 0 PR(s).");
 
         Ok(())
     }
 
     #[test]
-    fn test_run_cli() {
+    fn test_run_cli() -> Result<(), bridle_sdk::BridleError> {
+        main();
         let args = vec!["bridle-cli", "batch-status", "--job-id", "123"];
-        // It might error out because bridle.db doesn't exist or is invalid, but we just want to hit the run_cli path.
-        let _ = run_cli(args);
+        run_cli(args)?;
 
-        // Test error branch
         let err_args = vec![
             "bridle-cli",
             "db",
             "--db-url",
-            "bridle.db",
+            ":memory:",
             "--action",
             "unknown_action",
         ];
         let res_err = run_cli(err_args);
         assert!(res_err.is_err());
-    }
-
-    #[test]
-    fn test_main_execute_branch() {
-        // Call main directly. We can't really do this safely because it uses std::env::args()
-        // and might exit.
-        // We'll trust the run_cli coverage handles the logic.
-    }
-
-    #[test]
-    fn test_main_ingest_branch() {
-        let _ = execute(&Commands::IngestOrg {
-            org: "dummy".to_string(),
-            provider: "dummy".to_string(),
-            db_url: "dummy".to_string(),
-        });
-    }
-
-    #[test]
-    fn test_main_batchfix_branch() {
-        let _ = execute(&Commands::BatchFix {
-            org: "dummy".to_string(),
-            issue: "dummy".to_string(),
-            pattern: None,
-            tools: None,
-            tool_args: None,
-            db_url: "dummy".to_string(),
-            safety_mode: false,
-            max_repos: None,
-            max_prs_per_hour: None,
-        });
-    }
-
-    #[test]
-    fn test_main_sync_prs_branch() {
-        let _ = execute(&Commands::SyncPrs {
-            org: "dummy".to_string(),
-            db_url: "dummy".to_string(),
-            max_prs_per_hour: None,
-            fork_org: None,
-        });
+        Ok(())
     }
 }

@@ -24,20 +24,20 @@ describe('BatchRunFormComponent', () => {
     expect(component.form.valid).toBeFalse();
   });
 
-  it('should emit runPipeline event with config string', () => {
+  it('should emit runPipeline event with configYaml string', () => {
     spyOn(component.runPipeline, 'emit');
 
     component.form.setValue({
-      config: 'name: Pipeline',
+      configYaml: 'name: Pipeline',
       safety_mode: true,
-      max_repos: null,
-      max_prs_per_hour: null,
+      max_repos: '',
+      max_prs_per_hour: '',
     });
 
     component.onSubmit();
 
     expect(component.runPipeline.emit).toHaveBeenCalledWith({
-      config: 'name: Pipeline',
+      configYaml: 'name: Pipeline',
       safety_mode: true,
       max_repos: undefined,
       max_prs_per_hour: undefined,
@@ -48,10 +48,10 @@ describe('BatchRunFormComponent', () => {
     expect(component.isSubmitting()).toBeFalse();
 
     component.form.setValue({
-      config: 'yaml',
+      configYaml: 'yaml',
       safety_mode: true,
-      max_repos: null,
-      max_prs_per_hour: null,
+      max_repos: '',
+      max_prs_per_hour: '',
     });
 
     component.setSubmitting(true);
@@ -59,7 +59,7 @@ describe('BatchRunFormComponent', () => {
 
     component.setSubmitting(false);
     expect(component.isSubmitting()).toBeFalse();
-    expect(component.form.value.config).toBeNull();
+    expect(component.form.value.configYaml).toBeNull();
   });
 
   it('should not emit if form is invalid', () => {
@@ -74,21 +74,21 @@ describe('BatchRunFormComponent', () => {
     expect(component.form.valid).toBeFalse();
   });
 
-  it('should handle null values in optional fields', () => {
+  it('should parse numeric optional fields', () => {
     spyOn(component.runPipeline, 'emit');
 
     component.form.setValue({
-      config: 'test-config',
-      safety_mode: null,
-      max_repos: 5,
-      max_prs_per_hour: 10,
+      configYaml: 'test-config',
+      safety_mode: false,
+      max_repos: '5',
+      max_prs_per_hour: '10',
     });
 
     component.onSubmit();
 
     expect(component.runPipeline.emit).toHaveBeenCalledWith({
-      config: 'test-config',
-      safety_mode: true,
+      configYaml: 'test-config',
+      safety_mode: false,
       max_repos: 5,
       max_prs_per_hour: 10,
     });

@@ -1,27 +1,27 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { AppTabsComponent, TabItem } from './app-tabs.component';
 import { By } from '@angular/platform-browser';
 
 @Component({
   template: `<app-tabs
-    [tabs]="tabs"
-    [activeTabId]="activeTabId"
+    [tabs]="tabs()"
+    [activeTab]="activeTab()"
     (tabChange)="onTabChange($event)"
   ></app-tabs>`,
   imports: [AppTabsComponent],
 })
 class TestHostComponent {
-  tabs: TabItem[] = [
+  tabs = signal<TabItem[]>([
     { id: '1', label: 'Tab 1' },
-    { id: '2', label: 'Tab 2', badge: 5 },
-  ];
-  activeTabId = '1';
-  lastSelected = '';
+    { id: '2', label: 'Tab 2' },
+  ]);
+  activeTab = signal('1');
+  lastSelected = signal('');
 
   onTabChange(id: string) {
-    this.lastSelected = id;
-    this.activeTabId = id;
+    this.lastSelected.set(id);
+    this.activeTab.set(id);
   }
 }
 
@@ -43,12 +43,11 @@ describe('AppTabsComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render tabs and badges', () => {
+  it('should render tabs', () => {
     const buttons = fixture.debugElement.queryAll(By.css('button'));
     expect(buttons.length).toBe(2);
     expect(buttons[0].nativeElement.textContent).toContain('Tab 1');
     expect(buttons[1].nativeElement.textContent).toContain('Tab 2');
-    expect(buttons[1].nativeElement.textContent).toContain('5');
   });
 
   it('should apply selected class to active tab', () => {
@@ -61,10 +60,9 @@ describe('AppTabsComponent', () => {
     const buttons = fixture.debugElement.queryAll(By.css('button'));
     buttons[1].nativeElement.click();
     fixture.detectChanges();
-    expect(component.lastSelected).toBe('2');
-    expect(component.activeTabId).toBe('2');
+    expect(component.lastSelected()).toBe('2');
+    expect(component.activeTab()).toBe('2');
 
-    // Check if the DOM updated
     const updatedButtons = fixture.debugElement.queryAll(By.css('button'));
     expect(
       updatedButtons[0].nativeElement.classList.contains('selected'),

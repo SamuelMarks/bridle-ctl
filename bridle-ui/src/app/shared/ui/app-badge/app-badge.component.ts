@@ -1,18 +1,17 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 /**
  * A standard badge component following GitHub Primer styling.
  */
 @Component({
   selector: 'app-badge',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span class="badge" [class]="'badge-' + variant()">
+    <span class="Label" [class]="'Label--' + variant()">
       <ng-content></ng-content>
     </span>
   `,
   styles: `
-    .badge {
+    .Label {
       display: inline-block;
       padding: 0 7px;
       font-size: 12px;
@@ -23,22 +22,22 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       border-radius: 2em;
     }
 
-    .badge-default {
+    .Label--default {
       color: var(--color-fg-muted);
       border-color: var(--color-border-default);
     }
 
-    .badge-success {
+    .Label--success {
       color: var(--color-success-fg);
       border-color: var(--color-success-fg);
     }
 
-    .badge-danger {
+    .Label--danger {
       color: var(--color-danger-fg);
       border-color: var(--color-danger-fg);
     }
 
-    .badge-accent {
+    .Label--accent {
       color: var(--color-accent-fg);
       border-color: var(--color-accent-fg);
     }

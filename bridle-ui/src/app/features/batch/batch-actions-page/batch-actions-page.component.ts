@@ -1,14 +1,14 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   inject,
   OnInit,
-  ViewChild,
+  viewChild,
   signal,
 } from '@angular/core';
-
 import { BatchService } from '../../../core/services/batch.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { JobsStore } from '../../../core/store/jobs.store';
+import { JsonObject } from '../../../core/models/models';
 import {
   AppTabsComponent,
   TabItem,
@@ -17,11 +17,9 @@ import { BatchFixFormComponent } from '../batch-fix-form/batch-fix-form.componen
 import { BatchRunFormComponent } from '../batch-run-form/batch-run-form.component';
 import { BatchJobsListComponent } from '../batch-jobs-list/batch-jobs-list.component';
 import { BatchJobDetailComponent } from '../batch-job-detail/batch-job-detail.component';
-import { BatchJob } from '../../../core/models/models';
-import { JobsStore } from '../../../core/store/jobs.store';
 
 /**
- * Main page component for batch operations.
+ * Page component for managing batch operations and pipelines.
  */
 @Component({
   selector: 'app-batch-actions-page',
@@ -30,223 +28,221 @@ import { JobsStore } from '../../../core/store/jobs.store';
     BatchFixFormComponent,
     BatchRunFormComponent,
     BatchJobsListComponent,
-    BatchJobDetailComponent
-],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    BatchJobDetailComponent,
+  ],
   template: `
-    <div class="container-lg">
-      <div class="mb-4">
-        <h1 class="mb-2">Batch Actions</h1>
-        <p class="text-muted">
-          Queue multi-repository operations, fixes, and pipeline runs.
-        </p>
+    <div class="batch-page-container">
+      <div class="page-header">
+        <h1 class="h2">Batch Actions & Pipelines</h1>
       </div>
 
       <div class="layout-grid">
-        <div class="left-col">
-          <div class="mb-4">
-            <app-tabs
-              [tabs]="tabs"
-              [activeTabId]="activeTabId()"
-              (tabChange)="onTabChange($event)"
-            ></app-tabs>
-          </div>
-
-          <div class="form-container mb-4">
-            @if (activeTabId() === 'fix') {
+        <div class="main-column">
+          <app-tabs
+            [tabs]="tabs"
+            [activeTab]="activeTab()"
+            (tabChange)="activeTab.set($event)"
+          >
+            @if (activeTab() === 'fix') {
               <app-batch-fix-form
-                (createJob)="onCreateBatchFix($event)"
+                (createJob)="onCreateFixJob($event)"
               ></app-batch-fix-form>
             } @else {
               <app-batch-run-form
                 (runPipeline)="onRunPipeline($event)"
               ></app-batch-run-form>
             }
-          </div>
+          </app-tabs>
         </div>
 
-        <div class="right-col">
-          @if (jobsStore.activeJob()) {
-            <app-batch-job-detail
-              [job]="jobsStore.activeJob()!"
-              (close)="onCloseJobDetail()"
-              (resume)="onResumeJob($event)"
-            >
-            </app-batch-job-detail>
-          } @else {
-            @if (jobsStore.isLoading()) {
-              <div class="p-4 text-center text-muted">Loading jobs...</div>
-            } @else {
-              <app-batch-jobs-list
-                [jobs]="jobsStore.filteredJobs()"
-                (select)="onSelectJob($event)"
-              >
-              </app-batch-jobs-list>
-            }
+        <div class="sidebar-column">
+          @if (activeJob()) {
+            <div class="mb-4">
+              <app-batch-job-detail
+                [job]="activeJob()"
+                (resume)="onResumeJob($event)"
+                (close)="onCloseJobDetail()"
+              ></app-batch-job-detail>
+            </div>
           }
+
+          <app-batch-jobs-list
+            [jobs]="jobs()"
+            (selectJob)="onSelectJob($event)"
+          ></app-batch-jobs-list>
         </div>
       </div>
     </div>
   `,
   styles: `
-    .mb-2 {
-      margin-bottom: 8px;
+    .batch-page-container {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .mb-4 {
+
+    .page-header {
       margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-border-default);
     }
-    .p-4 {
-      padding: 24px;
-    }
-    .text-center {
-      text-align: center;
-    }
-    .text-muted {
-      color: var(--color-fg-muted);
+
+    .h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
     }
 
     .layout-grid {
       display: grid;
-      grid-template-columns: 1fr 1.5fr;
+      grid-template-columns: 1fr 480px;
       gap: 24px;
       align-items: start;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 960px) {
       .layout-grid {
         grid-template-columns: 1fr;
       }
     }
+
+    .mb-4 {
+      margin-bottom: 24px;
+    }
   `,
 })
 export class BatchActionsPageComponent implements OnInit {
-  /** Jobs store instance */
-  jobsStore = inject(JobsStore);
-  /** Batch service instance */
+  /** Injected BatchService */
   private batchService = inject(BatchService);
-  /** Notification service instance */
+  /** Injected JobsStore */
+  private jobsStore = inject(JobsStore);
+  /** Injected NotificationService */
   private notificationService = inject(NotificationService);
 
-  /** Reference to fix form */
-  @ViewChild(BatchFixFormComponent) fixFormComponent!: BatchFixFormComponent;
-  /** Reference to run form */
-  @ViewChild(BatchRunFormComponent) runFormComponent!: BatchRunFormComponent;
+  /** Signal query for BatchFixFormComponent */
+  readonly fixFormComponent = viewChild(BatchFixFormComponent);
+  /** Signal query for BatchRunFormComponent */
+  readonly runFormComponent = viewChild(BatchRunFormComponent);
 
-  /** Tabs for the operations */
+  /** Signal of all jobs */
+  jobs = this.jobsStore.jobs;
+  /** Signal of currently active job */
+  activeJob = this.jobsStore.activeJob;
+
+  /** Available tabs */
   tabs: TabItem[] = [
     { id: 'fix', label: 'Batch Fix' },
-    { id: 'run', label: 'Pipeline Run' },
+    { id: 'pipeline', label: 'Run Pipeline' },
   ];
 
   /** Active tab ID */
-  activeTabId = signal<string>('fix');
+  activeTab = signal('fix');
 
-  /** Initialize and load jobs */
+  /** Initializes the component and loads jobs */
   ngOnInit(): void {
-    // Automatically trigger loading jobs through the store RxMethod
     this.jobsStore.loadJobs();
   }
 
   /**
-   * Handles tab changes.
-   * @param id Selected tab ID
+   * Handles creating a batch fix job.
+   * @param data Form data
+   * @param data.orgId Target organization ID
+   * @param data.title Issue title
+   * @param data.description Issue description
+   * @param data.pattern Target regex pattern
+   * @param data.tools Tools to run
+   * @param data.args Tool arguments
+   * @param data.safety_mode Whether to run in safety mode
+   * @param data.max_repos Maximum number of repositories
+   * @param data.max_prs_per_hour Maximum PRs per hour
    */
-  onTabChange(id: string): void {
-    this.activeTabId.set(id);
-  }
-
-  /**
-   * Handles creating a new batch fix job.
-   */
-  onCreateBatchFix(payload: {
-    target: string;
+  onCreateFixJob(data: {
+    orgId: string;
     title: string;
     description: string;
     pattern: string;
     tools: string[];
-    args: Record<string, string | number | boolean | object | null | undefined>;
+    args: JsonObject;
     safety_mode: boolean;
     max_repos?: number;
     max_prs_per_hour?: number;
   }): void {
-    this.fixFormComponent?.setSubmitting(true);
+    this.fixFormComponent()?.setSubmitting(true);
     this.batchService
       .createBatchFix(
-        payload.target,
-        payload.title,
-        payload.description,
-        payload.pattern,
-        payload.tools,
-        payload.args,
-        payload.safety_mode,
-        payload.max_repos,
-        payload.max_prs_per_hour,
+        data.orgId,
+        data.title,
+        data.description,
+        data.pattern,
+        data.tools,
+        data.args,
+        data.safety_mode,
+        data.max_repos,
+        data.max_prs_per_hour,
       )
       .subscribe({
-        next: (job: BatchJob) => {
-          this.fixFormComponent?.setSubmitting(false);
-          this.notificationService.success(
-            `Job ${job.id.toString()} queued successfully`,
-          );
-          this.jobsStore.addJob(job);
-          this.onSelectJob(job.id);
+        next: () => {
+          this.fixFormComponent()?.setSubmitting(false);
+          this.notificationService.success('Batch fix job created');
+          this.jobsStore.loadJobs();
         },
         error: () => {
-          this.fixFormComponent?.setSubmitting(false);
-          this.notificationService.error('Failed to queue batch fix');
+          this.fixFormComponent()?.setSubmitting(false);
+          this.notificationService.error('Failed to create batch fix job');
         },
       });
   }
 
   /**
    * Handles running a pipeline.
+   * @param data Form data
+   * @param data.configYaml Pipeline YAML configuration
+   * @param data.safety_mode Whether to run in safety mode
+   * @param data.max_repos Maximum number of repositories
+   * @param data.max_prs_per_hour Maximum PRs per hour
    */
-  onRunPipeline(payload: {
-    config: string;
+  onRunPipeline(data: {
+    configYaml: string;
     safety_mode: boolean;
     max_repos?: number;
     max_prs_per_hour?: number;
   }): void {
-    this.runFormComponent?.setSubmitting(true);
+    this.runFormComponent()?.setSubmitting(true);
     this.batchService
       .runPipeline(
-        payload.config,
-        payload.safety_mode,
-        payload.max_repos,
-        payload.max_prs_per_hour,
+        data.configYaml,
+        data.safety_mode,
+        data.max_repos,
+        data.max_prs_per_hour,
       )
       .subscribe({
-        next: (job: BatchJob) => {
-          this.runFormComponent?.setSubmitting(false);
-          this.notificationService.success(
-            `Pipeline job ${job.id.toString()} started`,
-          );
-          this.jobsStore.addJob(job);
-          this.onSelectJob(job.id);
+        next: () => {
+          this.runFormComponent()?.setSubmitting(false);
+          this.notificationService.success('Pipeline started');
+          this.jobsStore.loadJobs();
         },
         error: () => {
-          this.runFormComponent?.setSubmitting(false);
+          this.runFormComponent()?.setSubmitting(false);
           this.notificationService.error('Failed to start pipeline');
         },
       });
   }
 
   /**
-   * Handles selecting a job to view details.
-   * @param id Job ID
+   * Handles selecting a job from the list.
+   * @param jobId The selected job ID
    */
-  onSelectJob(id: string): void {
-    this.jobsStore.setActiveJob(id);
+  onSelectJob(jobId: string): void {
+    this.jobsStore.setActiveJob(jobId);
   }
 
   /**
-   * Resumes an interrupted job.
-   * @param id Job ID
+   * Handles resuming a job.
+   * @param jobId The job ID to resume
    */
-  onResumeJob(id: string): void {
-    this.batchService.resumeJob(id).subscribe({
+  onResumeJob(jobId: string): void {
+    this.batchService.resumeJob(jobId).subscribe({
       next: () => {
-        this.notificationService.success('Job resumed successfully');
+        this.notificationService.success(`Job ${jobId} resumed`);
         this.jobsStore.loadJobs();
       },
       error: () => this.notificationService.error('Failed to resume job'),

@@ -4,7 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { ApiService } from './api.service';
 
 describe('ApiService', () => {
@@ -13,7 +13,11 @@ describe('ApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [ApiService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        ApiService,
+        provideHttpClient(withXhr()),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(ApiService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -137,7 +141,7 @@ describe('ApiService on Server', () => {
     TestBed.configureTestingModule({
       providers: [
         ApiService,
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: PLATFORM_ID, useValue: 'server' },
       ],

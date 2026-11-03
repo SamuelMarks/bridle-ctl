@@ -44,8 +44,8 @@ describe('JobsStore', () => {
   });
 
   it('should set filter status', () => {
-    store.setFilter('RUNNING' as BatchJobStatus);
-    expect(store.filterStatus()).toBe('RUNNING');
+    store.setFilter(BatchJobStatus.RUNNING);
+    expect(store.filterStatus()).toBe(BatchJobStatus.RUNNING);
   });
 
   it('should set active job ID', () => {
@@ -54,24 +54,29 @@ describe('JobsStore', () => {
   });
 
   it('should add a job', () => {
-    const job = {
+    const job: BatchJob = {
       id: 'job-1',
-      name: 'Job 1',
-      status: 'PENDING',
-    } as object as import('../../core/models/models').BatchJob;
+      target: 'org-1',
+      status: BatchJobStatus.PENDING,
+      createdAt: '2026-01-01T00:00:00Z',
+    };
     store.addJob(job);
     expect(store.jobs()).toEqual([job]);
   });
 
   it('should filter jobs correctly', () => {
-    const job1 = {
+    const job1: BatchJob = {
       id: '1',
-      status: 'PENDING',
-    } as object as import('../../core/models/models').BatchJob;
-    const job2 = {
+      target: 'org-1',
+      status: BatchJobStatus.PENDING,
+      createdAt: '2026-01-01T00:00:00Z',
+    };
+    const job2: BatchJob = {
       id: '2',
-      status: 'RUNNING',
-    } as object as import('../../core/models/models').BatchJob;
+      target: 'org-1',
+      status: BatchJobStatus.RUNNING,
+      createdAt: '2026-01-02T00:00:00Z',
+    };
     store.addJob(job1);
     store.addJob(job2);
 
@@ -88,10 +93,12 @@ describe('JobsStore', () => {
   });
 
   it('should compute active job', () => {
-    const job1 = {
+    const job1: BatchJob = {
       id: '1',
-      name: 'J1',
-    } as object as import('../../core/models/models').BatchJob;
+      target: 'org-1',
+      status: BatchJobStatus.PENDING,
+      createdAt: '2026-01-01T00:00:00Z',
+    };
     store.addJob(job1);
     expect(store.activeJob()).toBeNull();
 
@@ -101,13 +108,23 @@ describe('JobsStore', () => {
 
   it('should compute total jobs', () => {
     expect(store.totalJobs()).toBe(0);
-    store.addJob({} as object as import('../../core/models/models').BatchJob);
+    store.addJob({
+      id: '1',
+      target: 'org-1',
+      status: BatchJobStatus.PENDING,
+      createdAt: '2026-01-01T00:00:00Z',
+    });
     expect(store.totalJobs()).toBe(1);
   });
 
   it('should load jobs successfully', () => {
-    const jobs = [
-      { id: '1' } as object as import('../../core/models/models').BatchJob,
+    const jobs: BatchJob[] = [
+      {
+        id: '1',
+        target: 'org-1',
+        status: BatchJobStatus.COMPLETED,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
     ];
     batchServiceSpy.loadJobs.and.returnValue(of(jobs));
 

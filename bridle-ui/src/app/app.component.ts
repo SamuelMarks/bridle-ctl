@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AppLayoutComponent } from './shared/ui/app-layout/app-layout.component';
 
@@ -7,7 +7,6 @@ import { AppLayoutComponent } from './shared/ui/app-layout/app-layout.component'
  */
 @Component({
   selector: 'app-root',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, AppLayoutComponent],
   template: `
     <app-layout>

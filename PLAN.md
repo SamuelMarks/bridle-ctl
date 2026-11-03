@@ -48,8 +48,8 @@ Every step in this plan was designed to reinforce our core pillars:
 - [x] **Global Rate Limiting**: Strict constraints (e.g., max 10 PRs an hour) enforced during Workflow 2 to prevent upstream API bans.
 - [x] **Codebase Mutation Pipeline (Workflow 1)**: Integrated cloning, `mkconf` dockerfile generation, build validation, tool execution (like `go-auto-err-handling`), and marking as successful candidates.
 - [x] **Smart Fork Management**: Automatic remote fork detection, creation, and reuse on specified `fork_org`.
-- [x] **Frontend Dashboard**: Deployed `bridle-ui` (Angular 18+, NgRx SignalStore, Playwright E2E).
-- [x] **100% Coverage**: Achieved and enforced 100% Rust unit test coverage and 100% documentation coverage metrics.
+- [x] **Frontend Dashboard**: Deployed `bridle-ui` (Angular 22, native Angular Signal stores, Playwright E2E + Axe WCAG AA).
+- [x] **100% Coverage**: Achieved and enforced 100% Rust and Angular unit test coverage and 100% documentation coverage metrics.
 
 **Status: All Planned Phases Complete.**
 

@@ -1,5 +1,3 @@
-#![cfg(not(tarpaulin_include))]
-#![cfg(not(tarpaulin_include))]
 use super::CodeTool;
 use bridle_sdk::BridleError;
 use bridle_sdk::path_scope::PathScope;
@@ -100,8 +98,7 @@ impl CodeTool for FileLockTesterTool {
                 } else {
                     None
                 }
-            })
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+            })?;
         if modified {
             Ok(format!("Exclusively mutated {}", path))
         } else {
@@ -139,11 +136,9 @@ impl CodeTool for EncodingNormalizerTool {
         if dry_run {
             return Ok(format!("[DRY RUN] Would normalize {}", path));
         }
-        let mut doc = bridle_sdk::encoding::read_file_with_encoding(path)
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+        let mut doc = bridle_sdk::encoding::read_file_with_encoding(path)?;
         doc.normalize_line_endings();
-        bridle_sdk::encoding::write_file_with_encoding(path, &doc)
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+        bridle_sdk::encoding::write_file_with_encoding(path, &doc)?;
         Ok(format!("Normalized encoding for {}", path))
     }
 }
@@ -177,15 +172,8 @@ impl CodeTool for DBMigratorTool {
         if dry_run {
             return Ok(format!("[DRY RUN] Would connect to and migrate {}", db_url));
         }
-        let mut _conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)
-            .map_err(|e| BridleError::Generic(e.to_string()))?;
+        let mut _conn = bridle_sdk::db::establish_connection_and_run_migrations(db_url)?;
         if let Ok(user) = bridle_sdk::db::get_user(&mut _conn, 999) {
-            return Ok(format!(
-                "Connected, migrated, and fetched user: {}",
-                user.username
-            ));
-        }
-        if let Ok(user) = bridle_sdk::db::get_user(&mut _conn, 1) {
             return Ok(format!(
                 "Connected, migrated, and fetched user: {}",
                 user.username
@@ -197,6 +185,70 @@ impl CodeTool for DBMigratorTool {
 
 use crate::tools::config::{CoreConfig, DynamicToolConfig, PluginDef};
 use crate::tools::dynamic::{DlopenTool, FfiTool, JsonRpcTool, SubprocessTool};
+
+/// Builds a boxed `CodeTool` from a `PluginDef`.
+fn build_tool_from_def(name: String, def: PluginDef) -> Option<Box<dyn CodeTool>> {
+    match def.dynamic {
+        DynamicToolConfig::Subprocess {
+            command,
+            env,
+            venv_aware,
+        } => Some(Box::new(SubprocessTool::new(
+            name,
+            def.description,
+            def.match_regex,
+            def.version,
+            def.author,
+            def.url,
+            def.license,
+            command,
+            env,
+            venv_aware,
+        ))),
+        DynamicToolConfig::JsonRpc {
+            endpoint,
+            launch_command: _,
+        } => Some(Box::new(JsonRpcTool::new(
+            name,
+            def.description,
+            def.match_regex,
+            def.version,
+            def.author,
+            def.url,
+            def.license,
+            endpoint,
+        ))),
+        DynamicToolConfig::Dlopen {
+            path,
+            build_command: _,
+        } => DlopenTool::new(
+            name,
+            def.description,
+            def.match_regex,
+            def.version,
+            def.author,
+            def.url,
+            def.license,
+            &path,
+        )
+        .ok()
+        .map(|dt| Box::new(dt) as Box<dyn CodeTool>),
+        DynamicToolConfig::Ffi {
+            wrapper,
+            subcommand,
+        } => Some(Box::new(FfiTool::new(
+            name,
+            def.description,
+            def.match_regex,
+            def.version,
+            def.author,
+            def.url,
+            def.license,
+            wrapper,
+            subcommand,
+        ))),
+    }
+}
 
 /// Gets all registered tools available in the codebase.
 pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
@@ -214,8 +266,7 @@ pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
         "../bridle-tools.toml"
     };
 
-    let config_res = CoreConfig::load(config_path);
-    if let Ok(config) = config_res {
+    if let Ok(config) = CoreConfig::load(config_path) {
         tools.retain(|t| config.enabled.get(t.name()).copied().unwrap_or(true));
 
         for (name, path) in config.plugins {
@@ -224,78 +275,11 @@ pub fn get_tools() -> Vec<Box<dyn CodeTool>> {
             } else {
                 format!("../{}", path)
             };
-            if config.enabled.get(&name).copied().unwrap_or(true) {
-                let load_res = PluginDef::load(&actual_path);
-                if let Ok(def) = load_res {
-                    match def.dynamic {
-                        DynamicToolConfig::Subprocess {
-                            command,
-                            env,
-                            venv_aware,
-                        } => {
-                            tools.push(Box::new(SubprocessTool::new(
-                                name,
-                                def.description,
-                                def.match_regex,
-                                def.version,
-                                def.author,
-                                def.url,
-                                def.license,
-                                command,
-                                env,
-                                venv_aware,
-                            )));
-                        }
-                        DynamicToolConfig::JsonRpc {
-                            endpoint,
-                            launch_command: _,
-                        } => {
-                            tools.push(Box::new(JsonRpcTool::new(
-                                name,
-                                def.description,
-                                def.match_regex,
-                                def.version,
-                                def.author,
-                                def.url,
-                                def.license,
-                                endpoint,
-                            )));
-                        }
-                        DynamicToolConfig::Dlopen {
-                            path,
-                            build_command: _,
-                        } => {
-                            if let Ok(dt) = DlopenTool::new(
-                                name,
-                                def.description,
-                                def.match_regex,
-                                def.version,
-                                def.author,
-                                def.url,
-                                def.license,
-                                &path,
-                            ) {
-                                tools.push(Box::new(dt));
-                            }
-                        }
-                        DynamicToolConfig::Ffi {
-                            wrapper,
-                            subcommand,
-                        } => {
-                            tools.push(Box::new(FfiTool::new(
-                                name,
-                                def.description,
-                                def.match_regex,
-                                def.version,
-                                def.author,
-                                def.url,
-                                def.license,
-                                wrapper,
-                                subcommand,
-                            )));
-                        }
-                    }
-                }
+            if config.enabled.get(&name).copied().unwrap_or(true)
+                && let Ok(def) = PluginDef::load(&actual_path)
+                && let Some(tool) = build_tool_from_def(name, def)
+            {
+                tools.push(tool);
             }
         }
     }
@@ -355,7 +339,7 @@ mod tests {
         let tc = tools
             .iter()
             .find(|t| t.name() == "type-correct")
-            .ok_or("err")?;
+            .ok_or_else(|| BridleError::Config("err".into()))?;
         assert_eq!(
             tc.description(),
             "Resolves standard C/C++ type inconsistencies via AST parsing."
@@ -371,7 +355,7 @@ mod tests {
         let ge = tools
             .iter()
             .find(|t| t.name() == "go-auto-err-handling")
-            .ok_or("err")?;
+            .ok_or_else(|| BridleError::Config("err".into()))?;
         assert_eq!(
             ge.description(),
             "Automatically injects `if err != nil { return err }` blocks."
@@ -379,38 +363,35 @@ mod tests {
         assert_eq!(ge.match_regex(), r".*\.go$");
 
         let tmp_dir = tempfile::tempdir()?;
-        let original_dir = std::env::current_dir().unwrap_or_default();
-        std::env::set_current_dir(tmp_dir.path())?;
-        let _ = std::process::Command::new("git").arg("init").status();
+        let _ = crate::workspace::git_command()
+            .current_dir(tmp_dir.path())
+            .arg("init")
+            .status();
+        let clean_go_path = tmp_dir.path().join("clean.go");
+        std::fs::write(&clean_go_path, "package main\nfunc main() {}\n")?;
+        let clean_go_str = clean_go_path.to_string_lossy().to_string();
 
-        let res_audit = ge.audit(&[".".to_string()], None);
+        let res_audit = ge.audit(std::slice::from_ref(&clean_go_str), None);
         let res_audit_no_arg = ge.audit(&[], None);
-        let res_fix = ge.fix(&[".".to_string()], false, None);
-        let res_fix_dry = ge.fix(&[".".to_string()], true, None);
+        let res_fix = ge.fix(std::slice::from_ref(&clean_go_str), false, None);
+        let res_fix_dry = ge.fix(std::slice::from_ref(&clean_go_str), true, None);
 
         let invalid_c_string = String::from_utf8(vec![0x61, 0x00, 0x62])?; // "a\0b"
         let bad_audit_res = ge.audit(std::slice::from_ref(&invalid_c_string), None);
         let bad_fix_res = ge.fix(std::slice::from_ref(&invalid_c_string), false, None);
 
-        let tmp_file = format!("test_{}.go", uuid::Uuid::new_v4());
-        let tmp_file_str = tmp_file.as_str();
+        let tmp_file_path = tmp_dir
+            .path()
+            .join(format!("test_{}.go", uuid::Uuid::new_v4()));
+        let tmp_file = tmp_file_path.to_string_lossy().to_string();
         std::fs::write(
-            tmp_file_str,
+            &tmp_file_path,
             "package main\nfunc fail() error { return nil }\nfunc main() { fail() }\n",
         )?;
         let audit_fail_res = ge.audit(std::slice::from_ref(&tmp_file), None);
 
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(tmp_file_str)?.permissions();
-        perms.set_mode(0o400);
-        std::fs::set_permissions(tmp_file_str, perms)?;
-
-        std::fs::remove_file(tmp_file_str).unwrap_or_default();
-
-        let _ = std::env::set_current_dir(original_dir);
-
-        assert!(res_audit?.contains("No issues found for ."));
-        assert!(res_audit_no_arg?.contains("No issues found for ."));
+        assert!(res_audit?.contains("No issues found for"));
+        assert!(res_audit_no_arg?.contains("go-auto-err-handling audit:"));
         assert!(res_fix?.contains("fix applied successfully"));
         assert!(res_fix_dry?.contains("[DRY RUN]"));
         assert!(bad_audit_res.is_err());
@@ -420,7 +401,7 @@ mod tests {
         let l2n = tools
             .iter()
             .find(|t| t.name() == "lib2notebook2lib")
-            .ok_or("err")?;
+            .ok_or_else(|| BridleError::Config("err".into()))?;
         assert_eq!(
             l2n.description(),
             "Bi-directional sync between Python source and Jupyter notebooks."
@@ -518,7 +499,10 @@ mod tests {
         );
 
         let tf = tempfile::NamedTempFile::new()?;
-        let tmp = tf.path().to_str().ok_or("Invalid path")?;
+        let tmp = tf
+            .path()
+            .to_str()
+            .ok_or_else(|| BridleError::Config("Invalid path".into()))?;
 
         let res = tool.fix(&[tmp.to_string()], false, None)?;
         assert!(res.contains("Connected"));
@@ -546,9 +530,63 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn test_get_tools() {
+    fn test_get_tools() -> Result<(), BridleError> {
         let tools = get_tools();
         assert!(tools.len() >= 8);
+
+        let orig = std::env::current_dir()?;
+        if orig.ends_with("bridle-cli")
+            && let Some(parent) = orig.parent()
+        {
+            std::env::set_current_dir(parent)?;
+            let tools_root = get_tools();
+            assert!(tools_root.len() >= 8);
+            std::env::set_current_dir(orig)?;
+        }
+
+        let sub_def = PluginDef {
+            description: "d".into(),
+            match_regex: ".*".into(),
+            version: None,
+            author: None,
+            url: None,
+            license: None,
+            dynamic: DynamicToolConfig::Subprocess {
+                command: "echo".into(),
+                env: std::collections::HashMap::new(),
+                venv_aware: false,
+            },
+        };
+        assert!(build_tool_from_def("sub".into(), sub_def).is_some());
+
+        let rpc_def = PluginDef {
+            description: "d".into(),
+            match_regex: ".*".into(),
+            version: None,
+            author: None,
+            url: None,
+            license: None,
+            dynamic: DynamicToolConfig::JsonRpc {
+                endpoint: "http://localhost".into(),
+                launch_command: None,
+            },
+        };
+        assert!(build_tool_from_def("rpc".into(), rpc_def).is_some());
+
+        let dl_def = PluginDef {
+            description: "d".into(),
+            match_regex: ".*".into(),
+            version: None,
+            author: None,
+            url: None,
+            license: None,
+            dynamic: DynamicToolConfig::Dlopen {
+                path: "nonexistent.so".into(),
+                build_command: None,
+            },
+        };
+        assert!(build_tool_from_def("dl".into(), dl_def).is_none());
+        Ok(())
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import {
   AppTableComponent,
   AppTableColumnDirective,
@@ -8,7 +8,11 @@ import { By } from '@angular/platform-browser';
 
 @Component({
   template: `
-    <app-table [title]="title" [data]="data" [emptyMessage]="emptyMessage">
+    <app-table
+      [title]="title()"
+      [data]="data()"
+      [emptyMessage]="emptyMessage()"
+    >
       <ng-template appTableColumn title="ID" key="id" let-value="value">
         #{{ value }}
       </ng-template>
@@ -20,12 +24,12 @@ import { By } from '@angular/platform-browser';
   imports: [AppTableComponent, AppTableColumnDirective],
 })
 class TestHostComponent {
-  title = 'Test Table';
-  data: object[] = [
+  title = signal('Test Table');
+  data = signal<object[]>([
     { id: 1, name: 'Item 1' },
     { id: 2, name: 'Item 2' },
-  ];
-  emptyMessage = 'No data';
+  ]);
+  emptyMessage = signal('No data');
 }
 
 describe('AppTableComponent', () => {
@@ -70,11 +74,11 @@ describe('AppTableComponent', () => {
   });
 
   it('should render empty message when data is empty', () => {
-    component.data = [];
+    component.data.set([]);
     fixture.detectChanges();
 
     const trs = fixture.debugElement.queryAll(By.css('tbody tr'));
-    expect(trs.length).toBe(1); // The empty message row
+    expect(trs.length).toBe(1);
     expect(trs[0].nativeElement.textContent.trim()).toBe('No data');
   });
 

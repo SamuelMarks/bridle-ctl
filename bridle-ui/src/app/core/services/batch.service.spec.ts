@@ -1,10 +1,10 @@
-import { BatchJob } from '../models/models';
+import { BatchJob, BatchJobStatus } from '../models/models';
 import { TestBed } from '@angular/core/testing';
 import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { BatchService } from './batch.service';
 
 describe('BatchService', () => {
@@ -13,7 +13,7 @@ describe('BatchService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     service = TestBed.inject(BatchService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -28,18 +28,29 @@ describe('BatchService', () => {
   });
 
   it('should load jobs', () => {
-    const mockJobs: object[] = [
-      { id: '1', target: '1', status: 'COMPLETED', createdAt: '' },
-      { id: '2', target: '1', status: 'COMPLETED', createdAt: '' },
+    const mockJobs: BatchJob[] = [
+      {
+        id: '1',
+        target: '1',
+        status: BatchJobStatus.COMPLETED,
+        createdAt: '',
+      },
+      {
+        id: '2',
+        target: '1',
+        status: BatchJobStatus.COMPLETED,
+        createdAt: '',
+      },
     ];
 
-    service.loadJobs().subscribe();
+    let result: BatchJob[] = [];
+    service.loadJobs().subscribe((jobs) => (result = jobs));
 
     const req = httpMock.expectOne('/api/batch/jobs');
     expect(req.request.method).toBe('GET');
     req.flush(mockJobs);
 
-    expect(service.jobs()).toEqual(mockJobs as object as BatchJob[]);
+    expect(result).toEqual(mockJobs);
   });
 
   it('should handle load jobs error', () => {
@@ -55,20 +66,21 @@ describe('BatchService', () => {
   });
 
   it('should load a specific job', () => {
-    const mockJob: object = {
+    const mockJob: BatchJob = {
       id: '123',
       target: '1',
-      status: 'COMPLETED',
+      status: BatchJobStatus.COMPLETED,
       createdAt: '',
     };
 
-    service.loadJob('123').subscribe();
+    let result: BatchJob | undefined;
+    service.loadJob('123').subscribe((job) => (result = job));
 
     const req = httpMock.expectOne('/api/batch/jobs/123');
     expect(req.request.method).toBe('GET');
     req.flush(mockJob);
 
-    expect(service.activeJob()).toEqual(mockJob as object as BatchJob);
+    expect(result).toEqual(mockJob);
   });
 
   it('should handle load job error', () => {
@@ -84,16 +96,17 @@ describe('BatchService', () => {
   });
 
   it('should create batch fix', () => {
-    const mockJob: object = {
+    const mockJob: BatchJob = {
       id: 'new-job',
       target: '1',
-      status: 'COMPLETED',
+      status: BatchJobStatus.COMPLETED,
       createdAt: '',
     };
 
+    let result: BatchJob | undefined;
     service
       .createBatchFix('org', 'title', 'desc', 'pat', ['tool'], { arg: 1 })
-      .subscribe();
+      .subscribe((job) => (result = job));
 
     const req = httpMock.expectOne('/api/batch/fix');
     expect(req.request.method).toBe('POST');
@@ -110,18 +123,19 @@ describe('BatchService', () => {
     });
     req.flush(mockJob);
 
-    expect(service.jobs()[0]).toEqual(mockJob as object as BatchJob);
+    expect(result).toEqual(mockJob);
   });
 
   it('should run pipeline', () => {
-    const mockJob: object = {
+    const mockJob: BatchJob = {
       id: 'pipe-job',
       target: '1',
-      status: 'COMPLETED',
+      status: BatchJobStatus.COMPLETED,
       createdAt: '',
     };
 
-    service.runPipeline('yaml').subscribe();
+    let result: BatchJob | undefined;
+    service.runPipeline('yaml').subscribe((job) => (result = job));
 
     const req = httpMock.expectOne('/api/batch/run');
     expect(req.request.method).toBe('POST');
@@ -133,50 +147,24 @@ describe('BatchService', () => {
     });
     req.flush(mockJob);
 
-    expect(service.jobs()[0]).toEqual(mockJob as object as BatchJob);
+    expect(result).toEqual(mockJob);
   });
 
   it('should resume job', () => {
-    // Set initial jobs
-    const mockJob1: object = {
+    const mockResumedJob: BatchJob = {
       id: '123',
-      status: 'PENDING',
+      status: BatchJobStatus.RUNNING,
       target: '1',
       createdAt: '',
     };
-    const mockJob2: object = {
-      id: '456',
-      status: 'PENDING',
-      target: '1',
-      createdAt: '',
-    };
-    service.loadJobs().subscribe();
-    const req0 = httpMock.expectOne('/api/batch/jobs');
-    req0.flush([mockJob1, mockJob2]);
 
-    const mockResumedJob: object = {
-      id: '123',
-      status: 'RUNNING',
-      target: '1',
-      createdAt: '',
-    };
-    service.resumeJob('123').subscribe();
+    let result: BatchJob | undefined;
+    service.resumeJob('123').subscribe((job) => (result = job));
 
     const req = httpMock.expectOne('/api/batch/jobs/123/resume');
     expect(req.request.method).toBe('POST');
     req.flush(mockResumedJob);
 
-    expect(service.activeJob()).toEqual(mockResumedJob as object as BatchJob);
-    expect(service.jobs()[0].status).toBe('RUNNING');
-  });
-
-  it('should clear active job', () => {
-    service.loadJob('123').subscribe();
-    const req = httpMock.expectOne('/api/batch/jobs/123');
-    req.flush({ id: '123' });
-    expect(service.activeJob()).toBeTruthy();
-
-    service.clearActiveJob();
-    expect(service.activeJob()).toBeNull();
+    expect(result).toEqual(mockResumedJob);
   });
 });

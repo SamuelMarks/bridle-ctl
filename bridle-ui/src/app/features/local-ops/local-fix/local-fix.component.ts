@@ -1,211 +1,176 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  output,
-  inject,
-  signal,
-} from '@angular/core';
-
+import { Component, output, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AppButtonComponent } from '../../../shared/ui/app-button/app-button.component';
 import { AppInputComponent } from '../../../shared/ui/app-input/app-input.component';
 import { OpResult } from '../../../core/services/local-op.service';
+import { JsonObject } from '../../../core/models/models';
 
 /**
- * Component for running a local fix operation.
+ * Component for running a local codebase fix.
  */
 @Component({
   selector: 'app-local-fix',
-  imports: [
-    ReactiveFormsModule,
-    AppButtonComponent,
-    AppInputComponent
-],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule, AppButtonComponent, AppInputComponent],
   template: `
-    <div class="Box p-3 mb-4">
-      <h2 class="h4 mb-3">Run Fix</h2>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <div class="mb-3">
-          <app-input
-            formControlName="pattern"
-            label="Regex Pattern"
-            placeholder="e.g. TODO.*"
-          ></app-input>
-          @if (form.get('pattern')?.invalid && form.get('pattern')?.touched) {
-            <div class="text-danger mt-1 text-small">Pattern is required</div>
-          }
-        </div>
-
-        <div class="mb-3">
-          <app-input
-            formControlName="tools"
-            label="Tools (comma-separated)"
-            placeholder="e.g. sed, replace"
-          ></app-input>
-        </div>
-
-        <div class="mb-3">
-          <app-input
-            formControlName="args"
-            type="textarea"
-            label="Tool Arguments (JSON)"
-            placeholder='{"replace": {"new_string": "FIXED"}}'
-          ></app-input>
-        </div>
-
-        <div class="mb-3 d-flex align-items-center gap-2">
-          <input type="checkbox" id="dryRunCheck" formControlName="dryRun" />
-          <label for="dryRunCheck" class="text-bold">Dry Run</label>
-        </div>
-
-        <div class="d-flex justify-content-end">
-          <app-button
-            type="submit"
-            variant="primary"
-            [disabled]="form.invalid || isOperating()"
-          >
-            {{ isOperating() ? 'Fixing...' : 'Fix' }}
-          </app-button>
-        </div>
-      </form>
-    </div>
-
-    @if (result()) {
-      <div class="Box result-panel">
+    <div class="fix-container">
+      <div class="Box mb-4">
         <div class="Box-header">
-          <h2 class="Box-title">Fix Results</h2>
+          <h2 class="Box-title">Fix Configuration</h2>
         </div>
-        <div class="Box-body p-0">
-          <pre class="cli-output p-3 m-0">{{ result()?.output }}</pre>
+        <div class="Box-body">
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="op-form">
+            <app-input
+              label="Target Regex Pattern"
+              placeholder="e.g. src/.*\\.ts"
+              formControlName="pattern"
+            ></app-input>
 
-          @if (result()?.modifiedFiles && result()!.modifiedFiles!.length > 0) {
-            <div class="p-3 border-top">
-              <h3 class="h5 mb-2">Modified Files</h3>
-              <ul class="file-list">
-                @for (file of result()?.modifiedFiles; track file) {
-                  <li>{{ file }}</li>
-                }
-              </ul>
-            </div>
-          }
+            <app-input
+              label="Tools (Comma separated)"
+              placeholder="e.g. eslint, prettier"
+              formControlName="tools"
+            ></app-input>
 
-          @if (result()?.diff) {
-            <div class="p-3 border-top">
-              <h3 class="h5 mb-2">Diff</h3>
-              <pre class="cli-output diff-output">{{ result()?.diff }}</pre>
+            <app-input
+              type="textarea"
+              label="Tool Arguments (JSON)"
+              placeholder='{"eslint": ["--fix"]}'
+              formControlName="args"
+            ></app-input>
+
+            <div class="checkbox-group">
+              <input type="checkbox" id="dryRun" formControlName="dryRun" />
+              <label for="dryRun">Dry Run (Do not modify files on disk)</label>
             </div>
-          }
+
+            <div class="form-actions">
+              <app-button
+                type="submit"
+                variant="primary"
+                [disabled]="form.invalid || isOperating()"
+              >
+                {{ isOperating() ? 'Running Fix...' : 'Run Fix' }}
+              </app-button>
+            </div>
+          </form>
         </div>
       </div>
-    }
+
+      @if (result()) {
+        <div class="Box result-panel">
+          <div class="Box-header">
+            <h2 class="Box-title">Fix Output & Diff</h2>
+          </div>
+          <div class="Box-body p-0">
+            @if (result()!.modifiedFiles?.length) {
+              <div class="modified-files">
+                <strong>Modified Files:</strong>
+                <ul class="file-list">
+                  @for (file of result()!.modifiedFiles; track file) {
+                    <li>{{ file }}</li>
+                  }
+                </ul>
+              </div>
+            }
+            <pre class="terminal-output">{{ result()!.output }}</pre>
+            @if (result()!.diff) {
+              <pre class="terminal-output">{{ result()!.diff }}</pre>
+            }
+          </div>
+        </div>
+      }
+    </div>
   `,
   styles: `
+    .mb-4 {
+      margin-bottom: 24px;
+    }
+    .p-0 {
+      padding: 0 !important;
+    }
+
     .Box {
       background-color: var(--color-canvas-default);
       border: 1px solid var(--color-border-default);
       border-radius: var(--border-radius-2);
     }
+
     .Box-header {
       padding: 16px;
-      margin: -1px -1px 0;
       background-color: var(--color-canvas-subtle);
-      border: 1px solid var(--color-border-default);
+      border-bottom: 1px solid var(--color-border-default);
       border-top-left-radius: var(--border-radius-2);
       border-top-right-radius: var(--border-radius-2);
     }
+
     .Box-title {
       font-size: 14px;
       font-weight: 600;
       margin: 0;
     }
+
     .Box-body {
+      padding: 16px;
+    }
+
+    .op-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .modified-files {
+      padding: 16px;
       border-bottom: 1px solid var(--color-border-default);
-    }
-    .p-3 {
-      padding: 16px;
-    }
-    .p-0 {
-      padding: 0;
-    }
-    .m-0 {
-      margin: 0;
-    }
-    .mb-2 {
-      margin-bottom: 8px;
-    }
-    .mb-3 {
-      margin-bottom: 16px;
-    }
-    .mb-4 {
-      margin-bottom: 24px;
-    }
-    .mt-1 {
-      margin-top: 4px;
-    }
-    .h4 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-top: 0;
-    }
-    .h5 {
-      font-size: 14px;
-      font-weight: 600;
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
-    .text-danger {
-      color: var(--color-danger-fg);
-    }
-    .text-small {
-      font-size: 12px;
-    }
-    .text-bold {
-      font-weight: 600;
-      font-size: 14px;
-    }
-    .border-top {
-      border-top: 1px solid var(--color-border-default);
-    }
-
-    .cli-output {
-      font-family: var(--font-family-mono);
-      font-size: 12px;
-      line-height: 1.45;
-      background-color: var(--color-canvas-subtle);
-      color: var(--color-fg-default);
-      overflow-x: auto;
-      white-space: pre-wrap;
-    }
-
-    .diff-output {
-      padding: 16px;
-      margin: 0;
-      border-radius: var(--border-radius-2);
-      border: 1px solid var(--color-border-default);
+      font-size: 13px;
     }
 
     .file-list {
-      margin: 0;
+      margin: 8px 0 0 0;
       padding-left: 20px;
-      font-family: var(--font-family-mono);
+      font-family: var(--font-mono);
+    }
+
+    .terminal-output {
+      margin: 0;
+      padding: 16px;
+      background-color: #24292f;
+      color: #ffffff;
+      font-family: var(--font-mono);
       font-size: 12px;
+      line-height: 1.5;
+      overflow-x: auto;
+      border-bottom-left-radius: var(--border-radius-2);
+      border-bottom-right-radius: var(--border-radius-2);
     }
   `,
 })
 export class LocalFixComponent {
-  /** FormBuilder instance */
+  /** Injected FormBuilder */
   private fb = inject(FormBuilder);
 
-  /** Emitted when the form is submitted */
+  /** Emitted when fix is requested */
   fix = output<{
     pattern: string;
     tools: string[];
-    args: Record<string, string | number | boolean | object | null | undefined>;
+    args: JsonObject;
     dryRun: boolean;
   }>();
 
-  /** Form model */
+  /** Reactive form group */
   form = this.fb.group({
     pattern: ['', Validators.required],
     tools: [''],
@@ -213,36 +178,32 @@ export class LocalFixComponent {
     dryRun: [true],
   });
 
-  /** Whether the operation is currently running */
-  isOperating = signal<boolean>(false);
+  /** Loading state */
+  isOperating = signal(false);
 
-  /** Result of the operation */
+  /** Result to display */
   result = signal<OpResult | null>(null);
 
   /** Handles form submission */
   onSubmit(): void {
     if (this.form.valid) {
-      let toolsArr: string[] = [];
-      if (this.form.value.tools) {
-        toolsArr = this.form.value.tools
-          .split(',')
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0);
-      }
+      const toolsStr = this.form.value.tools || '';
+      const tools = toolsStr
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
-      let parsedArgs = {};
+      let args: JsonObject = {};
       try {
-        if (this.form.value.args) {
-          parsedArgs = JSON.parse(this.form.value.args);
-        }
-      } catch (e) {
-        // Just send empty if parsing fails for now
+        args = JSON.parse(this.form.value.args || '{}') as JsonObject;
+      } catch {
+        // Ignore parse error and fallback to empty object
       }
 
       this.fix.emit({
         pattern: this.form.value.pattern!,
-        tools: toolsArr,
-        args: parsedArgs,
+        tools,
+        args,
         dryRun: this.form.value.dryRun ?? true,
       });
     }
@@ -250,7 +211,7 @@ export class LocalFixComponent {
 
   /**
    * Sets the operating state.
-   * @param isOperating Whether the operation is running
+   * @param isOperating Whether an operation is in progress
    */
   setOperating(isOperating: boolean): void {
     this.isOperating.set(isOperating);

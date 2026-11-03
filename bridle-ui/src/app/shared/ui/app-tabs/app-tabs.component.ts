@@ -1,61 +1,52 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  input,
-  output,
-} from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 /** Interface representing a single tab item */
 export interface TabItem {
   /** The unique identifier for the tab */
   id: string;
-  /** The label text to display */
+  /** The display label for the tab */
   label: string;
-  /** Optional badge number to display next to the label */
-  badge?: number;
 }
 
 /**
- * A standard tabs component following GitHub Primer styling.
+ * A standard tabs component following GitHub Primer underline nav styling.
  */
 @Component({
   selector: 'app-tabs',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="UnderlineNav" aria-label="Tabs">
-      <ul class="UnderlineNav-body" role="tablist">
+      <div class="UnderlineNav-body" role="tablist">
         @for (tab of tabs(); track tab.id) {
-          <li class="d-inline-flex" role="presentation">
-            <button
-              type="button"
-              role="tab"
-              class="UnderlineNav-item"
-              [class.selected]="activeTabId() === tab.id"
-              [attr.aria-selected]="activeTabId() === tab.id"
-              (click)="selectTab(tab.id)"
-            >
-              <span>{{ tab.label }}</span>
-              @if (tab.badge !== undefined) {
-                <span class="Counter">{{ tab.badge }}</span>
-              }
-            </button>
-          </li>
+          <button
+            type="button"
+            class="UnderlineNav-item"
+            role="tab"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [class.selected]="activeTab() === tab.id"
+            (click)="selectTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
         }
-      </ul>
+      </div>
     </nav>
+    <div class="tab-content" role="tabpanel">
+      <ng-content></ng-content>
+    </div>
   `,
   styles: `
     .UnderlineNav {
       display: flex;
-      justify-content: space-between;
+      overflow-x: auto;
+      overflow-y: hidden;
       border-bottom: 1px solid var(--color-border-default);
+      justify-content: space-between;
+      margin-bottom: 16px;
     }
 
     .UnderlineNav-body {
       display: flex;
-      list-style: none;
-      padding: 0;
-      margin: 0;
+      align-items: center;
       gap: 8px;
     }
 
@@ -65,36 +56,28 @@ export interface TabItem {
       line-height: 30px;
       color: var(--color-fg-default);
       text-align: center;
+      white-space: nowrap;
       background-color: transparent;
       border: 0;
       border-bottom: 2px solid transparent;
       cursor: pointer;
+      transition: border-bottom-color 0.2s ease-in;
     }
 
     .UnderlineNav-item:hover {
-      border-bottom-color: var(--color-border-muted);
       color: var(--color-fg-default);
-      transition: border-bottom-color 0.12s ease-out;
+      text-decoration: none;
+      border-bottom-color: var(--color-border-muted);
     }
 
     .UnderlineNav-item.selected {
       font-weight: 600;
       color: var(--color-fg-default);
-      border-bottom-color: #fd8c73; /* Primer active tab border color */
+      border-bottom-color: #fd8c73;
     }
 
-    .Counter {
-      display: inline-block;
-      min-width: 20px;
-      padding: 0 6px;
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 18px;
-      color: var(--color-fg-default);
-      text-align: center;
-      background-color: var(--color-canvas-subtle);
-      border-radius: 2em;
-      margin-left: 8px;
+    .tab-content {
+      padding-top: 8px;
     }
   `,
 })
@@ -103,7 +86,7 @@ export class AppTabsComponent {
   tabs = input<TabItem[]>([]);
 
   /** Currently active tab ID */
-  activeTabId = input<string>('');
+  activeTab = input<string>('');
 
   /** Emitted when a tab is selected */
   tabChange = output<string>();

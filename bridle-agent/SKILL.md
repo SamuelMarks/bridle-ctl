@@ -46,5 +46,5 @@ You have direct read/write access to the local database through the MCP tool `ex
 
 If you ever generate code or evaluate code modifications, enforce strict zero-defect policies:
 - 100% test coverage and 100% doc coverage required.
-- **Rust:** Ban `.unwrap()`, `.expect()`, `panic!()`, and `anyhow`. Use explicit error enums.
-- **TypeScript:** Ban `any`, `unknown`, and `never`.
+- **Rust:** Ban `.unwrap()`, `.expect()`, `panic!()`, and `anyhow`. Use the unified `BridleError` enum with `derive_more`.
+- **TypeScript:** Ban `any` and `never` (use `unknown` with explicit type guards when needed).

@@ -21,21 +21,21 @@ When operating within `bridle-ctl`, you are acting as an **Autonomous AI Softwar
 ### 1. Always Use FFI Tools for Code Mutation
 
 **NEVER** attempt to mutate code via direct string replacement, `echo`, `cat >>`, or Python regex scripts.
-All code modifications MUST be performed by invoking a compiled tool from the registry via the `bridle batch-fix` or `bridle run` CLI commands.
+All code modifications MUST be performed by invoking a compiled tool from the registry via the `bridle batch-fix`, `bridle batch-run`, or `bridle fix` CLI commands.
 
 _Why?_ Standard LLM string replacements hallucinate, break indentation, and fail on edge cases. FFI tools are compiled, unit-tested AST parsers.
 
 ### 2. Context Reduction over Exhaustive Reading
 
-Do not attempt to read an entire repository's source code into context. Use the local FFI `audit()` capabilities (via `bridle audit`) to find files that match the targeted pattern, then run the `fix()` tool.
+Do not attempt to read an entire repository's source code into context. Use the local FFI `audit()` capabilities (via `bridle audit`) to find files that match the targeted pattern, then run the `fix()` tool (via `bridle fix`).
 
 ### 3. Database Context is Source of Truth
 
 The orchestrator operates heavily offline to save costs and API rate limits.
 
 - Connect to `bridle.db` (SQLite) or your assigned `postgres://` URL.
-- Read your tasks from the `issues_and_milestones` table.
-- When you execute a tool, commit the change, and open a PR _locally_ in the `prs_releases_webhooks` table.
+- Read your tasks from the `issues` table (`issues_and_milestones` migration).
+- When you execute a tool, commit the change, and open a PR _locally_ in the `pull_requests` table (`prs_releases_webhooks` migration).
 
 ### 4. PR Synchronization and Rate Limiting
 
@@ -44,7 +44,7 @@ The orchestrator operates heavily offline to save costs and API rate limits.
 You can generate as many PRs as desired in the local DB. When a milestone is complete, invoke:
 
 ```bash
-bridle sync-prs --max-prs-per-hour 10
+bridle sync-prs --org "my-org" --max-prs-per-hour 10
 ```
 
 The framework will safely handle fork reuse, remote pushing, and deployment without getting the IP banned for API abuse.
@@ -58,9 +58,9 @@ When writing, generating, or modifying code within the `bridle-ctl` ecosystem, y
 - **Rust specific:**
   - NEVER use `.unwrap()`, `.expect()`, or panics.
   - NEVER use `anyhow` or similar dynamic error types.
-  - MUST use explicitly typed Error enums equipped with `derive_more`.
+  - MUST use the unified `BridleError` enum equipped with `derive_more`.
 - **TypeScript specific:**
-  - NEVER use the `any`, `unknown`, or `never` types.
+  - NEVER use the `any` or `never` types (use `unknown` with explicit type guards when a type is uncertain).
   - MUST use strict, specific interfaces and types.
 
 ---

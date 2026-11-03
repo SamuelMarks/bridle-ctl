@@ -20,6 +20,11 @@ class TestHostComponent {
       description: 'desc 1',
       url: 'http://link',
     },
+    {
+      id: '2',
+      orgId: '1',
+      name: 'repo-2',
+    },
   ];
 }
 
@@ -48,14 +53,13 @@ describe('RepoListComponent', () => {
     expect(title.textContent).toContain('TestOrg');
   });
 
-  it('should render repo details', () => {
+  it('should render repo details and fallback description', () => {
     const trs = fixture.debugElement.queryAll(By.css('tbody tr'));
-    expect(trs.length).toBe(1);
+    expect(trs.length).toBe(2);
 
     expect(trs[0].nativeElement.textContent).toContain('repo-1');
     expect(trs[0].nativeElement.textContent).toContain('desc 1');
-
-    const link = trs[0].query(By.css('a')).nativeElement;
-    expect(link.href).toBe('http://link/');
+    expect(trs[1].nativeElement.textContent).toContain('repo-2');
+    expect(trs[1].nativeElement.textContent).toContain('No description');
   });
 });

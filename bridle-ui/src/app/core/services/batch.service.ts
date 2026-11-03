@@ -1,128 +1,101 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { BatchJob } from '../models/models';
-import { tap } from 'rxjs/operators';
+import { BatchJob, JsonObject } from '../models/models';
 import { Observable } from 'rxjs';
 
 /**
- * Service for managing batch jobs.
+ * Stateless HTTP data-access service for batch operations and pipelines.
+ * Reactive state is managed by `JobsStore`.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class BatchService {
-  /** API Service instance */
+  /** Injected API service */
   private api = inject(ApiService);
-
-  /** Signal holding job list */
-  private jobsSignal = signal<BatchJob[]>([]);
-  /** Signal holding active job */
-  private activeJobSignal = signal<BatchJob | null>(null);
-
-  /** List of all batch jobs */
-  readonly jobs = this.jobsSignal.asReadonly();
-  /** The currently viewed job */
-  readonly activeJob = this.activeJobSignal.asReadonly();
 
   /**
    * Loads all batch jobs.
+   * @returns Observable of BatchJob array
    */
   loadJobs(): Observable<BatchJob[]> {
-    return this.api
-      .get<BatchJob[]>('/batch/jobs')
-      .pipe(tap((jobs) => this.jobsSignal.set(jobs)));
+    return this.api.get<BatchJob[]>('/batch/jobs');
   }
 
   /**
-   * Loads details for a specific job.
-   * @param id Job ID
+   * Loads a specific batch job by ID.
+   * @param id The job ID
+   * @returns Observable of BatchJob
    */
   loadJob(id: string): Observable<BatchJob> {
-    return this.api
-      .get<BatchJob>(`/batch/jobs/${id}`)
-      .pipe(tap((job) => this.activeJobSignal.set(job)));
+    return this.api.get<BatchJob>(`/batch/jobs/${id}`);
   }
 
   /**
    * Creates a new batch fix job.
-   * @param target Target organization or repo
-   * @param title Title of the issue/PR
-   * @param description Description of the issue/PR
-   * @param pattern Regex pattern to match
+   * @param orgId Target organization ID
+   * @param title Issue title
+   * @param description Issue description
+   * @param pattern Target regex pattern
    * @param tools Tools to run
-   * @param args Arguments for the tools
-   * @param safety_mode Whether to use safety mode
-   * @param max_repos Maximum number of repositories to process
-   * @param max_prs_per_hour Maximum number of PRs per hour
+   * @param args Tool arguments
+   * @param safetyMode Whether to run in safety mode
+   * @param maxRepos Maximum number of repositories to process
+   * @param maxPrsPerHour Global limit of PRs per hour
+   * @returns Observable of created BatchJob
    */
   createBatchFix(
-    target: string,
+    orgId: string,
     title: string,
     description: string,
     pattern: string,
     tools: string[],
-    args: Record<string, string | number | boolean | object | null | undefined>,
-    safety_mode = true,
-    max_repos?: number,
-    max_prs_per_hour?: number,
+    args: JsonObject,
+    safetyMode = true,
+    maxRepos?: number,
+    maxPrsPerHour?: number,
   ): Observable<BatchJob> {
-    return this.api
-      .post<BatchJob>('/batch/fix', {
-        org: target,
-        issue: title,
-        description,
-        pattern,
-        tools,
-        tool_args: args,
-        safety_mode,
-        max_repos,
-        max_prs_per_hour,
-      })
-      .pipe(tap((job) => this.jobsSignal.update((jobs) => [job, ...jobs])));
+    return this.api.post<BatchJob>('/batch/fix', {
+      org: orgId,
+      issue: title,
+      description,
+      pattern,
+      tools,
+      tool_args: args,
+      safety_mode: safetyMode,
+      max_repos: maxRepos,
+      max_prs_per_hour: maxPrsPerHour,
+    });
   }
 
   /**
-   * Runs a pipeline from config.
-   * @param config Pipeline configuration string
-   * @param safety_mode Whether to use safety mode
-   * @param max_repos Maximum number of repositories to process
-   * @param max_prs_per_hour Maximum number of PRs per hour
+   * Runs a batch pipeline from YAML configuration.
+   * @param configYaml The YAML configuration string
+   * @param safetyMode Whether to run in safety mode
+   * @param maxRepos Maximum number of repositories to process
+   * @param maxPrsPerHour Global limit of PRs per hour
+   * @returns Observable of created BatchJob
    */
   runPipeline(
-    config: string,
-    safety_mode = true,
-    max_repos?: number,
-    max_prs_per_hour?: number,
+    configYaml: string,
+    safetyMode = true,
+    maxRepos?: number,
+    maxPrsPerHour?: number,
   ): Observable<BatchJob> {
-    return this.api
-      .post<BatchJob>('/batch/run', {
-        config_path: config,
-        safety_mode,
-        max_repos,
-        max_prs_per_hour,
-      })
-      .pipe(tap((job) => this.jobsSignal.update((jobs) => [job, ...jobs])));
+    return this.api.post<BatchJob>('/batch/run', {
+      config_path: configYaml,
+      safety_mode: safetyMode,
+      max_repos: maxRepos,
+      max_prs_per_hour: maxPrsPerHour,
+    });
   }
 
   /**
-   * Resumes an interrupted job.
-   * @param id Job ID
+   * Resumes an interrupted batch job.
+   * @param id The job ID
+   * @returns Observable of resumed BatchJob
    */
   resumeJob(id: string): Observable<BatchJob> {
-    return this.api.post<BatchJob>(`/batch/jobs/${id}/resume`).pipe(
-      tap((job) => {
-        this.activeJobSignal.set(job);
-        this.jobsSignal.update((jobs) =>
-          jobs.map((j) => (j.id === id ? job : j)),
-        );
-      }),
-    );
-  }
-
-  /**
-   * Clears the currently active job.
-   */
-  clearActiveJob(): void {
-    this.activeJobSignal.set(null);
+    return this.api.post<BatchJob>(`/batch/jobs/${id}/resume`);
   }
 }

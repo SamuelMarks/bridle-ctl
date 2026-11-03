@@ -1,18 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, input } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { AppButtonComponent } from './app-button.component';
 import { By } from '@angular/platform-browser';
 
 @Component({
-  template: `<app-button [variant]="variant" [type]="type" [disabled]="disabled"
+  template: `<app-button
+    [variant]="variant()"
+    [type]="type()"
+    [disabled]="disabled()"
     >Click Me</app-button
   >`,
   imports: [AppButtonComponent],
 })
 class TestHostComponent {
-  variant: 'primary' | 'secondary' | 'danger' | 'invisible' = 'secondary';
-  type: 'button' | 'submit' | 'reset' = 'button';
-  disabled = false;
+  variant = signal<'primary' | 'secondary' | 'danger' | 'invisible'>(
+    'secondary',
+  );
+  type = signal<'button' | 'submit' | 'reset'>('button');
+  disabled = signal(false);
 }
 
 describe('AppButtonComponent', () => {
@@ -42,15 +47,15 @@ describe('AppButtonComponent', () => {
     const button = fixture.debugElement.query(By.css('button')).nativeElement;
     expect(button.classList.contains('btn-secondary')).toBeTrue();
 
-    component.variant = 'primary';
+    component.variant.set('primary');
     fixture.detectChanges();
     expect(button.classList.contains('btn-primary')).toBeTrue();
 
-    component.variant = 'danger';
+    component.variant.set('danger');
     fixture.detectChanges();
     expect(button.classList.contains('btn-danger')).toBeTrue();
 
-    component.variant = 'invisible';
+    component.variant.set('invisible');
     fixture.detectChanges();
     expect(button.classList.contains('btn-invisible')).toBeTrue();
   });
@@ -60,7 +65,7 @@ describe('AppButtonComponent', () => {
     expect(button.disabled).toBeFalse();
     expect(button.getAttribute('aria-disabled')).toBe('false');
 
-    component.disabled = true;
+    component.disabled.set(true);
     fixture.detectChanges();
     expect(button.disabled).toBeTrue();
     expect(button.getAttribute('aria-disabled')).toBe('true');
@@ -70,7 +75,7 @@ describe('AppButtonComponent', () => {
     const button = fixture.debugElement.query(By.css('button')).nativeElement;
     expect(button.type).toBe('button');
 
-    component.type = 'submit';
+    component.type.set('submit');
     fixture.detectChanges();
     expect(button.type).toBe('submit');
   });

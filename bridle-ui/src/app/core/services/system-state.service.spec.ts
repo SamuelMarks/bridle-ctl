@@ -4,7 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { SystemStateService } from './system-state.service';
 
 describe('SystemStateService', () => {
@@ -13,7 +13,7 @@ describe('SystemStateService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     service = TestBed.inject(SystemStateService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -28,7 +28,7 @@ describe('SystemStateService', () => {
   });
 
   it('should check health and update state', () => {
-    const mockHealth: object = { rest: 'UP', rpc: 'UP', agent: 'UP' };
+    const mockHealth: SystemHealth = { rest: 'UP', rpc: 'UP', agent: 'UP' };
 
     service.checkHealth().subscribe();
     expect(service.isLoading()).toBeTrue();
@@ -37,7 +37,7 @@ describe('SystemStateService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockHealth);
 
-    expect(service.health()).toEqual(mockHealth as object as SystemHealth);
+    expect(service.health()).toEqual(mockHealth);
     expect(service.isLoading()).toBeFalse();
   });
 

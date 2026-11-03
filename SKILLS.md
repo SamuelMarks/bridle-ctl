@@ -8,19 +8,19 @@
 
 ## 🛠️ 1. Deterministic FFI Tool Execution
 
-The core capability. Agents do not write string replacements; they execute compiled tools.
+The core capability. Agents do not write string replacements; they execute compiled tools implementing the `CodeTool` trait.
 
-- **`audit(tool, path)`**: Safely scan a repository to see if a specific refactoring tool is applicable.
-- **`fix(tool, path, args)`**: Execute a compiled C/C++/Go/Rust binary against a file to update its Abstract Syntax Tree deterministically.
-- Includes built-in tools like `type-correct`, `cdd-extern-c`, and `go-auto-err-handling`.
+- **`audit(args, scope)`**: Safely scan a repository or file set (enforced by optional `PathScope`) to see if a specific refactoring tool is applicable.
+- **`fix(args, dry_run, scope)`**: Execute a compiled C/C++/Go/Rust binary or configured plugin against target files to update their Abstract/Concrete Syntax Tree deterministically.
+- Includes built-in and plugin tools such as `type-correct`, `go-auto-err-handling`, `cdd-extern-c`, `cdd-msvc-port`, `cdd-gnu-standardizer`, `cdd-error-percolator`, `cdd-safe-crt`, `lib2notebook2lib`, `py-grade-up`, `rust-unwrap-to-question-mark`, `gha-improver`, and `encoding-normalizer`.
 
 ## 🗄️ 2. Embedded Git Forge Operations
 
 Agents simulate GitHub/GitLab natively without touching the network.
 
-- **Issue Management**: Agents can read `Issues`, assign themselves, and update statuses to `In Progress` or `Done`.
-- **Local PR Creation**: Agents can propose code changes by writing rows into the local `prs_releases_webhooks` table, attaching diffs and commit hashes.
-- **Review Simulation**: Secondary agents can be assigned to review local PRs, providing feedback or approving them.
+- **Issue Management**: Agents can read `issues`, assign themselves, and update statuses to `"closed"` upon resolution.
+- **Local PR Creation**: Agents can propose code changes by writing rows into the local `pull_requests` table, attaching branches and commit metadata.
+- **Review Simulation**: Secondary agents can be assigned to review local PRs (`pull_request_reviews`), providing feedback or approving them.
 
 ## 🚀 3. Smart Upstream PR Synchronization
 

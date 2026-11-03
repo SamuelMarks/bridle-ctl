@@ -28,21 +28,21 @@ describe('BatchFixFormComponent', () => {
     spyOn(component.createJob, 'emit');
 
     component.form.setValue({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
       description: 'Desc',
       pattern: 'TODO',
       tools: 'sed, replace',
       args: '{"replace": {"new_string": "FIXED"}}',
       safety_mode: true,
-      max_repos: null,
-      max_prs_per_hour: null,
+      max_repos: '',
+      max_prs_per_hour: '',
     });
 
     component.onSubmit();
 
     expect(component.createJob.emit).toHaveBeenCalledWith({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
       description: 'Desc',
       pattern: 'TODO',
@@ -54,58 +54,59 @@ describe('BatchFixFormComponent', () => {
     });
   });
 
-  it('should handle null description', () => {
+  it('should handle numeric optional fields', () => {
     spyOn(component.createJob, 'emit');
 
     component.form.setValue({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
-      description: null,
+      description: 'Desc',
       pattern: 'TODO',
-      tools: '',
+      tools: 'sed',
       args: '{}',
       safety_mode: false,
-      max_repos: 10,
-      max_prs_per_hour: 2,
+      max_repos: '10',
+      max_prs_per_hour: '2',
     });
 
     component.onSubmit();
 
     expect(component.createJob.emit).toHaveBeenCalledWith({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
-      description: '',
+      description: 'Desc',
       pattern: 'TODO',
-      tools: [],
+      tools: ['sed'],
       args: {},
       safety_mode: false,
       max_repos: 10,
       max_prs_per_hour: 2,
     });
   });
+
   it('should handle invalid JSON in args', () => {
     spyOn(component.createJob, 'emit');
 
     component.form.setValue({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
       description: 'Desc',
       pattern: 'TODO',
-      tools: '',
+      tools: 'sed',
       args: '{invalid json}',
       safety_mode: true,
-      max_repos: null,
-      max_prs_per_hour: null,
+      max_repos: '',
+      max_prs_per_hour: '',
     });
 
     component.onSubmit();
 
     expect(component.createJob.emit).toHaveBeenCalledWith({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
       description: 'Desc',
       pattern: 'TODO',
-      tools: [],
+      tools: ['sed'],
       args: {},
       safety_mode: true,
       max_repos: undefined,
@@ -117,15 +118,15 @@ describe('BatchFixFormComponent', () => {
     expect(component.isSubmitting()).toBeFalse();
 
     component.form.setValue({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
-      description: '',
+      description: 'Desc',
       pattern: 'TODO',
-      tools: '',
+      tools: 'sed',
       args: '{}',
       safety_mode: true,
-      max_repos: null,
-      max_prs_per_hour: null,
+      max_repos: '',
+      max_prs_per_hour: '',
     });
 
     component.setSubmitting(true);
@@ -133,7 +134,7 @@ describe('BatchFixFormComponent', () => {
 
     component.setSubmitting(false);
     expect(component.isSubmitting()).toBeFalse();
-    expect(component.form.value.target).toBeNull();
+    expect(component.form.value.orgId).toBeNull();
     expect(component.form.value.args).toBe('{}');
   });
 
@@ -150,12 +151,13 @@ describe('BatchFixFormComponent', () => {
     expect(component.form.value.args).toBeNull();
   });
 
-  it('should handle falsy args and safety_mode', () => {
+  it('should handle falsy args, tools, and safety_mode', () => {
     spyOn(component.createJob, 'emit');
 
     component.form.patchValue({
-      target: 'org1',
+      orgId: 'org1',
       title: 'Fix things',
+      description: 'Desc',
       pattern: 'TODO',
       args: null,
       safety_mode: null,
@@ -167,8 +169,18 @@ describe('BatchFixFormComponent', () => {
     expect(component.createJob.emit).toHaveBeenCalledWith(
       jasmine.objectContaining({
         args: {},
-        safety_mode: true,
+        safety_mode: false,
         tools: ['sed'],
+      }),
+    );
+
+    component.form.controls.tools.clearValidators();
+    component.form.controls.tools.updateValueAndValidity();
+    component.form.patchValue({ tools: null });
+    component.onSubmit();
+    expect(component.createJob.emit).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        tools: [],
       }),
     );
   });

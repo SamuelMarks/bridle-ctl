@@ -1,123 +1,96 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  output,
-  inject,
-  signal,
-} from '@angular/core';
-
+import { Component, output, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AppButtonComponent } from '../../../shared/ui/app-button/app-button.component';
 import { AppInputComponent } from '../../../shared/ui/app-input/app-input.component';
+import { JsonObject } from '../../../core/models/models';
 
 /**
- * Form component for initiating a batch fix operation.
+ * Form component for creating a new batch fix job.
  */
 @Component({
   selector: 'app-batch-fix-form',
-  imports: [
-    ReactiveFormsModule,
-    AppButtonComponent,
-    AppInputComponent
-],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule, AppButtonComponent, AppInputComponent],
   template: `
-    <div class="Box p-3">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <div class="mb-3">
+    <div class="Box">
+      <div class="Box-header">
+        <h2 class="Box-title">Create Batch Fix Job</h2>
+      </div>
+      <div class="Box-body">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="batch-form">
           <app-input
-            formControlName="target"
-            label="Target Organization/Repository"
-            placeholder="e.g. example-org/repo"
+            label="Organization ID"
+            placeholder="e.g. org-123"
+            formControlName="orgId"
           ></app-input>
-          @if (form.get('target')?.invalid && form.get('target')?.touched) {
-            <div class="text-danger mt-1 text-small">Target is required</div>
-          }
-        </div>
 
-        <div class="mb-3">
           <app-input
+            label="Issue Title"
+            placeholder="e.g. Upgrade deprecated APIs"
             formControlName="title"
-            label="Issue/PR Title"
-            placeholder="e.g. Update deprecated dependency"
           ></app-input>
-          @if (form.get('title')?.invalid && form.get('title')?.touched) {
-            <div class="text-danger mt-1 text-small">Title is required</div>
-          }
-        </div>
 
-        <div class="mb-3">
           <app-input
-            formControlName="description"
             type="textarea"
-            label="Issue/PR Description"
-            placeholder="Detailed description of the change..."
+            label="Issue Description"
+            placeholder="Describe the changes being made..."
+            formControlName="description"
           ></app-input>
-        </div>
 
-        <div class="mb-3">
           <app-input
+            label="Target Regex Pattern"
+            placeholder="e.g. src/.*\\.rs"
             formControlName="pattern"
-            label="Regex Pattern"
-            placeholder="e.g. TODO.*"
           ></app-input>
-          @if (form.get('pattern')?.invalid && form.get('pattern')?.touched) {
-            <div class="text-danger mt-1 text-small">Pattern is required</div>
-          }
-        </div>
 
-        <div class="mb-3">
           <app-input
+            label="Tools (Comma separated)"
+            placeholder="e.g. clippy, rustfmt"
             formControlName="tools"
-            label="Tools (comma-separated)"
-            placeholder="e.g. sed, replace"
           ></app-input>
-        </div>
 
-        <div class="mb-3">
           <app-input
-            formControlName="args"
             type="textarea"
             label="Tool Arguments (JSON)"
-            placeholder='{"replace": {"new_string": "FIXED"}}'
+            placeholder="{}"
+            formControlName="args"
           ></app-input>
-        </div>
 
-        <div class="mb-3">
           <app-input
+            type="number"
+            label="Max Repositories (Optional)"
+            placeholder="e.g. 50"
             formControlName="max_repos"
-            type="number"
-            label="Max Repositories"
-            placeholder="No limit"
           ></app-input>
-        </div>
 
-        <div class="mb-3">
           <app-input
-            formControlName="max_prs_per_hour"
             type="number"
-            label="Max PRs per Hour"
-            placeholder="No limit"
+            label="Max PRs Per Hour (Optional)"
+            placeholder="e.g. 10"
+            formControlName="max_prs_per_hour"
           ></app-input>
-        </div>
 
-        <div class="mb-3 form-checkbox">
-          <label>
-            <input type="checkbox" formControlName="safety_mode" />
-            Safety Mode (Dry-run PR submission)
-          </label>
-        </div>
+          <div class="form-check">
+            <input
+              type="checkbox"
+              id="fixSafetyMode"
+              formControlName="safety_mode"
+            />
+            <label for="fixSafetyMode"
+              >Safety Mode (Do not automatically fork and submit PRs)</label
+            >
+          </div>
 
-        <div class="d-flex justify-content-end">
-          <app-button
-            type="submit"
-            variant="primary"
-            [disabled]="form.invalid || isSubmitting()"
-          >
-            {{ isSubmitting() ? 'Queueing Job...' : 'Queue Batch Fix' }}
-          </app-button>
-        </div>
-      </form>
+          <div class="form-actions">
+            <app-button
+              type="submit"
+              variant="primary"
+              [disabled]="form.invalid || isSubmitting()"
+            >
+              {{ isSubmitting() ? 'Creating Job...' : 'Create Batch Fix' }}
+            </app-button>
+          </div>
+        </form>
+      </div>
     </div>
   `,
   styles: `
@@ -126,86 +99,107 @@ import { AppInputComponent } from '../../../shared/ui/app-input/app-input.compon
       border: 1px solid var(--color-border-default);
       border-radius: var(--border-radius-2);
     }
-    .p-3 {
+
+    .Box-header {
+      padding: 16px;
+      background-color: var(--color-canvas-subtle);
+      border-bottom: 1px solid var(--color-border-default);
+      border-top-left-radius: var(--border-radius-2);
+      border-top-right-radius: var(--border-radius-2);
+    }
+
+    .Box-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .Box-body {
       padding: 16px;
     }
-    .mb-3 {
-      margin-bottom: 16px;
+
+    .batch-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
-    .mt-1 {
-      margin-top: 4px;
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
     }
-    .text-danger {
-      color: var(--color-danger-fg);
-    }
-    .text-small {
-      font-size: 12px;
+
+    .form-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
     }
   `,
 })
 export class BatchFixFormComponent {
-  /** FormBuilder instance */
+  /** Injected FormBuilder */
   private fb = inject(FormBuilder);
 
-  /** Emitted when the form is submitted */
+  /** Emitted when form is submitted */
   createJob = output<{
-    target: string;
+    orgId: string;
     title: string;
     description: string;
     pattern: string;
     tools: string[];
-    args: Record<string, string | number | boolean | object | null | undefined>;
+    args: JsonObject;
     safety_mode: boolean;
     max_repos?: number;
     max_prs_per_hour?: number;
   }>();
 
-  /** Form model */
+  /** Reactive form group */
   form = this.fb.group({
-    target: ['', Validators.required],
+    orgId: ['', Validators.required],
     title: ['', Validators.required],
-    description: [''],
+    description: ['', Validators.required],
     pattern: ['', Validators.required],
-    tools: [''],
+    tools: ['', Validators.required],
     args: ['{}'],
     safety_mode: [true],
-    max_repos: [null as number | null],
-    max_prs_per_hour: [null as number | null],
+    max_repos: [''],
+    max_prs_per_hour: [''],
   });
 
-  /** Whether the form is currently submitting */
-  isSubmitting = signal<boolean>(false);
+  /** Loading state */
+  isSubmitting = signal(false);
 
   /** Handles form submission */
   onSubmit(): void {
     if (this.form.valid) {
-      let toolsArr: string[] = [];
-      if (this.form.value.tools) {
-        toolsArr = this.form.value.tools
-          .split(',')
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0);
+      const toolsStr = this.form.value.tools || '';
+      const tools = toolsStr
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      let args: JsonObject = {};
+      try {
+        args = JSON.parse(this.form.value.args || '{}') as JsonObject;
+      } catch {
+        // Ignore parse error and fallback to empty object
       }
 
-      let parsedArgs = {};
-      try {
-        if (this.form.value.args) {
-          parsedArgs = JSON.parse(this.form.value.args);
-        }
-      } catch (e) {
-        // Just send empty if parsing fails for now
-      }
+      const maxReposVal = this.form.value.max_repos;
+      const maxPrsVal = this.form.value.max_prs_per_hour;
 
       this.createJob.emit({
-        target: this.form.value.target!,
+        orgId: this.form.value.orgId!,
         title: this.form.value.title!,
-        description: this.form.value.description || '',
+        description: this.form.value.description!,
         pattern: this.form.value.pattern!,
-        tools: toolsArr,
-        args: parsedArgs,
-        safety_mode: this.form.value.safety_mode ?? true,
-        max_repos: this.form.value.max_repos ?? undefined,
-        max_prs_per_hour: this.form.value.max_prs_per_hour ?? undefined,
+        tools,
+        args,
+        safety_mode: !!this.form.value.safety_mode,
+        max_repos: maxReposVal ? parseInt(maxReposVal, 10) : undefined,
+        max_prs_per_hour: maxPrsVal ? parseInt(maxPrsVal, 10) : undefined,
       });
     }
   }

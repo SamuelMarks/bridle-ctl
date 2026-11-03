@@ -1,81 +1,77 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  inject,
-  OnInit,
-} from '@angular/core';
-
+import { Component, inject, OnInit } from '@angular/core';
 import { SystemStateService } from '../../core/services/system-state.service';
 import { AppButtonComponent } from '../../shared/ui/app-button/app-button.component';
 import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component';
 
 /**
- * Dashboard Component showing system health.
+ * Dashboard component displaying overall system health and quick actions.
  */
 @Component({
   selector: 'app-dashboard',
   imports: [AppButtonComponent, AppBadgeComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="container-lg">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>System Health Dashboard</h1>
+    <div class="dashboard-container">
+      <div class="page-header">
+        <h1 class="h2">Dashboard</h1>
         <app-button
-          variant="primary"
+          variant="secondary"
           [disabled]="isLoading()"
           (click)="refreshHealth()"
         >
-          Refresh Health Check
+          {{ isLoading() ? 'Checking...' : 'Refresh Status' }}
         </app-button>
       </div>
 
-      <div class="health-cards">
-        <div class="Box p-3">
-          <h2 class="h4 mb-2">REST API</h2>
-          <p class="text-muted">Status of the HTTP interface.</p>
-          <app-badge [variant]="health().rest === 'UP' ? 'success' : 'danger'">
-            {{ health().rest }}
-          </app-badge>
+      <div class="Box">
+        <div class="Box-header">
+          <h2 class="Box-title">System Health</h2>
         </div>
-
-        <div class="Box p-3">
-          <h2 class="h4 mb-2">RPC Server</h2>
-          <p class="text-muted">Status of the internal RPC channel.</p>
-          <app-badge [variant]="health().rpc === 'UP' ? 'success' : 'danger'">
-            {{ health().rpc }}
-          </app-badge>
-        </div>
-
-        <div class="Box p-3">
-          <h2 class="h4 mb-2">Agent Daemon</h2>
-          <p class="text-muted">Status of the background execution agent.</p>
-          <app-badge [variant]="health().agent === 'UP' ? 'success' : 'danger'">
-            {{ health().agent }}
-          </app-badge>
+        <div class="Box-body health-grid">
+          <div class="health-item">
+            <span class="health-label">REST API</span>
+            <app-badge
+              [variant]="health().rest === 'UP' ? 'success' : 'danger'"
+            >
+              {{ health().rest }}
+            </app-badge>
+          </div>
+          <div class="health-item">
+            <span class="health-label">JSON-RPC Server</span>
+            <app-badge [variant]="health().rpc === 'UP' ? 'success' : 'danger'">
+              {{ health().rpc }}
+            </app-badge>
+          </div>
+          <div class="health-item">
+            <span class="health-label">Agent Daemon</span>
+            <app-badge
+              [variant]="health().agent === 'UP' ? 'success' : 'danger'"
+            >
+              {{ health().agent }}
+            </app-badge>
+          </div>
         </div>
       </div>
     </div>
   `,
   styles: `
-    .mb-4 {
-      margin-bottom: 24px;
-    }
-    .mb-2 {
-      margin-bottom: 8px;
-    }
-    .p-3 {
-      padding: 16px;
-    }
-    .h4 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-top: 0;
+    .dashboard-container {
+      max-width: 1024px;
+      margin: 0 auto;
     }
 
-    .health-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-border-default);
+    }
+
+    .h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
     }
 
     .Box {
@@ -83,15 +79,55 @@ import { AppBadgeComponent } from '../../shared/ui/app-badge/app-badge.component
       border: 1px solid var(--color-border-default);
       border-radius: var(--border-radius-2);
     }
+
+    .Box-header {
+      padding: 16px;
+      background-color: var(--color-canvas-subtle);
+      border-bottom: 1px solid var(--color-border-default);
+      border-top-left-radius: var(--border-radius-2);
+      border-top-right-radius: var(--border-radius-2);
+    }
+
+    .Box-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .Box-body {
+      padding: 16px;
+    }
+
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .health-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--border-radius-1);
+      background-color: var(--color-canvas-subtle);
+    }
+
+    .health-label {
+      font-weight: 500;
+      font-size: 14px;
+    }
   `,
 })
 export class DashboardComponent implements OnInit {
-  /** System state service instance */
+  /** Injected SystemStateService */
   private systemState = inject(SystemStateService);
 
-  /** Current system health */
+  /** Current system health signal */
   health = this.systemState.health;
-  /** Whether loading */
+
+  /** Whether health is loading */
   isLoading = this.systemState.isLoading;
 
   /** Initializes the component and fetches health */
