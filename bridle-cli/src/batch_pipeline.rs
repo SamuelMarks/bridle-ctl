@@ -424,6 +424,9 @@ mod tests {
         let run_res = run_pipeline(config_path, db_url, false, None, None)?;
         assert_eq!(run_res, format!("Batch pipeline run from {}", config_path));
 
+        let default_res = run_pipeline("config.yml", db_url, false, None, None)?;
+        assert_eq!(default_res, "Batch pipeline run from config.yml");
+
         let invalid_res = run_pipeline("invalid.yml", db_url, false, None, None);
         assert!(invalid_res.is_err());
 
@@ -660,7 +663,7 @@ mod tests {
         // Test invalid template fallback in safety_mode = false
         let github_dir = default_ws.join(".github");
         std::fs::create_dir_all(&github_dir)?;
-        std::fs::write(github_dir.join("pull_request_template.md"), "{{ bad_tmpl ")?;
+        std::fs::write(github_dir.join("PULL_REQUEST_TEMPLATE.md"), "{{ bad_tmpl ")?;
         crate::workspace::git_command()
             .current_dir(&default_ws)
             .args(["add", "."])

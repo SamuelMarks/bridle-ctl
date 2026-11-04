@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { ApiService } from './api.service';
 import { PullRequest } from '../models/models';
 import { Observable } from 'rxjs';
@@ -7,9 +7,7 @@ import { Observable } from 'rxjs';
  * Stateless HTTP data-access service for Pull Request operations.
  * Reactive state is managed by `PrsStore`.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class PrService {
   /** Injected API service */
   private api = inject(ApiService);

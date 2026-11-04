@@ -19,11 +19,7 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
       emptyMessage="No organizations ingested yet."
     >
       <ng-template appTableColumn title="Name" key="name" let-org>
-        <button
-          type="button"
-          class="org-link"
-          (click)="select.emit(org.id)"
-        >
+        <button type="button" class="org-link" (click)="select.emit(org.id)">
           <strong>{{ org.name }}</strong>
         </button>
       </ng-template>
@@ -31,11 +27,7 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
         <app-badge variant="default">{{ org.provider }}</app-badge>
       </ng-template>
       <ng-template appTableColumn title="Actions" let-org>
-        <button
-          type="button"
-          class="btn-link"
-          (click)="select.emit(org.id)"
-        >
+        <button type="button" class="btn-link" (click)="select.emit(org.id)">
           View Repos
         </button>
       </ng-template>

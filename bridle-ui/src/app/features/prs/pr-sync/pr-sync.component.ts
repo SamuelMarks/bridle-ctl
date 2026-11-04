@@ -1,10 +1,4 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  computed,
-  DestroyRef,
-} from '@angular/core';
+import { Component, inject, OnInit, computed, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { PrsStore } from '../../../core/store/prs.store';

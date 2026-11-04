@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, model } from '@angular/core';
 
 /** Interface representing a single tab item */
 export interface TabItem {
@@ -86,16 +86,13 @@ export class AppTabsComponent {
   tabs = input<TabItem[]>([]);
 
   /** Currently active tab ID */
-  activeTab = input<string>('');
-
-  /** Emitted when a tab is selected */
-  tabChange = output<string>();
+  activeTab = model<string>('');
 
   /**
    * Selects a tab.
    * @param id The ID of the tab to select.
    */
   selectTab(id: string): void {
-    this.tabChange.emit(id);
+    this.activeTab.set(id);
   }
 }

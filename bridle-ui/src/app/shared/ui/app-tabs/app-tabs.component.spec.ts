@@ -6,8 +6,8 @@ import { By } from '@angular/platform-browser';
 @Component({
   template: `<app-tabs
     [tabs]="tabs()"
-    [activeTab]="activeTab()"
-    (tabChange)="onTabChange($event)"
+    [(activeTab)]="activeTab"
+    (activeTabChange)="onTabChange($event)"
   ></app-tabs>`,
   imports: [AppTabsComponent],
 })
@@ -21,7 +21,6 @@ class TestHostComponent {
 
   onTabChange(id: string) {
     this.lastSelected.set(id);
-    this.activeTab.set(id);
   }
 }
 

@@ -1,4 +1,4 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { NotificationService } from './notification.service';
 
 describe('NotificationService', () => {
@@ -44,14 +44,19 @@ describe('NotificationService', () => {
     expect(service.notifications().length).toBe(0);
   });
 
-  it('should auto-remove notification after 5 seconds', fakeAsync(() => {
-    service.info('Test Info');
-    expect(service.notifications().length).toBe(1);
+  it('should auto-remove notification after 5 seconds', () => {
+    jasmine.clock().install();
+    try {
+      service.info('Test Info');
+      expect(service.notifications().length).toBe(1);
 
-    tick(4999);
-    expect(service.notifications().length).toBe(1);
+      jasmine.clock().tick(4999);
+      expect(service.notifications().length).toBe(1);
 
-    tick(1);
-    expect(service.notifications().length).toBe(0);
-  }));
+      jasmine.clock().tick(1);
+      expect(service.notifications().length).toBe(0);
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
 });

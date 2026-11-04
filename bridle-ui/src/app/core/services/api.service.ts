@@ -1,4 +1,4 @@
-import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { Service, inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
@@ -7,9 +7,7 @@ import { isPlatformServer } from '@angular/common';
 /**
  * Generic API Service for making HTTP requests.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class ApiService {
   /** HTTP Client instance */
   private http = inject(HttpClient);

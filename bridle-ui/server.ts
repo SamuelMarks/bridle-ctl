@@ -21,10 +21,9 @@ export function app(): express.Express {
   server.set('views', browserDistFolder);
 
   // Example Express Rest API endpoints
-  // server.get('/api/**', (req, res) => { });
+  // server.get('/api/{*splat}', (req, res) => { });
   // Serve static files from /browser
-  server.get(
-    '**',
+  server.use(
     express.static(browserDistFolder, {
       maxAge: '1y',
       index: 'index.html',
@@ -32,7 +31,7 @@ export function app(): express.Express {
   );
 
   // All regular routes use the Angular engine
-  server.get('**', (req, res, next) => {
+  server.use((req, res, next) => {
     const { protocol, originalUrl, baseUrl, headers } = req;
 
     commonEngine

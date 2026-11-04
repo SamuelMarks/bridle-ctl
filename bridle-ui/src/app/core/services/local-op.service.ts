@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Service, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -16,9 +16,7 @@ export interface OpResult {
 /**
  * Service for local audit and fix operations.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class LocalOpService {
   /** API Service instance */
   private api = inject(ApiService);

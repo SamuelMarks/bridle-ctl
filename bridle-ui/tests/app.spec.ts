@@ -137,9 +137,7 @@ test.describe('Bridle UI End-to-End Tests', () => {
   }) => {
     await page.goto('/batch');
 
-    await expect(page.locator('h1')).toContainText(
-      'Batch Actions & Pipelines',
-    );
+    await expect(page.locator('h1')).toContainText('Batch Actions & Pipelines');
 
     await expect(page.locator('text=job-12345678')).toBeVisible();
     await expect(page.locator('text=COMPLETED')).toBeVisible();

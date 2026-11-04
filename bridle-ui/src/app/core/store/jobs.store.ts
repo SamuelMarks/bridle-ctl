@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Service, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, switchMap, tap, catchError, of } from 'rxjs';
 import { BatchJob, BatchJobStatus } from '../models/models';
@@ -24,7 +24,7 @@ export interface JobsState {
 }
 
 /** Store for managing jobs */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class JobsStore {
   /** BatchService instance */
   private batchService = inject(BatchService);

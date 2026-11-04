@@ -248,7 +248,7 @@ mod tests {
         let github_dir = repo_path.join(".github");
         std::fs::create_dir_all(&github_dir)?;
         std::fs::write(
-            github_dir.join("pull_request_template.md"),
+            github_dir.join("PULL_REQUEST_TEMPLATE.md"),
             "{{ invalid_syntax }}",
         )?;
 

@@ -29,11 +29,7 @@ import {
         <h1 class="h2">Developer Tools & Database</h1>
       </div>
 
-      <app-tabs
-        [tabs]="tabs"
-        [activeTab]="activeTab()"
-        (tabChange)="activeTab.set($event)"
-      >
+      <app-tabs [tabs]="tabs" [(activeTab)]="activeTab">
         @if (activeTab() === 'add') {
           <div class="Box">
             <div class="Box-header">
@@ -287,7 +283,7 @@ export class DevToolsComponent {
   onDbExec(): void {
     if (this.dbForm.valid) {
       this.isDbExecuting.set(true);
-      let parsedPayload: JsonObject = {};
+      let parsedPayload: JsonObject;
       try {
         parsedPayload = JSON.parse(
           this.dbForm.value.payload || '{}',

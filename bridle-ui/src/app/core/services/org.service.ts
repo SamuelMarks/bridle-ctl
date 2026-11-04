@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Service, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { Organization, Repository } from '../models/models';
 import { tap } from 'rxjs/operators';
@@ -7,9 +7,7 @@ import { Observable } from 'rxjs';
 /**
  * Service for managing organizations and repositories.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class OrgService {
   /** API Service instance */
   private api = inject(ApiService);

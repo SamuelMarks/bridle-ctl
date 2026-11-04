@@ -27,7 +27,7 @@ import { LocalFixComponent } from '../local-fix/local-fix.component';
       <app-tabs
         [tabs]="tabs"
         [activeTab]="activeTab()"
-        (tabChange)="onTabChange($event)"
+        (activeTabChange)="onTabChange($event)"
       >
         @if (activeTab() === 'audit') {
           <app-local-audit (audit)="onAudit($event)"></app-local-audit>
@@ -93,11 +93,7 @@ export class LocalOpsPageComponent {
    * @param data.tools The tools to run
    * @param data.args The tool arguments
    */
-  onAudit(data: {
-    pattern: string;
-    tools: string[];
-    args: JsonObject;
-  }): void {
+  onAudit(data: { pattern: string; tools: string[]; args: JsonObject }): void {
     this.auditComponent()?.setOperating(true);
     this.localOpService.audit(data.pattern, data.tools, data.args).subscribe({
       next: (res: OpResult) => {

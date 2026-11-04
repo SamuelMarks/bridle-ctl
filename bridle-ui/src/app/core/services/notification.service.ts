@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 
 /** Notification interface */
 export interface Notification {
@@ -13,9 +13,7 @@ export interface Notification {
 /**
  * Service for managing toast notifications.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class NotificationService {
   /** Signal for notifications */
   private notificationsSignal = signal<Notification[]>([]);

@@ -1,10 +1,4 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  viewChild,
-  signal,
-} from '@angular/core';
+import { Component, inject, OnInit, viewChild, signal } from '@angular/core';
 import { BatchService } from '../../../core/services/batch.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { JobsStore } from '../../../core/store/jobs.store';
@@ -38,11 +32,7 @@ import { BatchJobDetailComponent } from '../batch-job-detail/batch-job-detail.co
 
       <div class="layout-grid">
         <div class="main-column">
-          <app-tabs
-            [tabs]="tabs"
-            [activeTab]="activeTab()"
-            (tabChange)="activeTab.set($event)"
-          >
+          <app-tabs [tabs]="tabs" [(activeTab)]="activeTab">
             @if (activeTab() === 'fix') {
               <app-batch-fix-form
                 (createJob)="onCreateFixJob($event)"

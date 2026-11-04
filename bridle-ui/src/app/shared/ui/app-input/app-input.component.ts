@@ -1,10 +1,4 @@
-import {
-  Component,
-  input,
-  forwardRef,
-  Provider,
-  signal,
-} from '@angular/core';
+import { Component, input, forwardRef, Provider, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 /** Global counter for generating unique input IDs */

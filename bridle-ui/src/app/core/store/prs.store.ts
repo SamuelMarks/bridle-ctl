@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Service, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, switchMap, tap, catchError, of } from 'rxjs';
 import { PullRequest } from '../models/models';
@@ -20,7 +20,7 @@ export interface PrsState {
 }
 
 /** Store for managing pull requests */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PrsStore {
   /** PrService instance */
   private prService = inject(PrService);
@@ -54,7 +54,9 @@ export class PrsStore {
     this.prs().filter((pr) => pr.status === 'SYNCED'),
   );
   /** Computed list of local pull requests */
-  readonly localPrs = computed(() => this.prs().filter((pr) => pr.status === 'LOCAL'));
+  readonly localPrs = computed(() =>
+    this.prs().filter((pr) => pr.status === 'LOCAL'),
+  );
   /** Computed list of conflicting pull requests */
   readonly conflictPrs = computed(() =>
     this.prs().filter((pr) => pr.status === 'CONFLICT'),
@@ -109,7 +111,9 @@ export class PrsStore {
             }),
             catchError((err) => {
               this.patchState({ isSyncing: false });
-              this.notificationService.error(err.message || 'Failed to sync PRs');
+              this.notificationService.error(
+                err.message || 'Failed to sync PRs',
+              );
               return of(null);
             }),
           );

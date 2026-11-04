@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { ApiService } from './api.service';
 import { BatchJob, JsonObject } from '../models/models';
 import { Observable } from 'rxjs';
@@ -7,9 +7,7 @@ import { Observable } from 'rxjs';
  * Stateless HTTP data-access service for batch operations and pipelines.
  * Reactive state is managed by `JobsStore`.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class BatchService {
   /** Injected API service */
   private api = inject(ApiService);

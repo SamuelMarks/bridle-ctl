@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Service, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { SystemHealth } from '../models/models';
 import { tap } from 'rxjs/operators';
@@ -6,9 +6,7 @@ import { tap } from 'rxjs/operators';
 /**
  * Service for managing system health state.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class SystemStateService {
   /** API Service instance */
   private api = inject(ApiService);

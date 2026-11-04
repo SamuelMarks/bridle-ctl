@@ -1,6 +1,10 @@
 import { Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ScrollingModule } from '@angular/cdk/scrolling';
+import {
+  CdkFixedSizeVirtualScroll,
+  CdkVirtualForOf,
+  CdkVirtualScrollViewport,
+} from '@angular/cdk/scrolling';
 import { BatchJob, BatchJobStatus } from '../../../core/models/models';
 import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.component';
 
@@ -9,7 +13,13 @@ import { AppBadgeComponent } from '../../../shared/ui/app-badge/app-badge.compon
  */
 @Component({
   selector: 'app-batch-jobs-list',
-  imports: [DatePipe, ScrollingModule, AppBadgeComponent],
+  imports: [
+    DatePipe,
+    CdkVirtualScrollViewport,
+    CdkFixedSizeVirtualScroll,
+    CdkVirtualForOf,
+    AppBadgeComponent,
+  ],
   template: `
     <div class="Box">
       <div class="Box-header">

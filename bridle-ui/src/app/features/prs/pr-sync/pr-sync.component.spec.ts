@@ -5,7 +5,11 @@ import { PrSyncComponent } from './pr-sync.component';
 import { OrgService } from '../../../core/services/org.service';
 import { PrsStore } from '../../../core/store/prs.store';
 import { NotificationService } from '../../../core/services/notification.service';
-import { Organization, PullRequest, Repository } from '../../../core/models/models';
+import {
+  Organization,
+  PullRequest,
+  Repository,
+} from '../../../core/models/models';
 
 interface MockOrgService {
   orgs: WritableSignal<Organization[]>;
@@ -53,7 +57,12 @@ describe('PrSyncComponent', () => {
       prs: signal([
         { id: 'pr1', title: 'Test PR', repoId: 'repo1', status: 'LOCAL' },
         { id: 'pr2', title: 'Synced PR', repoId: 'repo1', status: 'SYNCED' },
-        { id: 'pr3', title: 'Conflict PR', repoId: 'repo1', status: 'CONFLICT' },
+        {
+          id: 'pr3',
+          title: 'Conflict PR',
+          repoId: 'repo1',
+          status: 'CONFLICT',
+        },
       ]),
       isSyncing: signal(false),
       loadPrs: jasmine.createSpy('loadPrs'),
